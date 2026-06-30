@@ -703,8 +703,12 @@ function bindEvents(){
   document.getElementById('fab').addEventListener('click',toggleSheet);
   document.getElementById('overlay').addEventListener('click',closeSheet);
   document.getElementById('bsheet').addEventListener('click',e=>{const item=e.target.closest('[data-action]');if(!item)return;closeSheet();handleAction(item.dataset.action,item.dataset);});
-  document.body.addEventListener('click',e=>{const el=e.target.closest('[data-action]');if(el)handleAction(el.dataset.action,el.dataset);});
-  document.body.addEventListener('click',e=>{const ot=e.target.closest('[data-open-tour2]');if(ot)openTourDetail(Number(ot.dataset.openTour2));});
+  document.body.addEventListener('click',e=>{
+    const el=e.target.closest('[data-action]');
+    if(el){ handleAction(el.dataset.action,el.dataset); return; }
+    const ot=e.target.closest('[data-open-tour2]');
+    if(ot){ openTourDetail(Number(ot.dataset.openTour2)); return; }
+  });
   document.getElementById('btn-notif').addEventListener('click',()=>{fillNotifForm();openModal('modal-notif');});
   document.getElementById('btn-setting').addEventListener('click',()=>{const auth=loadAuth();document.getElementById('setting-username').value=auth.username;fillSettingsForm();openModal('modal-setting');});
   document.querySelectorAll('.modal-wrap').forEach(wrap=>{wrap.addEventListener('click',e=>{if(e.target===wrap)closeModal(wrap.id);});});
@@ -733,7 +737,7 @@ function bindEvents(){
   document.getElementById('btn-del-tour').addEventListener('click',async()=>{if(!currentTourDetailId)return;const id=currentTourDetailId;DB.tours=DB.tours.filter(t=>t.id!==id);saveDB();closeModal('modal-tour-detail');renderCalendar();renderHome();renderRoute();toast('帶看已刪除');try{await sbDeleteTour(id);}catch(e){console.error(e);toast('雲端刪除失敗，請檢查網路');}});
   document.getElementById('cal-prev').addEventListener('click',()=>{calMonth--;if(calMonth<1){calMonth=12;calYear--;}renderCalendar();});
   document.getElementById('cal-next').addEventListener('click',()=>{calMonth++;if(calMonth>12){calMonth=1;calYear++;}renderCalendar();});
-  document.getElementById('btn-add-tour-sched').addEventListener('click',()=>openModal('modal-tour'));
+  document.getElementById('btn-add-tour-sched').addEventListener('click',()=>{editingTourId=null;resetTourForm();openModal('modal-tour');});
   document.getElementById('btn-add-todo').addEventListener('click',addTodo);
   document.getElementById('btn-close-todo').addEventListener('click',()=>closeModal('modal-todo'));
   document.getElementById('todo-input').addEventListener('keydown',e=>{if(e.key==='Enter')addTodo();});
