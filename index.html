@@ -801,8 +801,8 @@ function bindEvents(){
   document.getElementById('cal-grid').addEventListener('click',e=>{const cd=e.target.closest('[data-calday]');if(cd){calDay=Number(cd.dataset.calday);renderCalendar();}});
   document.getElementById('home-todos').addEventListener('click',e=>{const tck=e.target.closest('[data-todo-toggle]');if(tck)toggleTodo(Number(tck.dataset.todoToggle));});
   document.getElementById('route-list').addEventListener('click',e=>{
-    const openBtn=e.target.closest('[data-open-tour]');
-    if(openBtn){ openTourDetail(Number(openBtn.dataset.openTour)); return; }
+    const ot=e.target.closest('[data-open-tour]');
+    if(ot){ openTourDetail(Number(ot.dataset.openTour)); return; }
   });
 
 }
