@@ -745,6 +745,7 @@ function bindEvents(){
   });
   document.getElementById('btn-notif').addEventListener('click',()=>{fillNotifForm();openModal('modal-notif');});
   document.getElementById('btn-setting').addEventListener('click',()=>{const auth=loadAuth();document.getElementById('setting-username').value=auth.username;fillSettingsForm();openModal('modal-setting');});
+  document.getElementById('btn-setting').addEventListener('click',()=>{const auth=loadAuth();document.getElementById('setting-username').value=auth.username;fillSettingsForm();openModal('modal-setting');});
   document.querySelectorAll('.modal-wrap').forEach(wrap=>{wrap.addEventListener('click',e=>{if(e.target===wrap)closeModal(wrap.id);});});
   document.getElementById('btn-next-survey').addEventListener('click',()=>showTab('t-survey'));
   document.getElementById('btn-back-survey').addEventListener('click',()=>showTab('t-basic'));
@@ -830,6 +831,7 @@ function handleAction(action,data){
     if(data.modal==='modal-deals'){renderDeals();openModal('modal-deals');return;}
     if(data.modal==='modal-todo'){renderTodos();openModal('modal-todo');return;}
     if(data.modal==='modal-setting'){const auth=loadAuth();document.getElementById('setting-username').value=auth.username;fillSettingsForm();openModal('modal-setting');return;}
+    if(data.modal==='modal-notif'){fillNotifForm();openModal('modal-notif');return;}
     if(data.modal==='modal-tour'){editingTourId=null;resetTourForm();openModal('modal-tour');return;}
     openModal(data.modal);
   }
