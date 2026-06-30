@@ -707,6 +707,7 @@ function bindEvents(){
   document.getElementById('bsheet').addEventListener('click',e=>{const item=e.target.closest('[data-action]');if(!item)return;closeSheet();handleAction(item.dataset.action,item.dataset);});
   document.body.addEventListener('click',e=>{const el=e.target.closest('[data-action]');if(el)handleAction(el.dataset.action,el.dataset);});
   document.getElementById('btn-notif').addEventListener('click',()=>{fillNotifForm();openModal('modal-notif');});
+  document.getElementById('btn-setting').addEventListener('click',()=>{const auth=loadAuth();document.getElementById('setting-username').value=auth.username;fillSettingsForm();openModal('modal-setting');});
   document.querySelectorAll('.modal-wrap').forEach(wrap=>{wrap.addEventListener('click',e=>{if(e.target===wrap)closeModal(wrap.id);});});
   document.getElementById('btn-next-survey').addEventListener('click',()=>showTab('t-survey'));
   document.getElementById('btn-back-survey').addEventListener('click',()=>showTab('t-basic'));
