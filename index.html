@@ -772,9 +772,9 @@ function bindEvents(){
   document.getElementById('home-todos').addEventListener('click',e=>{const tck=e.target.closest('[data-todo-toggle]');if(tck)toggleTodo(Number(tck.dataset.todoToggle));});
   document.getElementById('route-list').addEventListener('click',e=>{
     const navBtn=e.target.closest('[data-nav]');
-    if(navBtn){ window.open('https://maps.google.com/?q='+encodeURIComponent(navBtn.dataset.nav),'_blank'); return; }
-    const r=e.target.closest('[data-tour-id]');
-    if(r)openTourDetail(Number(r.dataset.tourId));
+    if(navBtn){ e.preventDefault(); e.stopPropagation(); window.open('https://maps.google.com/?q='+encodeURIComponent(navBtn.dataset.nav),'_blank'); return; }
+    const openBtn=e.target.closest('[data-open-tour]');
+    if(openBtn){ openTourDetail(Number(openBtn.dataset.openTour)); return; }
   });
   document.getElementById('tour-action-row').addEventListener('click',async e=>{const sb=e.target.closest('[data-tour-status]');if(sb&&currentTourDetailId){const t=DB.tours.find(x=>x.id===currentTourDetailId);if(t){t.status=sb.dataset.tourStatus;saveDB();renderCalendar();renderHome();renderRoute();openTourDetail(currentTourDetailId);toast(`已標記「${t.status}」`);try{await sbUpdateTour(t);}catch(e){console.error(e);}}}const nb=e.target.closest('[data-nav]');if(nb)window.open('https://maps.google.com/?q='+encodeURIComponent(nb.dataset.nav),'_blank');const tb=e.target.closest('[data-tel]');if(tb)window.open('tel:'+tb.dataset.tel);const cb=e.target.closest('[data-copy-reminder]');if(cb)copyReminder();});
 }
@@ -969,7 +969,7 @@ function renderRoute(){
   console.log('renderRoute - today:', today, 'all tours:', DB.tours, 'filtered list:', list);
   const el=document.getElementById('route-list');
   if(!list.length){el.innerHTML='<div class="empty"><p>今日沒有帶看行程</p></div>';document.getElementById('map-dist').textContent='—';document.getElementById('map-time').textContent='—';clearMap();return;}
-  el.innerHTML=list.map((t,i)=>`<div class="card" style="margin-bottom:8px;cursor:pointer" data-tour-id="${t.id}"><div style="display:flex;align-items:flex-start;gap:12px"><div style="width:28px;height:28px;border-radius:50%;background:${i===0?'var(--text)':'var(--primary)'};display:flex;align-items:center;justify-content:center;flex-shrink:0;color:${i===0?'#fff':'var(--text)'};font-size:13px;font-weight:700">${i+1}</div><div style="flex:1"><div style="display:flex;justify-content:space-between;align-items:center"><div style="font-size:15px;font-weight:700">${t.client}</div><span style="font-size:12px;color:var(--primary-dark);font-weight:600">${t.time||'—'}</span></div><div style="font-size:12px;color:var(--sub);margin:3px 0">${t.addr}</div><span class="tag ${tsCls(t.status)}" style="margin-top:4px;display:inline-block">${t.status}</span></div><button class="actbtn" data-nav="${t.addr}" style="flex-shrink:0;background:var(--primary);border-color:var(--primary)">導航</button></div></div>`).join('');
+  el.innerHTML=list.map((t,i)=>`<div class="card" style="margin-bottom:8px;position:relative;z-index:1" data-tour-id="${t.id}"><div style="display:flex;align-items:flex-start;gap:12px"><div style="width:28px;height:28px;border-radius:50%;background:${i===0?'var(--text)':'var(--primary)'};display:flex;align-items:center;justify-content:center;flex-shrink:0;color:${i===0?'#fff':'var(--text)'};font-size:13px;font-weight:700;cursor:pointer" data-open-tour="${t.id}">${i+1}</div><div style="flex:1;cursor:pointer" data-open-tour="${t.id}"><div style="display:flex;justify-content:space-between;align-items:center"><div style="font-size:15px;font-weight:700">${t.client}</div><span style="font-size:12px;color:var(--primary-dark);font-weight:600">${t.time||'—'}</span></div><div style="font-size:12px;color:var(--sub);margin:3px 0">${t.addr}</div><span class="tag ${tsCls(t.status)}" style="margin-top:4px;display:inline-block">${t.status}</span></div><button type="button" class="actbtn" data-nav="${t.addr}" style="flex-shrink:0;background:var(--primary);border-color:var(--primary);position:relative;z-index:2;pointer-events:auto">導航</button></div></div>`).join('');
   initMap(list);
 }
 
