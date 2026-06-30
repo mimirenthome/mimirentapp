@@ -43,8 +43,8 @@ html,body{width:100%;max-width:430px;margin:0 auto;background:var(--bg);font-fam
 .overlay{position:fixed;inset:0;background:rgba(74,63,56,.35);z-index:300;opacity:0;pointer-events:none;visibility:hidden;transition:opacity .25s;}
 .overlay.show{opacity:1;pointer-events:auto;visibility:visible;}
 
-#bsheet{position:fixed;bottom:-100%;left:50%;transform:translateX(-50%);width:100%;max-width:430px;background:var(--card);border-radius:24px 24px 0 0;z-index:400;transition:bottom .3s cubic-bezier(.32,.72,0,1);padding:0 20px 40px;pointer-events:auto;}
-#bsheet.show{bottom:0;}
+#bsheet{position:fixed;bottom:-100%;left:50%;transform:translateX(-50%);width:100%;max-width:430px;background:var(--card);border-radius:24px 24px 0 0;z-index:400;transition:bottom .3s cubic-bezier(.32,.72,0,1);padding:0 20px 40px;pointer-events:none;}
+#bsheet.show{bottom:0;pointer-events:auto;}
 .shandle{width:36px;height:4px;background:var(--border);border-radius:2px;margin:12px auto 18px;}
 .sgrid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;}
 .sitem{background:var(--bg);border-radius:var(--rsm);padding:16px 10px;display:flex;flex-direction:column;align-items:center;gap:8px;cursor:pointer;border:none;font-family:inherit;transition:background .15s;}
@@ -810,14 +810,13 @@ function bindEvents(){
     try{ await sbSaveSettings(s); }catch(e){ console.error(e); toast('雲端儲存失敗，請檢查網路'); }
   });
   document.getElementById('btn-close-notif').addEventListener('click',()=>closeModal('modal-notif'));
-  document.getElementById('page-more').addEventListener('click',e=>{const mi=e.target.closest('[data-action]');if(!mi)return;e.stopPropagation();handleAction(mi.dataset.action,mi.dataset);});
-  document.getElementById('more-deals').addEventListener('click',()=>{renderDeals();openModal('modal-deals');});
-  document.getElementById('more-todo').addEventListener('click',()=>{renderTodos();openModal('modal-todo');});
-  document.getElementById('more-phrase').addEventListener('click',()=>{renderPhrases();openModal('modal-phrase');});
-  document.getElementById('more-notif').addEventListener('click',()=>{fillNotifForm();openModal('modal-notif');});
-  document.getElementById('more-setting').addEventListener('click',()=>{const auth=loadAuth();document.getElementById('setting-username').value=auth.username;fillSettingsForm();openModal('modal-setting');});
-  document.getElementById('btn-export').addEventListener('click',exportData);
-  document.getElementById('btn-import').addEventListener('click',()=>document.getElementById('import-input').click());
+  document.getElementById('more-deals').addEventListener('click',function(e){console.log('more-deals clicked');e.stopPropagation();renderDeals();openModal('modal-deals');});
+  document.getElementById('more-todo').addEventListener('click',function(e){console.log('more-todo clicked');e.stopPropagation();renderTodos();openModal('modal-todo');});
+  document.getElementById('more-phrase').addEventListener('click',function(e){console.log('more-phrase clicked');e.stopPropagation();renderPhrases();openModal('modal-phrase');});
+  document.getElementById('more-notif').addEventListener('click',function(e){console.log('more-notif clicked');e.stopPropagation();fillNotifForm();openModal('modal-notif');});
+  document.getElementById('more-setting').addEventListener('click',function(e){console.log('more-setting clicked');e.stopPropagation();const auth=loadAuth();document.getElementById('setting-username').value=auth.username;fillSettingsForm();openModal('modal-setting');});
+  document.getElementById('btn-export').addEventListener('click',function(e){console.log('export clicked');exportData();});
+  document.getElementById('btn-import').addEventListener('click',function(e){console.log('import clicked');document.getElementById('import-input').click();});
   document.getElementById('import-input').addEventListener('change',function(){importData(this);});
   document.getElementById('page-more').addEventListener('click',e=>{const mi=e.target.closest('[data-action]');if(mi)handleAction(mi.dataset.action,mi.dataset);});
   document.getElementById('detail-body').addEventListener('click',e=>{const eb=e.target.closest('[data-edit-client]');const db=e.target.closest('[data-del-client]');if(eb)editClient(Number(eb.dataset.editClient));if(db)deleteClient(Number(db.dataset.delClient));});
