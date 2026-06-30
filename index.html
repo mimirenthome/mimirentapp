@@ -313,7 +313,7 @@ html,body{width:100%;max-width:430px;margin:0 auto;background:var(--bg);font-fam
     <div class="sect">今日帶看地圖</div>
     <div id="map-container">
       <div id="gmap" style="width:100%;height:100%"></div>
-      <button id="btn-locate" style="position:absolute;bottom:14px;right:14px;width:42px;height:42px;border-radius:50%;background:#fff;border:none;box-shadow:0 2px 10px rgba(0,0,0,.2);display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:5">
+      <button id="btn-locate" type="button" style="position:absolute;bottom:14px;right:14px;width:42px;height:42px;border-radius:50%;background:#fff;border:none;box-shadow:0 2px 10px rgba(0,0,0,.2);display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:10;pointer-events:auto">
         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#4A3F38" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v6m0 6v10M1 12h6m6 0h10"/></svg>
       </button>
       <div id="map-loading" style="position:absolute;inset:0;background:linear-gradient(135deg,#e8e0d8,#d4c8bb);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;color:var(--sub)">
@@ -1000,8 +1000,21 @@ function initMap(tours){
   if(!gmap){
     gmap=new google.maps.Map(document.getElementById('gmap'),{
       zoom:13,center:{lat:24.1477,lng:120.6736},
-      mapTypeControl:false,fullscreenControl:false,streetViewControl:false,
-      styles:[{featureType:'poi',elementType:'labels',stylers:[{visibility:'off'}]},{featureType:'transit',elementType:'labels',stylers:[{visibility:'off'}]}]
+      mapTypeControl:false,fullscreenControl:false,streetViewControl:false,zoomControl:false,
+      styles:[
+        {elementType:'geometry',stylers:[{color:'#F8F4EF'}]},
+        {elementType:'labels.text.fill',stylers:[{color:'#9A8880'}]},
+        {elementType:'labels.text.stroke',stylers:[{color:'#F8F4EF'}]},
+        {featureType:'administrative',elementType:'geometry',stylers:[{visibility:'off'}]},
+        {featureType:'poi',stylers:[{visibility:'off'}]},
+        {featureType:'transit',stylers:[{visibility:'off'}]},
+        {featureType:'road',elementType:'geometry',stylers:[{color:'#FFFFFF'}]},
+        {featureType:'road',elementType:'geometry.stroke',stylers:[{color:'#EDE5DC'}]},
+        {featureType:'road.highway',elementType:'geometry',stylers:[{color:'#DCC8B4'}]},
+        {featureType:'road.highway',elementType:'geometry.stroke',stylers:[{color:'#C4A98A'}]},
+        {featureType:'water',elementType:'geometry',stylers:[{color:'#E5DDD2'}]},
+        {featureType:'landscape',elementType:'geometry',stylers:[{color:'#F8F4EF'}]},
+      ]
     });
     document.getElementById('btn-locate').addEventListener('click',locateUser);
   }
@@ -1010,17 +1023,19 @@ function initMap(tours){
   const geo=new google.maps.Geocoder();
   const bounds=new google.maps.LatLngBounds();
   let resolved=0;
-  const positions=[];
+  const positions=new Array(tours.length);
   tours.forEach((t,i)=>{
-    const fullAddr = t.addr.includes('台灣')||t.addr.includes('台中')||t.addr.includes('臺中') ? t.addr : '台中市'+t.addr;
-    geo.geocode({address:fullAddr,region:'tw'},(res,status)=>{
+    let fullAddr = t.addr.trim();
+    if(!fullAddr.includes('台灣')&&!fullAddr.includes('台中')&&!fullAddr.includes('臺中')) fullAddr = '台中市'+fullAddr;
+    if(!fullAddr.includes('台灣')) fullAddr = fullAddr+', 台灣';
+    geo.geocode({address:fullAddr,region:'tw',componentRestrictions:{country:'TW'}},(res,status)=>{
       if(status==='OK'&&res&&res[0]){
         const pos=res[0].geometry.location;
         positions[i]={pos,t};
         const marker=new google.maps.Marker({
           position:pos,map:gmap,
-          label:{text:String(i+1),color:'#fff',fontWeight:'700'},
-          icon:{path:google.maps.SymbolPath.CIRCLE,scale:16,fillColor:i===0?'#4A3F38':'#C4A98A',fillOpacity:1,strokeColor:'#fff',strokeWeight:2}
+          label:{text:String(i+1),color:'#fff',fontWeight:'700',fontSize:'13px'},
+          icon:{path:google.maps.SymbolPath.CIRCLE,scale:15,fillColor:i===0?'#4A3F38':'#C4A98A',fillOpacity:1,strokeColor:'#fff',strokeWeight:2}
         });
         const info=new google.maps.InfoWindow({content:`<div style="font-size:13px;font-weight:700;padding:4px 6px">${t.client}<br><span style="font-weight:400;color:#666">${t.time||''}</span></div>`});
         marker.addListener('click',()=>info.open(gmap,marker));
@@ -1034,9 +1049,10 @@ function initMap(tours){
         const valid=positions.filter(Boolean);
         if(valid.length){
           gmap.fitBounds(bounds);
+          if(valid.length===1) gmap.setZoom(15);
           if(valid.length>1)calcRoute(valid);
         } else {
-          toast('地址無法定位，請確認地址是否完整正確');
+          toast('地址無法定位，請確認地址格式（例如：台中市西屯區○○路○號）');
         }
       }
     });
