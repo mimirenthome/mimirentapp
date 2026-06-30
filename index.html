@@ -482,10 +482,6 @@ html,body{width:100%;max-width:430px;margin:0 auto;background:var(--bg);font-fam
     <div class="fg"><label class="fl">備註</label><textarea class="fta" id="t-note" style="min-height:70px" placeholder="停車資訊、鑰匙取得…"></textarea></div>
     <button class="btnp" id="btn-save-tour">儲存帶看</button>
     <button class="btno" id="btn-close-tour">取消</button>
-  </div>
-</div>
-
-<!-- MODAL: TODO -->
 <div class="modal-wrap" id="modal-todo">
   <div class="modal-box">
     <div class="mhandle"></div>
@@ -514,8 +510,9 @@ html,body{width:100%;max-width:430px;margin:0 auto;background:var(--bg);font-fam
     <div class="actrow" id="tour-action-row"></div>
     <div class="abtnrow" style="margin-top:4px">
       <button class="btnd" id="btn-del-tour">刪除</button>
-      <button class="btnp" id="btn-close-tour-detail" style="flex:1;margin-top:0">關閉</button>
+      <button class="btno" id="btn-edit-tour" style="flex:1;margin-top:0;border-color:var(--primary-dark);color:var(--text)">編輯</button>
     </div>
+    <button class="btnp" id="btn-close-tour-detail" style="margin-top:8px">關閉</button>
   </div>
 </div>
 
@@ -595,7 +592,7 @@ let PHRASES=[];
 let editingClientId=null,editingPhraseId=null,currentFilter='all';
 let selectedLabel='新客戶',selectedSource='',selectedTypes=[];
 let currentPhotoLabel='LINE截圖',uploadedPhotos=[];
-let calYear,calMonth,calDay,currentTourDetailId=null;
+let calYear,calMonth,calDay,currentTourDetailId=null,editingTourId=null;
 let cpickOpen=false;
 
 // ── SUPABASE ────────────────────────────────────────────
@@ -728,11 +725,12 @@ function bindEvents(){
   document.getElementById('client-search-input').addEventListener('input',function(){renderClients(this.value);});
   document.getElementById('btn-back-detail').addEventListener('click',()=>document.getElementById('detail-page').classList.remove('show'));
   document.getElementById('btn-save-tour').addEventListener('click',saveTour);
-  document.getElementById('btn-close-tour').addEventListener('click',()=>closeModal('modal-tour'));
+  document.getElementById('btn-close-tour').addEventListener('click',()=>{resetTourForm();editingTourId=null;closeModal('modal-tour');});
   document.getElementById('cpick-btn').addEventListener('click',e=>{e.stopPropagation();toggleCPick();});
   document.getElementById('cpick-search').addEventListener('input',function(){renderCPickList(this.value);});
   document.addEventListener('click',e=>{if(!e.target.closest('#cpick'))closeCPick();});
   document.getElementById('btn-close-tour-detail').addEventListener('click',()=>closeModal('modal-tour-detail'));
+  document.getElementById('btn-edit-tour').addEventListener('click',()=>{if(currentTourDetailId)editTour(currentTourDetailId);});
   document.getElementById('btn-del-tour').addEventListener('click',async()=>{if(!currentTourDetailId)return;const id=currentTourDetailId;DB.tours=DB.tours.filter(t=>t.id!==id);saveDB();closeModal('modal-tour-detail');renderCalendar();renderHome();renderRoute();toast('帶看已刪除');try{await sbDeleteTour(id);}catch(e){console.error(e);toast('雲端刪除失敗，請檢查網路');}});
   document.getElementById('cal-prev').addEventListener('click',()=>{calMonth--;if(calMonth<1){calMonth=12;calYear--;}renderCalendar();});
   document.getElementById('cal-next').addEventListener('click',()=>{calMonth++;if(calMonth>12){calMonth=1;calYear++;}renderCalendar();});
@@ -786,6 +784,7 @@ function handleAction(action,data){
     if(data.modal==='modal-deals'){renderDeals();openModal('modal-deals');return;}
     if(data.modal==='modal-todo'){renderTodos();openModal('modal-todo');return;}
     if(data.modal==='modal-setting'){const auth=loadAuth();document.getElementById('setting-username').value=auth.username;fillSettingsForm();openModal('modal-setting');return;}
+    if(data.modal==='modal-tour'){editingTourId=null;resetTourForm();openModal('modal-tour');return;}
     openModal(data.modal);
   }
 }
@@ -910,13 +909,56 @@ async function saveTour(){
   const phone=isManual?document.getElementById('t-phone-manual').value.trim():document.getElementById('t-phone-val').value.trim();
   const addr=document.getElementById('t-addr').value.trim();
   if(!client||!addr){alert('請選擇客戶並填寫地址');return;}
-  const tour={id:Date.now(),client,phone,addr,date:document.getElementById('t-date').value,time:document.getElementById('t-time').value,status:document.getElementById('t-status').value,note:document.getElementById('t-note').value};
-  DB.tours.push(tour);
-  saveDB();
+  const data={client,phone,addr,date:document.getElementById('t-date').value,time:document.getElementById('t-time').value,status:document.getElementById('t-status').value,note:document.getElementById('t-note').value};
+  if(editingTourId){
+    const idx=DB.tours.findIndex(t=>t.id===editingTourId);
+    if(idx>=0) DB.tours[idx]={...DB.tours[idx],...data};
+    saveDB();
+    resetTourForm();
+    closeModal('modal-tour');
+    renderCalendar();renderHome();renderRoute();
+    toast('帶看已更新 ✓');
+    const id=editingTourId; editingTourId=null;
+    try{ await sbFullUpdateTour({id,...data}); }catch(e){ console.error(e); toast('雲端儲存失敗，請檢查網路'); }
+  } else {
+    const tour={id:Date.now(),...data};
+    DB.tours.push(tour);
+    saveDB();
+    resetTourForm();
+    closeModal('modal-tour');renderCalendar();renderHome();renderRoute();toast('帶看行程已新增 ✓');
+    try{ await sbInsertTour(tour); }catch(e){ console.error(e); toast('雲端儲存失敗，請檢查網路'); }
+  }
+}
+function resetTourForm(){
   ['t-client-manual','t-phone-manual','t-addr','t-note'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
-  document.getElementById('t-client-val').value='';document.getElementById('t-phone-val').value='';document.getElementById('cpick-display').textContent='搜尋或選擇客戶…';document.getElementById('cpick-display').style.color='var(--sub)';document.getElementById('t-manual-wrap').style.display='none';
-  closeModal('modal-tour');renderCalendar();renderHome();renderRoute();toast('帶看行程已新增 ✓');
-  try{ await sbInsertTour(tour); }catch(e){ console.error(e); toast('雲端儲存失敗，請檢查網路'); }
+  document.getElementById('t-client-val').value='';document.getElementById('t-phone-val').value='';
+  document.getElementById('cpick-display').textContent='搜尋或選擇客戶…';document.getElementById('cpick-display').style.color='var(--sub)';
+  document.getElementById('t-manual-wrap').style.display='none';
+  document.getElementById('t-date').value=todayStr();
+  document.getElementById('t-time').value='';
+  document.getElementById('t-status').value='待確認';
+  document.getElementById('btn-save-tour').textContent='儲存帶看';
+}
+function editTour(id){
+  const t=DB.tours.find(x=>x.id===id); if(!t) return;
+  editingTourId=id;
+  document.getElementById('t-client-val').value=t.client;
+  document.getElementById('t-phone-val').value=t.phone||'';
+  document.getElementById('cpick-display').textContent=t.client;
+  document.getElementById('cpick-display').style.color='var(--text)';
+  document.getElementById('t-manual-wrap').style.display='none';
+  document.getElementById('t-addr').value=t.addr;
+  document.getElementById('t-date').value=t.date||todayStr();
+  document.getElementById('t-time').value=t.time||'';
+  document.getElementById('t-status').value=t.status||'待確認';
+  document.getElementById('t-note').value=t.note||'';
+  document.getElementById('btn-save-tour').textContent='✓ 更新帶看';
+  closeModal('modal-tour-detail');
+  openModal('modal-tour');
+}
+async function sbFullUpdateTour(t){
+  await sbFetch('tours?id=eq.'+t.id, {method:'PATCH', prefer:'return=minimal',
+    body:JSON.stringify({client:t.client,phone:t.phone,addr:t.addr,date:t.date,time:t.time,status:t.status,note:t.note})});
 }
 
 function tsCls(s){return 'ts-'+s;}
