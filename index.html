@@ -313,6 +313,9 @@ html,body{width:100%;max-width:430px;margin:0 auto;background:var(--bg);font-fam
     <div class="sect">今日帶看地圖</div>
     <div id="map-container">
       <div id="gmap" style="width:100%;height:100%"></div>
+      <button id="btn-locate" style="position:absolute;bottom:14px;right:14px;width:42px;height:42px;border-radius:50%;background:#fff;border:none;box-shadow:0 2px 10px rgba(0,0,0,.2);display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:5">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#4A3F38" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v6m0 6v10M1 12h6m6 0h10"/></svg>
+      </button>
       <div id="map-loading" style="position:absolute;inset:0;background:linear-gradient(135deg,#e8e0d8,#d4c8bb);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;color:var(--sub)">
         <div style="width:44px;height:44px;background:var(--primary-dark);border-radius:50%;display:flex;align-items:center;justify-content:center"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg></div>
         <div style="font-size:13px;font-weight:600">地圖載入中…</div>
@@ -767,7 +770,12 @@ function bindEvents(){
   document.getElementById('cal-day-tours').addEventListener('click',e=>{const r=e.target.closest('[data-tour-id]');if(r)openTourDetail(Number(r.dataset.tourId));});
   document.getElementById('home-tours').addEventListener('click',e=>{const r=e.target.closest('[data-tour-id]');if(r)openTourDetail(Number(r.dataset.tourId));});
   document.getElementById('home-todos').addEventListener('click',e=>{const tck=e.target.closest('[data-todo-toggle]');if(tck)toggleTodo(Number(tck.dataset.todoToggle));});
-  document.getElementById('route-list').addEventListener('click',e=>{const r=e.target.closest('[data-tour-id]');if(r&&!e.target.closest('[data-nav]'))openTourDetail(Number(r.dataset.tourId));});
+  document.getElementById('route-list').addEventListener('click',e=>{
+    const navBtn=e.target.closest('[data-nav]');
+    if(navBtn){ window.open('https://maps.google.com/?q='+encodeURIComponent(navBtn.dataset.nav),'_blank'); return; }
+    const r=e.target.closest('[data-tour-id]');
+    if(r)openTourDetail(Number(r.dataset.tourId));
+  });
   document.getElementById('tour-action-row').addEventListener('click',async e=>{const sb=e.target.closest('[data-tour-status]');if(sb&&currentTourDetailId){const t=DB.tours.find(x=>x.id===currentTourDetailId);if(t){t.status=sb.dataset.tourStatus;saveDB();renderCalendar();renderHome();renderRoute();openTourDetail(currentTourDetailId);toast(`已標記「${t.status}」`);try{await sbUpdateTour(t);}catch(e){console.error(e);}}}const nb=e.target.closest('[data-nav]');if(nb)window.open('https://maps.google.com/?q='+encodeURIComponent(nb.dataset.nav),'_blank');const tb=e.target.closest('[data-tel]');if(tb)window.open('tel:'+tb.dataset.tel);const cb=e.target.closest('[data-copy-reminder]');if(cb)copyReminder();});
 }
 
@@ -965,8 +973,26 @@ function renderRoute(){
   initMap(list);
 }
 
-let gmap=null,markers=[],directionsRenderer=null;
+let gmap=null,markers=[],directionsRenderer=null,userMarker=null;
 function clearMap(){if(gmap){markers.forEach(m=>m.setMap(null));markers=[];if(directionsRenderer)directionsRenderer.setMap(null);}}
+
+function locateUser(){
+  if(!navigator.geolocation){toast('裝置不支援定位功能');return;}
+  navigator.geolocation.getCurrentPosition(pos=>{
+    const loc={lat:pos.coords.latitude,lng:pos.coords.longitude};
+    if(!gmap)return;
+    if(userMarker)userMarker.setMap(null);
+    userMarker=new google.maps.Marker({
+      position:loc,map:gmap,
+      icon:{path:google.maps.SymbolPath.CIRCLE,scale:9,fillColor:'#4A90D9',fillOpacity:1,strokeColor:'#fff',strokeWeight:3}
+    });
+    gmap.panTo(loc);
+    gmap.setZoom(15);
+  },err=>{
+    console.error('Geolocation error:',err);
+    toast('無法取得目前位置，請確認已允許定位權限');
+  });
+}
 
 function initMap(tours){
   if(typeof google==='undefined'||!google.maps){setTimeout(()=>initMap(tours),500);return;}
@@ -977,6 +1003,7 @@ function initMap(tours){
       mapTypeControl:false,fullscreenControl:false,streetViewControl:false,
       styles:[{featureType:'poi',elementType:'labels',stylers:[{visibility:'off'}]},{featureType:'transit',elementType:'labels',stylers:[{visibility:'off'}]}]
     });
+    document.getElementById('btn-locate').addEventListener('click',locateUser);
   }
   clearMap();
   if(!tours||!tours.length)return;
@@ -985,8 +1012,9 @@ function initMap(tours){
   let resolved=0;
   const positions=[];
   tours.forEach((t,i)=>{
-    geo.geocode({address:t.addr+',台灣'},res=>{
-      if(res&&res[0]){
+    const fullAddr = t.addr.includes('台灣')||t.addr.includes('台中')||t.addr.includes('臺中') ? t.addr : '台中市'+t.addr;
+    geo.geocode({address:fullAddr,region:'tw'},(res,status)=>{
+      if(status==='OK'&&res&&res[0]){
         const pos=res[0].geometry.location;
         positions[i]={pos,t};
         const marker=new google.maps.Marker({
@@ -998,11 +1026,18 @@ function initMap(tours){
         marker.addListener('click',()=>info.open(gmap,marker));
         markers.push(marker);
         bounds.extend(pos);
+      } else {
+        console.error('Geocode failed for address:', fullAddr, 'status:', status);
       }
       resolved++;
       if(resolved===tours.length){
-        gmap.fitBounds(bounds);
-        if(tours.length>1)calcRoute(positions.filter(Boolean));
+        const valid=positions.filter(Boolean);
+        if(valid.length){
+          gmap.fitBounds(bounds);
+          if(valid.length>1)calcRoute(valid);
+        } else {
+          toast('地址無法定位，請確認地址是否完整正確');
+        }
       }
     });
   });
