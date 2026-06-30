@@ -810,6 +810,12 @@ function bindEvents(){
     try{ await sbSaveSettings(s); }catch(e){ console.error(e); toast('雲端儲存失敗，請檢查網路'); }
   });
   document.getElementById('btn-close-notif').addEventListener('click',()=>closeModal('modal-notif'));
+  document.getElementById('page-more').addEventListener('click',e=>{
+    const mi=e.target.closest('[data-action]');
+    if(!mi) return;
+    e.stopPropagation();
+    handleAction(mi.dataset.action, mi.dataset);
+  });
   document.getElementById('btn-export').addEventListener('click',exportData);
   document.getElementById('btn-import').addEventListener('click',()=>document.getElementById('import-input').click());
   document.getElementById('import-input').addEventListener('change',function(){importData(this);});
