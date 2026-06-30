@@ -1,0 +1,1162 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Mimi Rent">
+<meta name="theme-color" content="#F8F4EF">
+<title>Mimi Rent</title>
+<style>
+:root{
+  --bg:#F8F4EF;--card:#FFF;--primary:#DCC8B4;--primary-dark:#C4A98A;
+  --text:#4A3F38;--sub:#9A8880;--alert:#C96F5A;--success:#8CA98D;
+  --border:#EDE5DC;--radius:18px;--rsm:12px;
+  --shadow:0 2px 16px rgba(74,63,56,.08);--shadowlg:0 8px 32px rgba(74,63,56,.14);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html,body{width:100%;max-width:430px;margin:0 auto;background:var(--bg);font-family:-apple-system,'PingFang TC',sans-serif;color:var(--text);font-size:15px;height:100dvh;overflow:hidden;}
+
+#header{position:fixed;top:0;left:50%;transform:translateX(-50%);width:100%;max-width:430px;height:70px;background:rgba(248,244,239,.94);backdrop-filter:blur(20px);display:flex;align-items:center;padding:0 18px;z-index:100;border-bottom:1px solid var(--border);}
+.logo-icon{width:34px;height:34px;background:var(--primary);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.logo-name{font-size:17px;font-weight:700;margin-left:9px;flex:1;}
+.hbtn{width:36px;height:36px;border-radius:50%;border:none;background:var(--card);display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 1px 6px rgba(74,63,56,.1);margin-left:6px;position:relative;flex-shrink:0;}
+.hbtn .dot{position:absolute;top:2px;right:2px;width:8px;height:8px;border-radius:50%;background:var(--alert);}
+
+#main{position:fixed;top:70px;bottom:70px;left:50%;transform:translateX(-50%);width:100%;max-width:430px;overflow-y:auto;-webkit-overflow-scrolling:touch;}
+.page{display:none;padding:18px 16px 30px;animation:fadeUp .22s ease;}
+.page.active{display:block;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+#bnav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:430px;height:70px;background:rgba(248,244,239,.95);backdrop-filter:blur(20px);border-top:1px solid var(--border);display:flex;align-items:center;z-index:100;padding-bottom:env(safe-area-inset-bottom);}
+.ni{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;padding:10px 0;border:none;background:none;}
+.ni svg{opacity:.4;}
+.ni span{font-size:10px;color:var(--sub);font-weight:500;}
+.ni.active svg{opacity:1;color:var(--primary-dark);}
+.ni.active span{color:var(--primary-dark);font-weight:700;}
+
+#fab{position:fixed;bottom:82px;right:calc(50% - 210px + 16px);width:52px;height:52px;background:var(--text);border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 6px 20px rgba(74,63,56,.35);cursor:pointer;z-index:200;border:none;}
+#fab svg{color:#fff;transition:transform .3s;}
+#fab.open svg{transform:rotate(45deg);}
+
+.overlay{position:fixed;inset:0;background:rgba(74,63,56,.35);z-index:300;opacity:0;pointer-events:none;visibility:hidden;transition:opacity .25s;}
+.overlay.show{opacity:1;pointer-events:auto;visibility:visible;}
+
+#bsheet{position:fixed;bottom:-100%;left:50%;transform:translateX(-50%);width:100%;max-width:430px;background:var(--card);border-radius:24px 24px 0 0;z-index:400;transition:bottom .3s cubic-bezier(.32,.72,0,1);padding:0 20px 40px;pointer-events:auto;}
+#bsheet.show{bottom:0;}
+.shandle{width:36px;height:4px;background:var(--border);border-radius:2px;margin:12px auto 18px;}
+.sgrid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;}
+.sitem{background:var(--bg);border-radius:var(--rsm);padding:16px 10px;display:flex;flex-direction:column;align-items:center;gap:8px;cursor:pointer;border:none;font-family:inherit;transition:background .15s;}
+.sitem:active{background:var(--primary);}
+.sitem span{font-size:12px;font-weight:600;color:var(--text);}
+
+.modal-wrap{position:fixed;inset:0;background:rgba(74,63,56,.4);z-index:400;display:none;align-items:flex-end;justify-content:center;pointer-events:auto;}
+.modal-wrap.show{display:flex;}
+.modal-box{background:var(--card);border-radius:24px 24px 0 0;width:100%;max-width:430px;max-height:90dvh;overflow-y:auto;padding:0 20px 40px;animation:slideUp .28s cubic-bezier(.32,.72,0,1);pointer-events:auto;}
+@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.mhandle{width:36px;height:4px;background:var(--border);border-radius:2px;margin:12px auto 20px;}
+.mtitle{font-size:18px;font-weight:800;margin-bottom:20px;}
+
+.fg{margin-bottom:16px;}
+.fl{font-size:12px;font-weight:700;color:var(--sub);letter-spacing:.5px;margin-bottom:6px;display:block;}
+.fi{width:100%;background:var(--bg);border:none;border-radius:var(--rsm);padding:13px 14px;font-size:15px;color:var(--text);outline:none;font-family:inherit;}
+.fi:focus{box-shadow:0 0 0 2px var(--primary);}
+.fsel{width:100%;background:var(--bg);border:none;border-radius:var(--rsm);padding:13px 14px;font-size:15px;color:var(--text);outline:none;font-family:inherit;-webkit-appearance:none;}
+.fta{width:100%;background:var(--bg);border:none;border-radius:var(--rsm);padding:13px 14px;font-size:15px;color:var(--text);outline:none;font-family:inherit;resize:none;}
+.btnp{width:100%;background:var(--text);color:#fff;border:none;border-radius:var(--rsm);padding:16px;font-size:16px;font-weight:700;cursor:pointer;margin-top:8px;font-family:inherit;}
+.btno{width:100%;background:transparent;color:var(--text);border:2px solid var(--border);border-radius:var(--rsm);padding:14px;font-size:15px;font-weight:600;cursor:pointer;margin-top:8px;font-family:inherit;}
+.btnd{background:#FFF0EE;color:var(--alert);border:none;border-radius:var(--rsm);padding:14px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;flex:1;}
+
+.src-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
+.chip{background:var(--bg);border:2px solid transparent;border-radius:10px;padding:10px 6px;text-align:center;cursor:pointer;font-size:12px;font-weight:600;color:var(--sub);}
+.chip.on{border-color:var(--primary-dark);color:var(--text);background:var(--primary);}
+.label-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.lopt{padding:10px 12px;border-radius:12px;font-size:13px;font-weight:600;cursor:pointer;border:2px solid transparent;display:flex;align-items:center;gap:8px;}
+.lopt.on{border-color:var(--text);}
+.ldot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+.cl-新客戶{background:#F0E8DF;color:#8B6B4A;}
+.cl-已約看{background:#DDE4EC;color:#4A6580;}
+.cl-已帶看{background:#EBE5F5;color:#6B4E9E;}
+.cl-考慮中{background:#FEF0E0;color:#C47A2B;}
+.cl-已下定{background:#E5F2E5;color:#4A8A4A;}
+.cl-已成交{background:#C8E6C8;color:#2E6B2E;}
+.cl-無效{background:#EBEBEB;color:#888;}
+.cl-放鳥{background:#FFE5E5;color:#C03030;}
+.ts-待確認{background:#FEF3E8;color:#C96F5A;}
+.ts-已確認{background:#DDE4EC;color:#4A6580;}
+.ts-已完成{background:#E5F2E5;color:#4A8A4A;}
+.ts-取消{background:#EBEBEB;color:#888;}
+.ts-放鳥{background:#FFE5E5;color:#C03030;}
+.ts-已下定{background:#C8E6C8;color:#2E6B2E;}
+.tag{display:inline-block;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:600;}
+
+.tabs{display:flex;background:var(--bg);border-radius:14px;padding:4px;margin-bottom:22px;}
+.tab{flex:1;padding:9px 6px;border:none;background:transparent;border-radius:11px;font-size:13px;font-weight:600;color:var(--sub);cursor:pointer;font-family:inherit;}
+.tab.on{background:var(--card);color:var(--text);box-shadow:0 1px 6px rgba(74,63,56,.1);}
+
+.card{background:var(--card);border-radius:var(--radius);padding:16px;margin-bottom:12px;box-shadow:var(--shadow);}
+.sect{font-size:13px;font-weight:700;color:var(--sub);letter-spacing:1px;text-transform:uppercase;margin:18px 0 10px 2px;}
+.rbet{display:flex;align-items:center;justify-content:space-between;}
+
+.sg{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;}
+.sc{background:var(--card);border-radius:var(--radius);padding:16px 14px;box-shadow:var(--shadow);}
+.sc .n{font-size:28px;font-weight:800;letter-spacing:-1px;}
+.sc .l{font-size:12px;color:var(--sub);margin-top:2px;font-weight:500;}
+.sc.dk{background:var(--text);}
+.sc.dk .n,.sc.dk .l{color:#fff;}
+.sc.dk .l{opacity:.7;}
+
+.qg{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
+.qi{background:var(--card);border-radius:var(--rsm);padding:14px 10px;display:flex;flex-direction:column;align-items:center;gap:7px;cursor:pointer;border:none;box-shadow:var(--shadow);font-family:inherit;}
+.qi span{font-size:11px;font-weight:600;color:var(--text);text-align:center;line-height:1.3;}
+.qicon{width:40px;height:40px;border-radius:12px;background:var(--bg);display:flex;align-items:center;justify-content:center;}
+
+.av{width:46px;height:46px;border-radius:50%;background:var(--primary);display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:700;color:var(--text);flex-shrink:0;}
+.sbar{background:var(--card);border-radius:14px;padding:12px 16px;width:100%;margin-bottom:14px;display:flex;align-items:center;gap:10px;box-shadow:var(--shadow);}
+.sbar input{border:none;outline:none;flex:1;font-size:15px;background:transparent;color:var(--text);font-family:inherit;}
+.frow{display:flex;gap:8px;overflow-x:auto;margin-bottom:14px;scrollbar-width:none;}
+.frow::-webkit-scrollbar{display:none;}
+.fchip{flex-shrink:0;padding:6px 14px;border-radius:20px;border:none;background:var(--card);font-size:13px;font-weight:600;cursor:pointer;color:var(--sub);font-family:inherit;}
+.fchip.on{background:var(--text);color:#fff;}
+
+#detail-page{display:none;position:fixed;top:0;left:50%;transform:translateX(-50%);width:100%;max-width:430px;height:100dvh;background:var(--bg);z-index:150;overflow-y:auto;}
+#detail-page.show{display:block;animation:slideInR .25s cubic-bezier(.32,.72,0,1);}
+@keyframes slideInR{from{transform:translateX(calc(-50% + 30px));opacity:0}to{transform:translateX(-50%);opacity:1}}
+.dhdr{position:sticky;top:0;background:rgba(248,244,239,.95);backdrop-filter:blur(20px);padding:16px 16px 12px;display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--border);z-index:10;}
+.bbtn{width:36px;height:36px;border-radius:50%;background:var(--card);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:var(--shadow);flex-shrink:0;}
+.dcontent{padding:16px;padding-bottom:40px;}
+.dsec{background:var(--card);border-radius:var(--radius);padding:16px;margin-bottom:12px;box-shadow:var(--shadow);}
+.dsect{font-size:12px;font-weight:700;color:var(--sub);letter-spacing:1px;margin-bottom:12px;}
+.drow{display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);}
+.drow:last-child{border-bottom:none;padding-bottom:0;}
+.dlbl{font-size:12px;color:var(--sub);width:64px;flex-shrink:0;padding-top:1px;}
+.dval{font-size:14px;font-weight:600;flex:1;line-height:1.5;}
+.pgv{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;}
+.ptv{aspect-ratio:1;border-radius:12px;overflow:hidden;cursor:pointer;}
+.ptv img{width:100%;height:100%;object-fit:cover;display:block;}
+.pbadge{font-size:10px;font-weight:600;color:var(--sub);margin-top:4px;text-align:center;}
+.raw{font-size:13px;line-height:1.9;color:var(--text);white-space:pre-wrap;background:var(--bg);border-radius:12px;padding:12px;}
+.cond{background:var(--bg);border-radius:8px;padding:4px 10px;font-size:12px;font-weight:600;color:var(--text);}
+.abtnrow{display:flex;gap:10px;margin-top:6px;}
+
+.photo-thumb{position:relative;aspect-ratio:1;border-radius:12px;overflow:hidden;background:var(--bg);}
+.photo-thumb img{width:100%;height:100%;object-fit:cover;display:block;}
+.pdel{position:absolute;top:5px;right:5px;width:22px;height:22px;border-radius:50%;background:rgba(74,63,56,.7);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;}
+.plbadge{position:absolute;bottom:0;left:0;right:0;background:rgba(74,63,56,.6);color:#fff;font-size:10px;font-weight:600;padding:3px 6px;text-align:center;}
+
+.calhdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
+.calnav{width:34px;height:34px;border-radius:50%;background:var(--card);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:var(--shadow);}
+.calgrid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;}
+.cdname{text-align:center;font-size:11px;color:var(--sub);font-weight:600;padding:4px 0 8px;}
+.cd{aspect-ratio:1;display:flex;align-items:center;justify-content:center;border-radius:50%;font-size:14px;font-weight:500;cursor:pointer;position:relative;}
+.cd.today{background:var(--text);color:#fff;font-weight:700;}
+.cd.sel{background:var(--primary);color:var(--text);font-weight:700;}
+.cd.hase::after{content:'';position:absolute;bottom:3px;width:5px;height:5px;border-radius:50%;background:var(--primary-dark);}
+.cd.today::after{background:#fff;}
+.cd.om{opacity:.3;}
+.cti{display:flex;align-items:center;gap:12px;padding:13px 14px;border-bottom:1px solid var(--border);cursor:pointer;}
+.cti:last-child{border-bottom:none;}
+
+.mapbox{background:var(--card);border-radius:var(--radius);height:220px;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:10px;color:var(--sub);background:linear-gradient(135deg,#e8e0d8,#d4c8bb);box-shadow:var(--shadow);margin-bottom:12px;}
+.mpin{width:44px;height:44px;background:var(--primary-dark);border-radius:50%;display:flex;align-items:center;justify-content:center;}
+
+.msec{background:var(--card);border-radius:var(--radius);padding:0 16px;box-shadow:var(--shadow);margin-bottom:12px;}
+.mi{display:flex;align-items:center;gap:14px;padding:15px 0;border-bottom:1px solid var(--border);cursor:pointer;}
+.mi:last-child{border-bottom:none;}
+.mico{width:38px;height:38px;border-radius:11px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.mlbl{font-size:15px;font-weight:600;}
+.msub{font-size:12px;color:var(--sub);margin-top:1px;}
+
+.titem{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--border);}
+.titem:last-child{border-bottom:none;}
+.tck{width:22px;height:22px;border-radius:50%;border:2px solid var(--border);flex-shrink:0;display:flex;align-items:center;justify-content:center;cursor:pointer;background:none;}
+.tck.done{background:var(--success);border-color:var(--success);}
+.ttxt{flex:1;font-size:14px;line-height:1.4;}
+.ttxt.done{text-decoration:line-through;color:var(--sub);}
+.overdue{background:#FFF5F3;}
+
+.actrow{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0;}
+.actbtn{display:flex;align-items:center;gap:6px;padding:7px 12px;background:var(--bg);border:1.5px solid var(--border);border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;color:var(--text);white-space:nowrap;font-family:inherit;}
+.actbtn.danger{color:var(--alert);border-color:#FFCCC7;}
+
+.pitem{padding:12px 0;border-bottom:1px solid var(--border);cursor:pointer;position:relative;padding-right:40px;}
+.pitem:last-child{border-bottom:none;}
+.plbl{font-size:11px;font-weight:700;color:var(--sub);margin-bottom:4px;}
+.ptxt{font-size:14px;line-height:1.6;color:var(--text);}
+.pedit{position:absolute;top:10px;right:0;background:var(--bg);border:1.5px solid var(--border);border-radius:8px;width:28px;height:28px;display:flex;align-items:center;justify-content:center;cursor:pointer;}
+
+.tdr{display:flex;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);}
+.tdr:last-child{border-bottom:none;}
+.tdl{font-size:12px;color:var(--sub);width:60px;flex-shrink:0;padding-top:2px;}
+.tdv{font-size:14px;font-weight:600;flex:1;}
+
+.cpick{position:relative;}
+.cpick-btn{display:flex;align-items:center;gap:10px;background:var(--bg);border-radius:var(--rsm);padding:13px 14px;cursor:pointer;border:none;width:100%;font-family:inherit;text-align:left;}
+.cpick-btn span{flex:1;font-size:15px;}
+.cpick-drop{display:none;position:absolute;top:calc(100% + 6px);left:0;right:0;background:var(--card);border-radius:var(--rsm);box-shadow:var(--shadowlg);z-index:10;max-height:240px;overflow:hidden;flex-direction:column;}
+.cpick-drop.show{display:flex;}
+.cpick-search{padding:10px 12px;border-bottom:1px solid var(--border);}
+.cpick-search input{width:100%;border:none;outline:none;font-size:14px;background:transparent;color:var(--text);font-family:inherit;}
+.cpick-list{overflow-y:auto;max-height:190px;}
+.cpick-row{display:flex;align-items:center;gap:10px;padding:11px 14px;cursor:pointer;border-bottom:1px solid var(--border);}
+.cpick-row:last-child{border-bottom:none;}
+.cpick-row:active{background:var(--bg);}
+
+.empty{text-align:center;padding:40px 20px;color:var(--sub);}
+.empty p{font-size:14px;font-weight:500;margin-top:12px;}
+.chev{opacity:.4;flex-shrink:0;}
+</style>
+</head>
+<body>
+
+<!-- LOGIN SCREEN -->
+<div id="login-screen" style="position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 24px">
+  <div style="width:64px;height:64px;background:var(--primary);border-radius:20px;display:flex;align-items:center;justify-content:center;margin-bottom:20px;box-shadow:0 8px 24px rgba(220,200,180,.5)">
+    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#4A3F38" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+  </div>
+  <div style="font-size:24px;font-weight:800;margin-bottom:4px">Mimi Rent</div>
+  <div style="font-size:13px;color:var(--sub);margin-bottom:36px">房屋租賃仲介管理系統</div>
+  <div style="width:100%;max-width:320px">
+    <div style="margin-bottom:14px">
+      <label style="font-size:12px;font-weight:700;color:var(--sub);letter-spacing:.5px;display:block;margin-bottom:6px">帳號</label>
+      <input id="login-user" type="text" placeholder="請輸入帳號" autocomplete="username"
+        style="width:100%;background:#fff;border:1.5px solid var(--border);border-radius:14px;padding:14px 16px;font-size:15px;color:var(--text);outline:none;font-family:inherit;transition:border .2s">
+    </div>
+    <div style="margin-bottom:24px">
+      <label style="font-size:12px;font-weight:700;color:var(--sub);letter-spacing:.5px;display:block;margin-bottom:6px">密碼</label>
+      <input id="login-pass" type="password" placeholder="請輸入密碼" autocomplete="current-password"
+        style="width:100%;background:#fff;border:1.5px solid var(--border);border-radius:14px;padding:14px 16px;font-size:15px;color:var(--text);outline:none;font-family:inherit;transition:border .2s">
+    </div>
+    <div id="login-err" style="color:var(--alert);font-size:13px;font-weight:600;margin-bottom:14px;text-align:center;display:none">帳號或密碼錯誤，請再試一次</div>
+    <button id="login-btn" style="width:100%;background:var(--text);color:#fff;border:none;border-radius:14px;padding:16px;font-size:16px;font-weight:700;cursor:pointer;font-family:inherit;transition:transform .15s">登入</button>
+  </div>
+  <div style="font-size:12px;color:var(--sub);margin-top:32px">© Mimi Rent CRM</div>
+</div>
+
+<div id="header">
+  <div class="logo-icon">
+    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#4A3F38" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+  </div>
+  <div class="logo-name">Mimi Rent</div>
+  <button class="hbtn" id="btn-notif">
+    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#4A3F38" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+    <span class="dot"></span>
+  </button>
+  <button class="hbtn" id="btn-setting">
+    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#4A3F38" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+  </button>
+</div>
+
+<div id="main">
+  <div id="page-home" class="page active">
+    <div style="height:4px"></div>
+    <div class="sg">
+      <div class="sc dk"><div class="n" id="h-closed">0</div><div class="l">本月成交</div></div>
+      <div class="sc"><div class="n" id="h-tours" style="color:var(--primary-dark)">0</div><div class="l">本月帶看數</div></div>
+      <div class="sc"><div class="n" id="h-overdue" style="color:var(--alert)">0</div><div class="l">逾期待辦</div></div>
+      <div class="sc"><div class="n" id="h-track" style="color:var(--success)">0</div><div class="l">進行中客戶</div></div>
+    </div>
+    <div class="sect">今日帶看</div>
+    <div class="card" id="home-tours" style="padding:0 2px"></div>
+    <div class="sect">今日路線摘要</div>
+    <div class="card" style="display:flex;gap:16px">
+      <div style="flex:1;text-align:center"><div style="font-size:22px;font-weight:800;color:var(--primary-dark)" id="h-dist">—</div><div style="font-size:12px;color:var(--sub);margin-top:2px">公里</div></div>
+      <div style="width:1px;background:var(--border)"></div>
+      <div style="flex:1;text-align:center"><div style="font-size:22px;font-weight:800" id="h-time">—</div><div style="font-size:12px;color:var(--sub);margin-top:2px">分鐘</div></div>
+      <div style="width:1px;background:var(--border)"></div>
+      <div style="flex:1;text-align:center"><div style="font-size:22px;font-weight:800;color:var(--success)" id="h-stops">0</div><div style="font-size:12px;color:var(--sub);margin-top:2px">站點</div></div>
+    </div>
+    <div class="sect">今日待辦</div>
+    <div id="home-todos"></div>
+    <div class="sect">快捷功能</div>
+    <div class="qg">
+      <button class="qi" data-action="open-modal" data-modal="modal-client"><div class="qicon"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#4A3F38" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg></div><span>新增客戶</span></button>
+      <button class="qi" data-action="switch-page" data-page="clients"><div class="qicon"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#4A3F38" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></div><span>搜尋客戶</span></button>
+      <button class="qi" data-action="open-modal" data-modal="modal-tour"><div class="qicon"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#4A3F38" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div><span>新增帶看</span></button>
+      <button class="qi" data-action="switch-page" data-page="map"><div class="qicon"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#4A3F38" stroke-width="2"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg></div><span>今日路線</span></button>
+    </div>
+    <div style="height:10px"></div>
+  </div>
+
+  <div id="page-clients" class="page">
+    <div class="sbar"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#9A8880" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input type="text" id="client-search-input" placeholder="搜尋客戶姓名、電話…"></div>
+    <div class="frow" id="client-filter-row">
+      <button class="fchip on" data-filter="all">全部</button>
+      <button class="fchip" data-filter="新客戶">新客戶</button>
+      <button class="fchip" data-filter="已約看">已約看</button>
+      <button class="fchip" data-filter="已帶看">已帶看</button>
+      <button class="fchip" data-filter="考慮中">考慮中</button>
+      <button class="fchip" data-filter="已下定">已下定</button>
+      <button class="fchip" data-filter="已成交">已成交</button>
+      <button class="fchip" data-filter="無效">無效</button>
+      <button class="fchip" data-filter="放鳥">放鳥</button>
+    </div>
+    <div id="client-list"></div>
+  </div>
+
+  <div id="page-schedule" class="page">
+    <div class="card" style="padding:16px">
+      <div class="calhdr">
+        <button class="calnav" id="cal-prev"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4A3F38" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg></button>
+        <div style="font-size:18px;font-weight:800" id="cal-label"></div>
+        <button class="calnav" id="cal-next"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4A3F38" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg></button>
+      </div>
+      <div class="calgrid" id="cal-grid"></div>
+    </div>
+    <div class="sect" id="cal-day-label">今日帶看</div>
+    <div class="card" id="cal-day-tours" style="padding:0 2px"></div>
+    <div style="margin-top:10px"><button class="btnp" id="btn-add-tour-sched" style="border-radius:14px">+ 新增帶看</button></div>
+  </div>
+
+  <div id="page-map" class="page">
+    <div class="sect">今日帶看地圖</div>
+    <div id="map-container" style="border-radius:var(--radius);overflow:hidden;height:280px;box-shadow:var(--shadow);margin-bottom:12px;position:relative">
+      <div id="gmap" style="width:100%;height:100%"></div>
+      <div id="map-loading" style="position:absolute;inset:0;background:linear-gradient(135deg,#e8e0d8,#d4c8bb);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;color:var(--sub)">
+        <div style="width:44px;height:44px;background:var(--primary-dark);border-radius:50%;display:flex;align-items:center;justify-content:center"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg></div>
+        <div style="font-size:13px;font-weight:600">地圖載入中…</div>
+      </div>
+    </div>
+    <div class="card" style="margin-bottom:10px">
+      <div style="display:flex;gap:16px;justify-content:center;padding:4px 0">
+        <div style="text-align:center"><div style="font-size:20px;font-weight:800;color:var(--primary-dark)" id="map-dist">—</div><div style="font-size:11px;color:var(--sub)">總距離 km</div></div>
+        <div style="width:1px;background:var(--border)"></div>
+        <div style="text-align:center"><div style="font-size:20px;font-weight:800" id="map-time">—</div><div style="font-size:11px;color:var(--sub)">總車程 min</div></div>
+      </div>
+    </div>
+    <div class="sect">今日帶看順序</div>
+    <div id="route-list"></div>
+  </div>
+
+  <div id="page-more" class="page">
+    <div style="padding:8px 0 18px"><div style="font-size:18px;font-weight:800">更多功能</div><div style="font-size:13px;color:var(--sub);margin-top:3px">紀錄・工具・設定</div></div>
+    <div class="sect">業績管理</div>
+    <div class="msec">
+      <div class="mi" data-action="open-modal" data-modal="modal-deals"><div class="mico" style="background:#E5F2E5"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#4A8A4A" stroke-width="2"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg></div><div style="flex:1"><div class="mlbl">成交紀錄</div><div class="msub">查看所有成交案件</div></div><svg class="chev" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9A8880" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></div>
+    </div>
+    <div class="sect">工具</div>
+    <div class="msec">
+      <div class="mi" data-action="open-modal" data-modal="modal-todo"><div class="mico" style="background:#FFF0EC"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#C96F5A" stroke-width="2"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></div><div style="flex:1"><div class="mlbl">待辦事項</div><div class="msub">今日・明日・逾期</div></div><svg class="chev" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9A8880" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></div>
+      <div class="mi" data-action="open-modal" data-modal="modal-phrase"><div class="mico" style="background:#EEE8FF"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#7C5CBF" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div><div style="flex:1"><div class="mlbl">常用話術</div><div class="msub">帶看提醒・催定金・跟進</div></div><svg class="chev" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9A8880" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></div>
+      <div class="mi" id="btn-export"><div class="mico" style="background:#DDE4EC"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#4A6580" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></div><div style="flex:1"><div class="mlbl">匯出資料</div><div class="msub">下載 JSON 備份檔</div></div><svg class="chev" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9A8880" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></div>
+      <div class="mi" id="btn-import"><div class="mico" style="background:#EEF5EE"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#4A8A4A" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></div><div style="flex:1"><div class="mlbl">匯入資料</div><div class="msub">從 JSON 備份檔還原</div></div><svg class="chev" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9A8880" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></div>
+      <input type="file" id="import-input" accept=".json" style="display:none">
+    </div>
+    <div class="sect">設定</div>
+    <div class="msec">
+      <div class="mi" data-action="open-modal" data-modal="modal-notif"><div class="mico" style="background:#EEF0FF"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#7C5CBF" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></div><div style="flex:1"><div class="mlbl">提醒設定</div><div class="msub">Email 通知 · EmailJS</div></div><svg class="chev" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9A8880" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></div>
+      <div class="mi" data-action="open-modal" data-modal="modal-setting"><div class="mico" style="background:#F5EFEA"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#C4A98A" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></div><div style="flex:1"><div class="mlbl">帳號設定</div><div class="msub">姓名・公司・出發地</div></div><svg class="chev" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9A8880" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></div>
+    </div>
+    <div class="sect">統計</div>
+    <div class="sg">
+      <div class="sc"><div class="n" id="stat-clients">0</div><div class="l">客戶總數</div></div>
+      <div class="sc"><div class="n" id="stat-tours">0</div><div class="l">帶看總數</div></div>
+    </div>
+  </div>
+</div>
+
+<div id="bnav">
+  <button class="ni active" data-page="home"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg><span>首頁</span></button>
+  <button class="ni" data-page="clients"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><span>客戶</span></button>
+  <button class="ni" data-page="schedule"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><span>行程</span></button>
+  <button class="ni" data-page="map"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg><span>地圖</span></button>
+  <button class="ni" data-page="more"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg><span>更多</span></button>
+</div>
+
+<button id="fab"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
+<div class="overlay" id="overlay"></div>
+
+<div id="bsheet">
+  <div class="shandle"></div>
+  <div style="font-size:16px;font-weight:700;margin-bottom:16px">快速新增</div>
+  <div class="sgrid">
+    <button class="sitem" data-action="open-modal" data-modal="modal-client"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#4A3F38" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg><span>新增客戶</span></button>
+    <button class="sitem" data-action="open-modal" data-modal="modal-tour"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#4A3F38" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><span>新增帶看</span></button>
+    <button class="sitem" data-action="open-modal" data-modal="modal-todo"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#4A3F38" stroke-width="2"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg><span>新增待辦</span></button>
+  </div>
+</div>
+
+<div id="detail-page">
+  <div class="dhdr">
+    <button class="bbtn" id="btn-back-detail"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#4A3F38" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg></button>
+    <div style="flex:1"><div style="font-size:17px;font-weight:800" id="detail-name"></div><div style="font-size:12px;color:var(--sub)" id="detail-sub"></div></div>
+    <span id="detail-tag" class="tag"></span>
+  </div>
+  <div class="dcontent" id="detail-body"></div>
+</div>
+
+<!-- MODAL: CLIENT -->
+<div class="modal-wrap" id="modal-client">
+  <div class="modal-box">
+    <div class="mhandle"></div>
+    <div class="tabs">
+      <button class="tab on" data-tab="t-basic">基本資料</button>
+      <button class="tab" data-tab="t-survey">需求問卷</button>
+      <button class="tab" data-tab="t-photos">截圖紀錄</button>
+    </div>
+    <div id="t-basic">
+      <div class="fg"><label class="fl">姓名</label><input class="fi" id="c-name" placeholder="王小姐" type="text"></div>
+      <div class="fg"><label class="fl">電話</label><input class="fi" id="c-phone" placeholder="0912-345-678" type="tel"></div>
+      <div class="fg"><label class="fl">來源</label><div class="src-grid" id="src-grid"><div class="chip" data-src="FB">FB</div><div class="chip" data-src="IG">IG</div><div class="chip" data-src="Threads">Threads</div><div class="chip" data-src="LINE">LINE</div><div class="chip" data-src="591">591</div><div class="chip" data-src="其他">其他</div></div></div>
+      <div class="fg"><label class="fl">客戶標籤</label>
+        <div class="label-grid" id="label-grid">
+          <div class="lopt cl-新客戶" data-label="新客戶"><div class="ldot" style="background:#8B6B4A"></div>新客戶</div>
+          <div class="lopt cl-已約看" data-label="已約看"><div class="ldot" style="background:#4A6580"></div>已約看</div>
+          <div class="lopt cl-已帶看" data-label="已帶看"><div class="ldot" style="background:#6B4E9E"></div>已帶看</div>
+          <div class="lopt cl-考慮中" data-label="考慮中"><div class="ldot" style="background:#C47A2B"></div>考慮中</div>
+          <div class="lopt cl-已下定" data-label="已下定"><div class="ldot" style="background:#4A8A4A"></div>已下定</div>
+          <div class="lopt cl-已成交" data-label="已成交"><div class="ldot" style="background:#2E6B2E"></div>已成交</div>
+          <div class="lopt cl-無效" data-label="無效"><div class="ldot" style="background:#888"></div>無效</div>
+          <div class="lopt cl-放鳥" data-label="放鳥"><div class="ldot" style="background:#C03030"></div>放鳥</div>
+        </div>
+      </div>
+      <div class="fg"><label class="fl">備註</label><textarea class="fta" id="c-note" placeholder="其他補充說明…" style="min-height:70px"></textarea></div>
+      <button class="btnp" id="btn-next-survey">下一步：填寫問卷 →</button>
+    </div>
+    <div id="t-survey" style="display:none">
+      <div class="fg"><label class="fl">租金預算（元/月）</label><input class="fi" id="s-budget" placeholder="15,000 ~ 20,000" type="text"></div>
+      <div class="fg"><label class="fl">希望地區</label><input class="fi" id="s-area" placeholder="西屯、北屯、南屯" type="text"></div>
+      <div class="fg"><label class="fl">坪數需求</label><input class="fi" id="s-size" placeholder="20~30坪" type="text"></div>
+      <div class="fg"><label class="fl">房型需求</label><div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:4px" id="type-grid"><div class="chip" data-type="套房">套房</div><div class="chip" data-type="1房">1房</div><div class="chip" data-type="2房">2房</div><div class="chip" data-type="3房">3房</div><div class="chip" data-type="4房+">4房+</div></div></div>
+      <div class="fg"><label class="fl">需求條件</label><textarea class="fta" id="s-conds" placeholder="需要電梯、停車位、寵物可…" style="min-height:80px"></textarea></div>
+      <div class="fg"><label class="fl">入住時間</label><input class="fi" id="s-movein" placeholder="7月初、越快越好" type="text"></div>
+      <div class="fg"><label class="fl">自由填寫（貼上原始問卷）</label><textarea class="fta" id="s-raw" style="min-height:140px;font-size:13px;line-height:1.9" placeholder="直接貼上客戶傳來的問卷文字…"></textarea></div>
+      <button class="btnp" id="btn-next-photos">下一步：上傳截圖 →</button>
+      <button class="btno" id="btn-back-survey">← 上一步</button>
+    </div>
+    <div id="t-photos" style="display:none">
+      <div style="background:var(--bg);border-radius:14px;padding:14px;margin-bottom:16px;font-size:12px;color:var(--sub);line-height:1.7">📷 可上傳 LINE 截圖、591 截圖、FB/IG 對話截圖等。</div>
+      <div id="upload-zone" style="border:2px dashed var(--primary-dark);border-radius:18px;padding:28px 20px;text-align:center;cursor:pointer;background:var(--bg);margin-bottom:14px">
+        <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#C4A98A" stroke-width="1.5" style="margin-bottom:10px;display:block;margin:0 auto 10px"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+        <div style="font-size:14px;font-weight:700">點擊上傳截圖</div>
+        <div style="font-size:12px;color:var(--sub);margin-top:4px">LINE・591・FB・IG・Threads</div>
+      </div>
+      <input type="file" id="photo-input" accept="image/*" multiple style="display:none">
+      <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px" id="photo-label-chips">
+        <div class="chip on" data-plabel="LINE截圖">LINE截圖</div>
+        <div class="chip" data-plabel="591截圖">591截圖</div>
+        <div class="chip" data-plabel="FB截圖">FB截圖</div>
+        <div class="chip" data-plabel="IG截圖">IG截圖</div>
+        <div class="chip" data-plabel="Threads截圖">Threads截圖</div>
+      </div>
+      <div id="photo-grid" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:16px"></div>
+      <button class="btnp" id="btn-save-client">✓ 儲存客戶</button>
+      <button class="btno" id="btn-back-photos">← 上一步</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: TOUR -->
+<div class="modal-wrap" id="modal-tour">
+  <div class="modal-box">
+    <div class="mhandle"></div>
+    <div class="mtitle">新增帶看</div>
+    <div class="fg">
+      <label class="fl">選擇客戶</label>
+      <div class="cpick" id="cpick">
+        <button class="cpick-btn" id="cpick-btn" type="button">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9A8880" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <span id="cpick-display" style="color:var(--sub)">搜尋或選擇客戶…</span>
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9A8880" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="cpick-drop" id="cpick-drop">
+          <div class="cpick-search"><input id="cpick-search" type="text" placeholder="輸入姓名搜尋…"></div>
+          <div class="cpick-list" id="cpick-list"></div>
+        </div>
+      </div>
+    </div>
+    <div id="t-manual-wrap" style="display:none">
+      <div class="fg"><label class="fl">客戶姓名</label><input class="fi" id="t-client-manual" placeholder="王小姐" type="text"></div>
+      <div class="fg"><label class="fl">客戶電話</label><input class="fi" id="t-phone-manual" placeholder="0912-345-678" type="tel"></div>
+    </div>
+    <input type="hidden" id="t-client-val">
+    <input type="hidden" id="t-phone-val">
+    <div class="fg"><label class="fl">物件地址</label><input class="fi" id="t-addr" placeholder="台中市西屯區…" type="text"></div>
+    <div class="fg"><label class="fl">日期</label><input class="fi" id="t-date" type="date"></div>
+    <div class="fg"><label class="fl">時間</label><input class="fi" id="t-time" type="time"></div>
+    <div class="fg"><label class="fl">確認狀態</label><select class="fsel" id="t-status"><option>待確認</option><option>已確認</option><option>已完成</option><option>取消</option><option>放鳥</option><option>已下定</option></select></div>
+    <div class="fg"><label class="fl">備註</label><textarea class="fta" id="t-note" style="min-height:70px" placeholder="停車資訊、鑰匙取得…"></textarea></div>
+    <button class="btnp" id="btn-save-tour">儲存帶看</button>
+    <button class="btno" id="btn-close-tour">取消</button>
+  </div>
+</div>
+
+<!-- MODAL: TODO -->
+<div class="modal-wrap" id="modal-todo">
+  <div class="modal-box">
+    <div class="mhandle"></div>
+    <div class="mtitle">待辦事項</div>
+    <div class="fg"><label class="fl">新增待辦</label><input class="fi" id="todo-input" placeholder="輸入待辦內容…" type="text"></div>
+    <div class="fg"><label class="fl">類別</label><select class="fsel" id="todo-cat"><option value="today">今日</option><option value="tomorrow">明日</option></select></div>
+    <button class="btnp" id="btn-add-todo">新增</button>
+    <div style="margin-top:18px">
+      <div style="font-size:13px;font-weight:700;color:var(--alert);margin-bottom:8px">逾期待辦</div>
+      <div id="todo-overdue"></div>
+      <div style="font-size:13px;font-weight:700;color:var(--sub);margin:14px 0 8px">今日待辦</div>
+      <div id="todo-today"></div>
+      <div style="font-size:13px;font-weight:700;color:var(--sub);margin:14px 0 8px">明日待辦</div>
+      <div id="todo-tomorrow"></div>
+    </div>
+    <button class="btno" id="btn-close-todo">關閉</button>
+  </div>
+</div>
+
+<!-- MODAL: TOUR DETAIL -->
+<div class="modal-wrap" id="modal-tour-detail">
+  <div class="modal-box">
+    <div class="mhandle"></div>
+    <div class="mtitle">帶看詳細</div>
+    <div id="tour-detail-body"></div>
+    <div class="actrow" id="tour-action-row"></div>
+    <div class="abtnrow" style="margin-top:4px">
+      <button class="btnd" id="btn-del-tour">刪除</button>
+      <button class="btnp" id="btn-close-tour-detail" style="flex:1;margin-top:0">關閉</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: PHRASE -->
+<div class="modal-wrap" id="modal-phrase">
+  <div class="modal-box">
+    <div class="mhandle"></div>
+    <div class="mtitle">常用話術</div>
+    <div id="phrase-list"></div>
+    <button class="btnp" id="btn-add-phrase" style="margin-top:12px">+ 新增話術</button>
+    <button class="btno" id="btn-close-phrase">關閉</button>
+  </div>
+</div>
+
+<!-- MODAL: PHRASE EDIT -->
+<div class="modal-wrap" id="modal-phrase-edit">
+  <div class="modal-box">
+    <div class="mhandle"></div>
+    <div class="mtitle" id="phrase-edit-title">編輯話術</div>
+    <div class="fg"><label class="fl">標題</label><input class="fi" id="phrase-edit-label" type="text"></div>
+    <div class="fg"><label class="fl">內容</label><textarea class="fta" id="phrase-edit-text" style="min-height:140px;line-height:1.8"></textarea></div>
+    <button class="btnp" id="btn-save-phrase">儲存</button>
+    <button class="btno" id="btn-cancel-phrase">取消</button>
+  </div>
+</div>
+
+<!-- MODAL: DEALS -->
+<div class="modal-wrap" id="modal-deals">
+  <div class="modal-box">
+    <div class="mhandle"></div>
+    <div class="mtitle">成交紀錄</div>
+    <div id="deal-list"></div>
+    <button class="btno" id="btn-close-deals">關閉</button>
+  </div>
+</div>
+
+<!-- MODAL: NOTIF -->
+<div class="modal-wrap" id="modal-notif">
+  <div class="modal-box">
+    <div class="mhandle"></div>
+    <div class="mtitle">提醒設定</div>
+    <div class="fg"><label class="fl">Email（接收提醒）</label><input class="fi" id="notif-email" placeholder="you@example.com" type="email"></div>
+    <div class="card" style="box-shadow:none;border:1.5px solid var(--border);padding:0 14px">
+      <div class="titem" style="padding:14px 0"><div style="flex:1"><div style="font-weight:600">今日待辦</div><div style="font-size:12px;color:var(--sub)">每天早上 08:00</div></div><input type="checkbox" id="notif-today" checked style="width:18px;height:18px;accent-color:var(--primary-dark)"></div>
+      <div class="titem" style="padding:14px 0"><div style="flex:1"><div style="font-weight:600">今日帶看</div><div style="font-size:12px;color:var(--sub)">每天早上 08:30</div></div><input type="checkbox" id="notif-tour" checked style="width:18px;height:18px;accent-color:var(--primary-dark)"></div>
+      <div class="titem" style="padding:14px 0"><div style="flex:1"><div style="font-weight:600">帶看前一小時提醒</div><div style="font-size:12px;color:var(--sub)">帶看前60分鐘</div></div><input type="checkbox" id="notif-hour" checked style="width:18px;height:18px;accent-color:var(--primary-dark)"></div>
+      <div class="titem" style="padding:14px 0;border-bottom:none"><div style="flex:1"><div style="font-weight:600">逾期待辦提醒</div><div style="font-size:12px;color:var(--sub)">開啟後立即顯示</div></div><input type="checkbox" id="notif-overdue" style="width:18px;height:18px;accent-color:var(--primary-dark)"></div>
+    </div>
+    <button class="btnp" id="btn-save-notif">儲存設定</button>
+    <button class="btno" id="btn-close-notif">關閉</button>
+  </div>
+</div>
+
+<!-- MODAL: SETTING -->
+<div class="modal-wrap" id="modal-setting">
+  <div class="modal-box">
+    <div class="mhandle"></div>
+    <div class="mtitle">帳號設定</div>
+    <div class="fg"><label class="fl">仲介姓名</label><input class="fi" id="setting-name" placeholder="米米" type="text"></div>
+    <div class="fg"><label class="fl">公司名稱</label><input class="fi" id="setting-company" placeholder="Mimi Rent" type="text"></div>
+    <div class="fg"><label class="fl">預設出發地</label><input class="fi" id="setting-base" placeholder="台中市西屯區辦公室" type="text"></div>
+    <div style="height:1px;background:var(--border);margin:8px 0 16px"></div>
+    <div style="font-size:13px;font-weight:700;color:var(--sub);letter-spacing:.5px;margin-bottom:14px">變更登入資訊</div>
+    <div class="fg"><label class="fl">帳號</label><input class="fi" id="setting-username" type="text" placeholder="mimi"></div>
+    <div class="fg"><label class="fl">新密碼</label><input class="fi" id="setting-password" type="password" placeholder="輸入新密碼（不改請留空）"></div>
+    <div class="fg"><label class="fl">確認新密碼</label><input class="fi" id="setting-password2" type="password" placeholder="再輸入一次新密碼"></div>
+    <button class="btnp" id="btn-save-setting">儲存設定</button>
+    <button class="btno" id="btn-close-setting">關閉</button>
+    <div style="height:8px"></div>
+    <button id="btn-logout" style="width:100%;background:none;border:none;color:var(--alert);font-size:14px;font-weight:600;cursor:pointer;padding:10px;font-family:inherit">登出</button>
+  </div>
+</div>
+
+<script>
+// ── SETTINGS PERSIST ───────────────────────────────────
+function loadSettings(){
+  try{return JSON.parse(localStorage.getItem('mimi_settings')||'null')||{name:'',company:'',base:'',email:'',notifToday:true,notifTour:true,notifHour:true,notifOverdue:false};}
+  catch(e){return {name:'',company:'',base:'',email:'',notifToday:true,notifTour:true,notifHour:true,notifOverdue:false};}
+}
+function saveSettings(s){try{localStorage.setItem('mimi_settings',JSON.stringify(s));}catch(e){}}
+function fillSettingsForm(){
+  const s=loadSettings();
+  document.getElementById('setting-name').value=s.name||'';
+  document.getElementById('setting-company').value=s.company||'';
+  document.getElementById('setting-base').value=s.base||'';
+}
+function fillNotifForm(){
+  const s=loadSettings();
+  document.getElementById('notif-email').value=s.email||'';
+  document.getElementById('notif-today').checked=s.notifToday!==false;
+  document.getElementById('notif-tour').checked=s.notifTour!==false;
+  document.getElementById('notif-hour').checked=s.notifHour!==false;
+  document.getElementById('notif-overdue').checked=!!s.notifOverdue;
+}
+function loadAuth(){
+  try{return JSON.parse(localStorage.getItem('mimi_auth')||'null')||{username:'mimi',password:'mimi0314'};}
+  catch(e){return {username:'mimi',password:'mimi0314'};}
+}
+function saveAuth(auth){localStorage.setItem('mimi_auth',JSON.stringify(auth));}
+function isLoggedIn(){return sessionStorage.getItem('mimi_logged')==='1';}
+function checkLogin(){
+  if(isLoggedIn()){document.getElementById('login-screen').style.display='none';return;}
+  document.getElementById('login-screen').style.display='flex';
+}
+async function doLogin(){
+  const btn=document.getElementById('login-btn');
+  btn.textContent='登入中…'; btn.disabled=true;
+  try{
+    const auth = await sbFetch('app_auth?select=*&id=eq.1');
+    const a = (auth&&auth[0]) || loadAuth();
+    saveAuth({username:a.username, password:a.password});
+  }catch(e){ console.error('Auth fetch failed, using cached auth', e); }
+  const auth=loadAuth();
+  const u=document.getElementById('login-user').value.trim();
+  const p=document.getElementById('login-pass').value;
+  btn.textContent='登入'; btn.disabled=false;
+  if(u===auth.username&&p===auth.password){
+    sessionStorage.setItem('mimi_logged','1');
+    document.getElementById('login-screen').style.display='none';
+    document.getElementById('login-err').style.display='none';
+  } else {
+    document.getElementById('login-err').style.display='block';
+    document.getElementById('login-pass').value='';
+  }
+}
+function doLogout(){
+  sessionStorage.removeItem('mimi_logged');
+  closeModal('modal-setting');
+  document.getElementById('login-user').value='';
+  document.getElementById('login-pass').value='';
+  document.getElementById('login-screen').style.display='flex';
+}
+
+document.addEventListener('DOMContentLoaded',()=>{
+  // Login events
+  document.getElementById('login-btn').addEventListener('click',doLogin);
+  document.getElementById('login-pass').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
+  document.getElementById('login-user').addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('login-pass').focus();});
+  checkLogin();
+  initApp();
+});
+
+// override btn-save-setting to handle password change
+document.addEventListener('DOMContentLoaded',()=>{
+  document.getElementById('btn-save-setting').addEventListener('click',async()=>{
+    const auth=loadAuth();
+    const newUser=document.getElementById('setting-username').value.trim();
+    const newPass=document.getElementById('setting-password').value;
+    const newPass2=document.getElementById('setting-password2').value;
+    if(newPass&&newPass!==newPass2){toast('兩次密碼不一致，請重新輸入');return;}
+    if(newUser) auth.username=newUser;
+    if(newPass) auth.password=newPass;
+    saveAuth(auth);
+    const s=loadSettings();
+    s.name=document.getElementById('setting-name').value.trim();
+    s.company=document.getElementById('setting-company').value.trim();
+    s.base=document.getElementById('setting-base').value.trim();
+    saveSettings(s);
+    document.getElementById('setting-password').value='';
+    document.getElementById('setting-password2').value='';
+    closeModal('modal-setting');
+    toast('設定已儲存 ✓');
+    try{ await Promise.all([sbSaveSettings(s), sbSaveAuth(auth)]); }catch(e){ console.error(e); toast('雲端儲存失敗，請檢查網路'); }
+  });
+  document.getElementById('btn-logout').addEventListener('click',doLogout);
+  // pre-fill setting fields
+  document.getElementById('btn-setting').addEventListener('click',()=>{
+    const auth=loadAuth();
+    document.getElementById('setting-username').value=auth.username;
+    fillSettingsForm();
+  });
+  document.getElementById('btn-close-setting').addEventListener('click',()=>closeModal('modal-setting'));
+});
+
+let DB={clients:[],tours:[],todos:[]};
+let PHRASES=[];
+let editingClientId=null,editingPhraseId=null,currentFilter='all';
+let selectedLabel='新客戶',selectedSource='',selectedTypes=[];
+let currentPhotoLabel='LINE截圖',uploadedPhotos=[];
+let calYear,calMonth,calDay,currentTourDetailId=null;
+let cpickOpen=false;
+
+// ── SUPABASE ────────────────────────────────────────────
+const SB_URL='https://jhqmizdbvypgwljbwgcv.supabase.co';
+const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpocW1pemRidnlwZ3dsamJ3Z2N2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI4MDczOTIsImV4cCI6MjA5ODM4MzM5Mn0._Tqih94gD_vePVZIId_k3_WXdr5b8Bh2otPN266_8OU';
+
+async function sbFetch(path, opts={}){
+  const res = await fetch(SB_URL+'/rest/v1/'+path, {
+    ...opts,
+    headers:{
+      'apikey':SB_KEY,
+      'Authorization':'Bearer '+SB_KEY,
+      'Content-Type':'application/json',
+      'Prefer': opts.prefer || 'return=representation',
+      ...(opts.headers||{})
+    }
+  });
+  if(!res.ok){
+    const errText = await res.text().catch(()=>res.statusText);
+    throw new Error(`Supabase ${res.status}: ${errText}`);
+  }
+  if(res.status===204) return null;
+  return res.json();
+}
+
+async function sbLoadAll(){
+  const [clients, tours, todos, phrases, settings, auth] = await Promise.all([
+    sbFetch('clients?select=*&order=created_at.desc'),
+    sbFetch('tours?select=*&order=created_at.desc'),
+    sbFetch('todos?select=*&order=created_at.desc'),
+    sbFetch('phrases?select=*&order=id.asc'),
+    sbFetch('app_settings?select=*&id=eq.1'),
+    sbFetch('app_auth?select=*&id=eq.1'),
+  ]);
+  DB.clients = (clients||[]).map(c=>({
+    id:c.id, name:c.name, phone:c.phone, source:c.source, status:c.status,
+    avatar:c.avatar, note:c.note, survey:c.survey||{}, photos:c.photos||[]
+  }));
+  DB.tours = tours||[];
+  DB.todos = todos||[];
+  PHRASES = phrases||[];
+  const s = (settings&&settings[0])||{};
+  saveSettings({name:s.name||'',company:s.company||'',base:s.base_address||'',email:s.email||'',
+    notifToday:s.notif_today!==false, notifTour:s.notif_tour!==false, notifHour:s.notif_hour!==false, notifOverdue:!!s.notif_overdue});
+  const a = (auth&&auth[0])||{};
+  if(a.username) saveAuth({username:a.username, password:a.password});
+}
+
+async function sbUpsertClient(c){
+  await sbFetch('clients', {method:'POST', prefer:'resolution=merge-duplicates,return=minimal',
+    body:JSON.stringify([{id:c.id,name:c.name,phone:c.phone,source:c.source,status:c.status,avatar:c.avatar,note:c.note,survey:c.survey,photos:c.photos,updated_at:new Date().toISOString()}])});
+}
+async function sbDeleteClient(id){ await sbFetch('clients?id=eq.'+id, {method:'DELETE', prefer:'return=minimal'}); }
+
+async function sbInsertTour(t){ await sbFetch('tours', {method:'POST', prefer:'return=minimal', body:JSON.stringify([t])}); }
+async function sbUpdateTour(t){ await sbFetch('tours?id=eq.'+t.id, {method:'PATCH', prefer:'return=minimal', body:JSON.stringify({status:t.status})}); }
+async function sbDeleteTour(id){ await sbFetch('tours?id=eq.'+id, {method:'DELETE', prefer:'return=minimal'}); }
+
+async function sbInsertTodo(t){ await sbFetch('todos', {method:'POST', prefer:'return=minimal', body:JSON.stringify([t])}); }
+async function sbUpdateTodo(id, done){ await sbFetch('todos?id=eq.'+id, {method:'PATCH', prefer:'return=minimal', body:JSON.stringify({done})}); }
+async function sbDeleteTodo(id){ await sbFetch('todos?id=eq.'+id, {method:'DELETE', prefer:'return=minimal'}); }
+
+async function sbUpsertPhrase(p){ await sbFetch('phrases', {method:'POST', prefer:'resolution=merge-duplicates,return=minimal', body:JSON.stringify([p])}); }
+
+async function sbSaveSettings(s){
+  await sbFetch('app_settings?id=eq.1', {method:'PATCH', prefer:'return=minimal',
+    body:JSON.stringify({name:s.name,company:s.company,base_address:s.base,email:s.email,
+      notif_today:s.notifToday,notif_tour:s.notifTour,notif_hour:s.notifHour,notif_overdue:s.notifOverdue,
+      updated_at:new Date().toISOString()})});
+}
+async function sbSaveAuth(a){
+  await sbFetch('app_auth?id=eq.1', {method:'PATCH', prefer:'return=minimal',
+    body:JSON.stringify({username:a.username,password:a.password,updated_at:new Date().toISOString()})});
+}
+
+const PHRASE_DEFAULTS=[
+  {id:1,label:'帶看前確認',text:'您好，我是米米租屋的仲介，提醒您明天 {時間} 我們在 {地址} 看屋，請問方便嗎？如有任何問題歡迎隨時聯絡我 😊'},
+  {id:2,label:'看屋當天提醒',text:'您好！提醒您今天 {時間} 我們約好看屋，地址是 {地址}，我會提早到場，到時見！'},
+  {id:3,label:'地址保護回覆',text:'您好～地址的部分因為要保護房東隱私，需要確認看房時間後才能提供唷！方便告訴我您想看的時間嗎？確認後我再把詳細地址傳給您 😊'},
+  {id:4,label:'看後跟進',text:'您好，今天看的房子不知道感覺如何？如果有興趣或還有其他問題，隨時告訴我，我幫您多了解 😊'},
+  {id:5,label:'催定金',text:'您好，那間房子目前還有人在洽談，如果您有意願的話，建議盡快確認，我幫您保留喔！'},
+  {id:6,label:'放鳥後跟進',text:'您好，今天我有在現場等您，不知道是否有臨時事情？沒關係，方便的話我們再重新安排時間 😊'},
+  {id:7,label:'成交感謝',text:'恭喜您找到新家！感謝您的信任，之後如有任何問題都可以找我，祝您搬家順利 🏠'},
+];
+
+function loadDB(){try{DB=JSON.parse(localStorage.getItem('mimi_db')||'null')||{clients:[],tours:[],todos:[]};}catch(e){DB={clients:[],tours:[],todos:[]};}try{PHRASES=JSON.parse(localStorage.getItem('mimi_phrases')||'null')||PHRASE_DEFAULTS;}catch(e){PHRASES=PHRASE_DEFAULTS;}if(!DB.clients)DB.clients=[];if(!DB.tours)DB.tours=[];if(!DB.todos)DB.todos=[];}
+function saveDB(){try{localStorage.setItem('mimi_db',JSON.stringify(DB));}catch(e){}try{localStorage.setItem('mimi_phrases',JSON.stringify(PHRASES));}catch(e){}}
+
+async function initApp(){
+  const now=new Date();calYear=now.getFullYear();calMonth=now.getMonth()+1;calDay=now.getDate();
+  loadDB(); // fallback/cache first for instant paint
+  bindEvents();
+  renderHome();renderClients();renderCalendar();renderRoute();
+  document.getElementById('t-date').value=todayStr();
+  try{
+    await sbLoadAll();
+    saveDB();
+    renderHome();renderClients();renderCalendar();renderRoute();
+    toast('資料已同步 ✓');
+  }catch(err){
+    console.error('Supabase sync failed:', err);
+    toast('雲端同步失敗，使用本機快取資料');
+  }
+}
+
+function bindEvents(){
+  document.getElementById('bnav').addEventListener('click',e=>{const ni=e.target.closest('.ni');if(ni)switchPage(ni.dataset.page);});
+  document.getElementById('fab').addEventListener('click',toggleSheet);
+  document.getElementById('overlay').addEventListener('click',closeSheet);
+  document.getElementById('bsheet').addEventListener('click',e=>{const item=e.target.closest('[data-action]');if(!item)return;closeSheet();handleAction(item.dataset.action,item.dataset);});
+  document.body.addEventListener('click',e=>{const el=e.target.closest('[data-action]');if(el)handleAction(el.dataset.action,el.dataset);});
+  document.getElementById('btn-notif').addEventListener('click',()=>{fillNotifForm();openModal('modal-notif');});
+  document.getElementById('btn-setting').addEventListener('click',()=>openModal('modal-setting'));
+  document.querySelectorAll('.modal-wrap').forEach(wrap=>{wrap.addEventListener('click',e=>{if(e.target===wrap)closeModal(wrap.id);});});
+  document.getElementById('btn-next-survey').addEventListener('click',()=>showTab('t-survey'));
+  document.getElementById('btn-back-survey').addEventListener('click',()=>showTab('t-basic'));
+  document.getElementById('btn-next-photos').addEventListener('click',()=>showTab('t-photos'));
+  document.getElementById('btn-back-photos').addEventListener('click',()=>showTab('t-survey'));
+  document.getElementById('btn-save-client').addEventListener('click',saveClient);
+  document.querySelector('#modal-client .tabs').addEventListener('click',e=>{const tab=e.target.closest('.tab');if(tab)showTab(tab.dataset.tab);});
+  document.getElementById('src-grid').addEventListener('click',e=>{const c=e.target.closest('[data-src]');if(!c)return;document.querySelectorAll('#src-grid .chip').forEach(x=>x.classList.remove('on'));c.classList.add('on');selectedSource=c.dataset.src;});
+  document.getElementById('label-grid').addEventListener('click',e=>{const o=e.target.closest('[data-label]');if(!o)return;document.querySelectorAll('#label-grid .lopt').forEach(x=>x.classList.remove('on'));o.classList.add('on');selectedLabel=o.dataset.label;});
+  document.getElementById('type-grid').addEventListener('click',e=>{const c=e.target.closest('[data-type]');if(!c)return;c.classList.toggle('on');const t=c.dataset.type;if(c.classList.contains('on'))selectedTypes.push(t);else selectedTypes=selectedTypes.filter(x=>x!==t);});
+  document.getElementById('photo-label-chips').addEventListener('click',e=>{const c=e.target.closest('[data-plabel]');if(!c)return;document.querySelectorAll('#photo-label-chips .chip').forEach(x=>x.classList.remove('on'));c.classList.add('on');currentPhotoLabel=c.dataset.plabel;});
+  document.getElementById('upload-zone').addEventListener('click',()=>document.getElementById('photo-input').click());
+  document.getElementById('photo-input').addEventListener('change',function(){Array.from(this.files).forEach(file=>{const r=new FileReader();r.onload=ev=>{uploadedPhotos.push({dataUrl:ev.target.result,label:currentPhotoLabel});renderPhotoGrid();};r.readAsDataURL(file);});this.value='';});
+  document.getElementById('client-filter-row').addEventListener('click',e=>{const c=e.target.closest('[data-filter]');if(!c)return;document.querySelectorAll('#client-filter-row .fchip').forEach(x=>x.classList.remove('on'));c.classList.add('on');currentFilter=c.dataset.filter;renderClients();});
+  document.getElementById('client-search-input').addEventListener('input',function(){renderClients(this.value);});
+  document.getElementById('btn-back-detail').addEventListener('click',()=>document.getElementById('detail-page').classList.remove('show'));
+  document.getElementById('btn-save-tour').addEventListener('click',saveTour);
+  document.getElementById('btn-close-tour').addEventListener('click',()=>closeModal('modal-tour'));
+  document.getElementById('cpick-btn').addEventListener('click',e=>{e.stopPropagation();toggleCPick();});
+  document.getElementById('cpick-search').addEventListener('input',function(){renderCPickList(this.value);});
+  document.addEventListener('click',e=>{if(!e.target.closest('#cpick'))closeCPick();});
+  document.getElementById('btn-close-tour-detail').addEventListener('click',()=>closeModal('modal-tour-detail'));
+  document.getElementById('btn-del-tour').addEventListener('click',async()=>{if(!currentTourDetailId)return;const id=currentTourDetailId;DB.tours=DB.tours.filter(t=>t.id!==id);saveDB();closeModal('modal-tour-detail');renderCalendar();renderHome();renderRoute();toast('帶看已刪除');try{await sbDeleteTour(id);}catch(e){console.error(e);toast('雲端刪除失敗，請檢查網路');}});
+  document.getElementById('cal-prev').addEventListener('click',()=>{calMonth--;if(calMonth<1){calMonth=12;calYear--;}renderCalendar();});
+  document.getElementById('cal-next').addEventListener('click',()=>{calMonth++;if(calMonth>12){calMonth=1;calYear++;}renderCalendar();});
+  document.getElementById('btn-add-tour-sched').addEventListener('click',()=>openModal('modal-tour'));
+  document.getElementById('btn-add-todo').addEventListener('click',addTodo);
+  document.getElementById('btn-close-todo').addEventListener('click',()=>closeModal('modal-todo'));
+  document.getElementById('todo-input').addEventListener('keydown',e=>{if(e.key==='Enter')addTodo();});
+  ['todo-overdue','todo-today','todo-tomorrow'].forEach(id=>{document.getElementById(id).addEventListener('click',e=>{const tck=e.target.closest('[data-todo-toggle]');const tdel=e.target.closest('[data-todo-del]');if(tck)toggleTodo(Number(tck.dataset.todoToggle));if(tdel)deleteTodo(Number(tdel.dataset.todoDel));});});
+  document.getElementById('btn-close-phrase').addEventListener('click',()=>closeModal('modal-phrase'));
+  document.getElementById('btn-add-phrase').addEventListener('click',()=>{editingPhraseId=null;document.getElementById('phrase-edit-title').textContent='新增話術';document.getElementById('phrase-edit-label').value='';document.getElementById('phrase-edit-text').value='';closeModal('modal-phrase');openModal('modal-phrase-edit');});
+  document.getElementById('btn-save-phrase').addEventListener('click',savePhrase);
+  document.getElementById('btn-cancel-phrase').addEventListener('click',()=>{closeModal('modal-phrase-edit');openModal('modal-phrase');});
+  document.getElementById('phrase-list').addEventListener('click',e=>{const editBtn=e.target.closest('[data-phrase-edit]');const copyArea=e.target.closest('[data-phrase-copy]');if(editBtn){editPhrase(Number(editBtn.dataset.phraseEdit));return;}if(copyArea)copyPhrase(Number(copyArea.dataset.phraseCopy));});
+  document.getElementById('btn-close-deals').addEventListener('click',()=>closeModal('modal-deals'));
+  document.getElementById('btn-save-notif').addEventListener('click',async()=>{
+    const cb=document.getElementById('notif-overdue');
+    const s=loadSettings();
+    s.email=document.getElementById('notif-email').value.trim();
+    s.notifToday=document.getElementById('notif-today').checked;
+    s.notifTour=document.getElementById('notif-tour').checked;
+    s.notifHour=document.getElementById('notif-hour').checked;
+    s.notifOverdue=cb.checked;
+    saveSettings(s);
+    if(cb.checked)checkOverdueNow();
+    closeModal('modal-notif');toast('提醒設定已儲存 ✓');
+    try{ await sbSaveSettings(s); }catch(e){ console.error(e); toast('雲端儲存失敗，請檢查網路'); }
+  });
+  document.getElementById('btn-close-notif').addEventListener('click',()=>closeModal('modal-notif'));
+
+  document.getElementById('btn-export').addEventListener('click',exportData);
+  document.getElementById('btn-import').addEventListener('click',()=>document.getElementById('import-input').click());
+  document.getElementById('import-input').addEventListener('change',function(){importData(this);});
+  document.getElementById('page-more').addEventListener('click',e=>{const mi=e.target.closest('[data-action]');if(mi)handleAction(mi.dataset.action,mi.dataset);});
+  document.getElementById('detail-body').addEventListener('click',e=>{const eb=e.target.closest('[data-edit-client]');const db=e.target.closest('[data-del-client]');if(eb)editClient(Number(eb.dataset.editClient));if(db)deleteClient(Number(db.dataset.delClient));});
+  document.getElementById('cal-grid').addEventListener('click',e=>{const cd=e.target.closest('[data-calday]');if(cd){calDay=Number(cd.dataset.calday);renderCalendar();}});
+  document.getElementById('cal-day-tours').addEventListener('click',e=>{const r=e.target.closest('[data-tour-id]');if(r)openTourDetail(Number(r.dataset.tourId));});
+  document.getElementById('home-tours').addEventListener('click',e=>{const r=e.target.closest('[data-tour-id]');if(r)openTourDetail(Number(r.dataset.tourId));});
+  document.getElementById('home-todos').addEventListener('click',e=>{const tck=e.target.closest('[data-todo-toggle]');if(tck)toggleTodo(Number(tck.dataset.todoToggle));});
+  document.getElementById('route-list').addEventListener('click',e=>{const r=e.target.closest('[data-tour-id]');if(r&&!e.target.closest('[data-nav]'))openTourDetail(Number(r.dataset.tourId));});
+  document.getElementById('tour-action-row').addEventListener('click',async e=>{const sb=e.target.closest('[data-tour-status]');if(sb&&currentTourDetailId){const t=DB.tours.find(x=>x.id===currentTourDetailId);if(t){t.status=sb.dataset.tourStatus;saveDB();renderCalendar();renderHome();renderRoute();openTourDetail(currentTourDetailId);toast(`已標記「${t.status}」`);try{await sbUpdateTour(t);}catch(e){console.error(e);}}}const nb=e.target.closest('[data-nav]');if(nb)window.open('https://maps.google.com/?q='+encodeURIComponent(nb.dataset.nav),'_blank');const tb=e.target.closest('[data-tel]');if(tb)window.open('tel:'+tb.dataset.tel);const cb=e.target.closest('[data-copy-reminder]');if(cb)copyReminder();});
+}
+
+function handleAction(action,data){
+  if(action==='switch-page')switchPage(data.page);
+  if(action==='open-modal'){
+    if(data.modal==='modal-phrase'){renderPhrases();openModal('modal-phrase');return;}
+    if(data.modal==='modal-deals'){renderDeals();openModal('modal-deals');return;}
+    if(data.modal==='modal-todo'){renderTodos();openModal('modal-todo');return;}
+    openModal(data.modal);
+  }
+}
+
+function switchPage(page){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.ni').forEach(n=>n.classList.remove('active'));
+  const pg=document.getElementById('page-'+page);if(pg)pg.classList.add('active');
+  const ni=document.querySelector(`.ni[data-page="${page}"]`);if(ni)ni.classList.add('active');
+  if(page==='clients')renderClients();
+  if(page==='schedule')renderCalendar();
+  if(page==='map')renderRoute();
+  if(page==='more'){document.getElementById('stat-clients').textContent=DB.clients.length;document.getElementById('stat-tours').textContent=DB.tours.length;}
+  if(page==='home')renderHome();
+}
+
+window.initGoogleMaps=function(){
+  const today=todayStr();
+  const list=DB.tours.filter(t=>t.date===today);
+  if(document.getElementById('page-map').classList.contains('active'))initMap(list);
+};
+
+function openModal(id){const m=document.getElementById(id);if(m)m.classList.add('show');}
+function closeModal(id){const m=document.getElementById(id);if(m)m.classList.remove('show');}
+
+function toggleSheet(){const open=document.getElementById('bsheet').classList.toggle('show');document.getElementById('overlay').classList.toggle('show',open);document.getElementById('fab').classList.toggle('open',open);}
+function closeSheet(){document.getElementById('bsheet').classList.remove('show');document.getElementById('overlay').classList.remove('show');document.getElementById('fab').classList.remove('open');}
+
+function showTab(id){
+  ['t-basic','t-survey','t-photos'].forEach(t=>{document.getElementById(t).style.display=t===id?'block':'none';});
+  document.querySelectorAll('#modal-client .tab').forEach(t=>{t.classList.toggle('on',t.dataset.tab===id);});
+  document.querySelector('#modal-client .modal-box').scrollTop=0;
+}
+
+function toggleCPick(){cpickOpen=!cpickOpen;const drop=document.getElementById('cpick-drop');drop.classList.toggle('show',cpickOpen);if(cpickOpen){renderCPickList('');document.getElementById('cpick-search').focus();}}
+function closeCPick(){cpickOpen=false;document.getElementById('cpick-drop').classList.remove('show');}
+function renderCPickList(q){
+  const list=document.getElementById('cpick-list');
+  let items=DB.clients;
+  if(q)items=items.filter(c=>c.name.includes(q)||(c.phone||'').includes(q));
+  const manualRow=`<div class="cpick-row" id="cpick-manual-row" style="color:var(--sub)"><div style="width:32px;height:32px;border-radius:50%;background:var(--border);display:flex;align-items:center;justify-content:center;flex-shrink:0"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#9A8880" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></div><span style="font-size:14px;font-weight:600">手動輸入</span></div>`;
+  list.innerHTML=items.map(c=>`<div class="cpick-row" data-cpick-id="${c.id}"><div style="width:32px;height:32px;border-radius:50%;background:var(--primary);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:var(--text);flex-shrink:0">${c.avatar||c.name[0]}</div><div style="flex:1"><div style="font-size:14px;font-weight:700">${c.name}</div><div style="font-size:12px;color:var(--sub)">${c.phone||'—'}</div></div><span class="tag cl-${c.status}">${c.status}</span></div>`).join('')+manualRow;
+  list.querySelectorAll('[data-cpick-id]').forEach(row=>{row.addEventListener('click',()=>{const c=DB.clients.find(x=>x.id===Number(row.dataset.cpickId));if(!c)return;document.getElementById('t-client-val').value=c.name;document.getElementById('t-phone-val').value=c.phone||'';document.getElementById('cpick-display').textContent=c.name;document.getElementById('cpick-display').style.color='var(--text)';document.getElementById('t-manual-wrap').style.display='none';closeCPick();});});
+  document.getElementById('cpick-manual-row').addEventListener('click',()=>{document.getElementById('t-client-val').value='';document.getElementById('t-phone-val').value='';document.getElementById('cpick-display').textContent='手動輸入';document.getElementById('cpick-display').style.color='var(--text)';document.getElementById('t-manual-wrap').style.display='block';closeCPick();});
+}
+
+async function saveClient(){
+  const name=document.getElementById('c-name').value.trim();if(!name){showTab('t-basic');alert('請輸入姓名');return;}
+  const client={id:editingClientId||Date.now(),name,phone:document.getElementById('c-phone').value,source:selectedSource||'其他',status:selectedLabel,avatar:name[0],note:document.getElementById('c-note').value,survey:{budget:document.getElementById('s-budget').value,area:document.getElementById('s-area').value,size:document.getElementById('s-size').value,types:[...selectedTypes],conds:document.getElementById('s-conds').value,movein:document.getElementById('s-movein').value,raw:document.getElementById('s-raw').value},photos:uploadedPhotos.map(p=>({label:p.label,dataUrl:p.dataUrl}))};
+  if(editingClientId){const idx=DB.clients.findIndex(c=>c.id===editingClientId);if(idx>=0)DB.clients[idx]=client;}else{DB.clients.unshift(client);}
+  saveDB();resetClientForm();closeModal('modal-client');document.getElementById('detail-page').classList.remove('show');renderClients();renderHome();toast(editingClientId?'客戶已更新 ✓':'客戶已新增 ✓');
+  const wasEditing=editingClientId; editingClientId=null;
+  try{ await sbUpsertClient(client); }catch(e){ console.error(e); toast('雲端儲存失敗，請檢查網路'); }
+}
+function resetClientForm(){
+  ['c-name','c-phone','c-note','s-budget','s-area','s-size','s-conds','s-movein','s-raw'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  document.querySelectorAll('#src-grid .chip').forEach(c=>c.classList.remove('on'));
+  document.querySelectorAll('#label-grid .lopt').forEach(l=>l.classList.remove('on'));
+  document.querySelectorAll('#type-grid .chip').forEach(c=>c.classList.remove('on'));
+  selectedSource='';selectedLabel='新客戶';selectedTypes=[];uploadedPhotos=[];renderPhotoGrid();showTab('t-basic');
+  document.getElementById('btn-save-client').textContent='✓ 儲存客戶';
+}
+function editClient(id){
+  const c=DB.clients.find(x=>x.id===id);if(!c)return;editingClientId=id;
+  document.getElementById('c-name').value=c.name||'';document.getElementById('c-phone').value=c.phone||'';document.getElementById('c-note').value=c.note||'';
+  selectedSource=c.source||'';selectedLabel=c.status||'新客戶';
+  document.querySelectorAll('#src-grid .chip').forEach(el=>el.classList.toggle('on',el.dataset.src===c.source));
+  document.querySelectorAll('#label-grid .lopt').forEach(el=>el.classList.toggle('on',el.dataset.label===c.status));
+  const s=c.survey||{};document.getElementById('s-budget').value=s.budget||'';document.getElementById('s-area').value=s.area||'';document.getElementById('s-size').value=s.size||'';document.getElementById('s-conds').value=s.conds||'';document.getElementById('s-movein').value=s.movein||'';document.getElementById('s-raw').value=s.raw||'';
+  selectedTypes=[...(s.types||[])];document.querySelectorAll('#type-grid .chip').forEach(el=>el.classList.toggle('on',selectedTypes.includes(el.dataset.type)));
+  uploadedPhotos=(c.photos||[]).map(p=>({...p}));renderPhotoGrid();showTab('t-basic');
+  document.getElementById('btn-save-client').textContent='✓ 更新客戶';openModal('modal-client');
+}
+async function deleteClient(id){DB.clients=DB.clients.filter(c=>c.id!==id);saveDB();document.getElementById('detail-page').classList.remove('show');renderClients();renderHome();toast('客戶已刪除');try{await sbDeleteClient(id);}catch(e){console.error(e);toast('雲端刪除失敗，請檢查網路');}}
+
+function renderClients(search){
+  const q=(search||document.getElementById('client-search-input').value||'').trim();
+  let list=DB.clients;if(currentFilter!=='all')list=list.filter(c=>c.status===currentFilter);if(q)list=list.filter(c=>c.name.includes(q)||(c.phone||'').includes(q));
+  const el=document.getElementById('client-list');
+  if(!list.length){el.innerHTML='<div class="empty"><p>沒有符合的客戶</p></div>';return;}
+  el.innerHTML=list.map(c=>`<div class="card" style="cursor:pointer" data-open-client="${c.id}"><div style="display:flex;align-items:center;gap:12px"><div class="av">${c.avatar||c.name[0]}</div><div style="flex:1"><div class="rbet"><div style="font-size:15px;font-weight:700">${c.name}</div><span class="tag cl-${c.status}">${c.status}</span></div><div style="font-size:12px;color:var(--sub);margin-top:2px">${c.phone||'—'} · ${c.source||'—'}</div></div></div></div>`).join('');
+  el.querySelectorAll('[data-open-client]').forEach(card=>{card.addEventListener('click',()=>openClientDetail(Number(card.dataset.openClient)));});
+}
+function openClientDetail(id){
+  const c=DB.clients.find(x=>x.id===id);if(!c)return;
+  document.getElementById('detail-name').textContent=c.name;document.getElementById('detail-sub').textContent=(c.phone||'')+(c.source?' · '+c.source:'');
+  const st=document.getElementById('detail-tag');st.textContent=c.status;st.className='tag cl-'+c.status;
+  const s=c.survey||{};const hp=c.photos&&c.photos.length;
+  document.getElementById('detail-body').innerHTML=`
+    <div class="dsec"><div class="dsect">基本資料</div>
+      <div class="drow"><div class="dlbl">電話</div><div class="dval">${c.phone||'—'}</div></div>
+      <div class="drow"><div class="dlbl">來源</div><div class="dval">${c.source||'—'}</div></div>
+      ${c.note?`<div class="drow"><div class="dlbl">備註</div><div class="dval">${c.note}</div></div>`:''}
+    </div>
+    ${(s.budget||s.area||s.size||s.types?.length||s.conds||s.movein||s.raw)?`<div class="dsec"><div class="dsect">需求問卷</div>
+      ${s.budget?`<div class="drow"><div class="dlbl">預算</div><div class="dval">${s.budget}</div></div>`:''}
+      ${s.area?`<div class="drow"><div class="dlbl">地區</div><div class="dval">${s.area}</div></div>`:''}
+      ${s.size?`<div class="drow"><div class="dlbl">坪數</div><div class="dval">${s.size}</div></div>`:''}
+      ${s.movein?`<div class="drow"><div class="dlbl">入住</div><div class="dval">${s.movein}</div></div>`:''}
+      ${s.types?.length?`<div class="drow"><div class="dlbl">房型</div><div class="dval" style="display:flex;flex-wrap:wrap;gap:6px">${s.types.map(t=>`<span class="cond">${t}</span>`).join('')}</div></div>`:''}
+      ${s.conds?`<div class="drow"><div class="dlbl">需求</div><div class="dval">${s.conds}</div></div>`:''}
+      ${s.raw?`<div class="drow" style="flex-direction:column;gap:8px"><div class="dlbl">原始問卷</div><div class="raw">${s.raw}</div></div>`:''}
+    </div>`:''}
+    ${hp?`<div class="dsec"><div class="dsect">截圖紀錄（${c.photos.length}張）</div>
+      <div class="pgv">${c.photos.map((p,i)=>`<div><div class="ptv" data-preview-idx="${i}" data-client-id="${id}"><img src="${p.dataUrl}"></div><div class="pbadge">${p.label}</div></div>`).join('')}</div>
+    </div>`:''}
+    <div class="abtnrow"><button class="btnd" data-del-client="${id}">刪除客戶</button><button class="btnp" data-edit-client="${id}" style="flex:1;margin-top:0">編輯</button></div>`;
+  document.querySelectorAll('[data-preview-idx]').forEach(el=>{el.addEventListener('click',()=>{const ci=Number(el.dataset.clientId),idx=Number(el.dataset.previewIdx);const cl=DB.clients.find(x=>x.id===ci);if(cl&&cl.photos[idx])previewImg(cl.photos[idx].dataUrl);});});
+  document.getElementById('detail-page').classList.add('show');
+}
+
+function renderPhotoGrid(){
+  document.getElementById('photo-grid').innerHTML=uploadedPhotos.map((p,i)=>`<div class="photo-thumb"><img src="${p.dataUrl}" data-preview-photo="${i}" style="cursor:pointer"><button class="pdel" data-del-photo="${i}"><svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button><div class="plbadge">${p.label}</div></div>`).join('');
+  document.querySelectorAll('[data-preview-photo]').forEach(el=>{el.addEventListener('click',()=>previewImg(uploadedPhotos[Number(el.dataset.previewPhoto)].dataUrl));});
+  document.querySelectorAll('[data-del-photo]').forEach(el=>{el.addEventListener('click',e=>{e.stopPropagation();uploadedPhotos.splice(Number(el.dataset.delPhoto),1);renderPhotoGrid();});});
+}
+function previewImg(src){const ov=document.createElement('div');ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:999;display:flex;align-items:center;justify-content:center;padding:20px';const close=document.createElement('div');close.style.cssText='position:absolute;top:18px;right:18px;width:36px;height:36px;background:rgba(255,255,255,.15);border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer';close.innerHTML='<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" stroke="white" stroke-width="2.5" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';const img=document.createElement('img');img.src=src;img.style.cssText='max-width:100%;max-height:85dvh;border-radius:14px;object-fit:contain';ov.append(img,close);close.addEventListener('click',()=>ov.remove());ov.addEventListener('click',e=>{if(e.target===ov)ov.remove();});document.body.appendChild(ov);}
+
+async function saveTour(){
+  const isManual=document.getElementById('t-manual-wrap').style.display!=='none';
+  const client=isManual?document.getElementById('t-client-manual').value.trim():document.getElementById('t-client-val').value.trim();
+  const phone=isManual?document.getElementById('t-phone-manual').value.trim():document.getElementById('t-phone-val').value.trim();
+  const addr=document.getElementById('t-addr').value.trim();
+  if(!client||!addr){alert('請選擇客戶並填寫地址');return;}
+  const tour={id:Date.now(),client,phone,addr,date:document.getElementById('t-date').value,time:document.getElementById('t-time').value,status:document.getElementById('t-status').value,note:document.getElementById('t-note').value};
+  DB.tours.push(tour);
+  saveDB();
+  ['t-client-manual','t-phone-manual','t-addr','t-note'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  document.getElementById('t-client-val').value='';document.getElementById('t-phone-val').value='';document.getElementById('cpick-display').textContent='搜尋或選擇客戶…';document.getElementById('cpick-display').style.color='var(--sub)';document.getElementById('t-manual-wrap').style.display='none';
+  closeModal('modal-tour');renderCalendar();renderHome();renderRoute();toast('帶看行程已新增 ✓');
+  try{ await sbInsertTour(tour); }catch(e){ console.error(e); toast('雲端儲存失敗，請檢查網路'); }
+}
+
+function tsCls(s){return 'ts-'+s;}
+function openTourDetail(id){
+  const t=DB.tours.find(x=>x.id===id);if(!t)return;currentTourDetailId=id;
+  window._reminder=`您好～跟您確認明天的看房預約唷♡\n預約時間：明天${t.time||''} 看房地址：${t.addr}\n麻煩您明天出發前再跟我說一聲，讓我知道您有準備過來～\n如果臨時不方便也沒關係，也請提前約一個小時告知我一聲，這樣我比較好安排時間♡`;
+  document.getElementById('tour-detail-body').innerHTML=`<div class="tdr"><div class="tdl">客戶</div><div class="tdv">${t.client}</div></div>${t.phone?`<div class="tdr"><div class="tdl">電話</div><div class="tdv">${t.phone}</div></div>`:''}<div class="tdr"><div class="tdl">地址</div><div class="tdv">${t.addr}</div></div><div class="tdr"><div class="tdl">日期</div><div class="tdv">${t.date||'—'}</div></div><div class="tdr"><div class="tdl">時間</div><div class="tdv">${t.time||'—'}</div></div><div class="tdr"><div class="tdl">狀態</div><div class="tdv"><span class="tag ${tsCls(t.status)}">${t.status}</span></div></div>${t.note?`<div class="tdr"><div class="tdl">備註</div><div class="tdv">${t.note}</div></div>`:''}`;
+  document.getElementById('tour-action-row').innerHTML=`<button class="actbtn" data-copy-reminder="1"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>複製提醒訊息</button>${t.phone?`<button class="actbtn" data-tel="${t.phone}"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.77 1.27h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9a16 16 0 0 0 6.91 6.91l1.81-1.81a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>撥打電話</button>`:''}<button class="actbtn" data-nav="${t.addr}"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>開啟導航</button><button class="actbtn" data-tour-status="已確認"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>標記已確認</button><button class="actbtn danger" data-tour-status="放鳥"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>標記放鳥</button>`;
+  openModal('modal-tour-detail');
+}
+function copyReminder(){const msg=window._reminder||'';if(!msg)return;if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(msg).then(()=>toast('已複製 ✓')).catch(()=>fbCopy(msg));}else fbCopy(msg);}
+function fbCopy(text){const ta=document.createElement('textarea');ta.value=text;ta.style.cssText='position:fixed;top:0;left:0;opacity:0';document.body.appendChild(ta);ta.focus();ta.select();try{document.execCommand('copy');toast('已複製 ✓');}catch(e){toast('請手動複製');}document.body.removeChild(ta);}
+
+function todayStr(){return new Date().toISOString().split('T')[0];}
+function tomStr(){return new Date(Date.now()+86400000).toISOString().split('T')[0];}
+async function addTodo(){const text=document.getElementById('todo-input').value.trim();if(!text)return;const cat=document.getElementById('todo-cat').value;const todo={id:Date.now(),text,done:false,date:cat==='today'?todayStr():tomStr()};DB.todos.push(todo);saveDB();document.getElementById('todo-input').value='';renderTodos();renderHome();try{await sbInsertTodo(todo);}catch(e){console.error(e);toast('雲端儲存失敗，請檢查網路');}}
+async function toggleTodo(id){const t=DB.todos.find(x=>x.id===id);if(t){t.done=!t.done;saveDB();renderTodos();renderHome();try{await sbUpdateTodo(id,t.done);}catch(e){console.error(e);}}}
+async function deleteTodo(id){DB.todos=DB.todos.filter(t=>t.id!==id);saveDB();renderTodos();renderHome();try{await sbDeleteTodo(id);}catch(e){console.error(e);toast('雲端刪除失敗，請檢查網路');}}
+function renderTodos(){
+  const today=todayStr(),tom=tomStr();
+  const overdue=DB.todos.filter(t=>!t.done&&t.date<today);const tod=DB.todos.filter(t=>t.date===today);const tmr=DB.todos.filter(t=>t.date===tom);
+  const mk=t=>`<div class="titem" style="padding:12px 0"><button class="tck${t.done?' done':''}" data-todo-toggle="${t.id}">${t.done?'<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>':''}</button><div class="ttxt${t.done?' done':''}" style="flex:1">${t.text}</div><button data-todo-del="${t.id}" style="background:none;border:none;cursor:pointer;opacity:.5;padding:4px"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#9A8880" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></button></div>`;
+  document.getElementById('todo-overdue').innerHTML=overdue.length?`<div class="card overdue" style="padding:0 14px">${overdue.map(mk).join('')}</div>`:'<div style="font-size:13px;color:var(--sub);padding:6px 0">無逾期待辦 🎉</div>';
+  document.getElementById('todo-today').innerHTML=tod.length?`<div class="card" style="padding:0 14px">${tod.map(mk).join('')}</div>`:'<div style="font-size:13px;color:var(--sub);padding:6px 0">今日沒有待辦</div>';
+  document.getElementById('todo-tomorrow').innerHTML=tmr.length?`<div class="card" style="padding:0 14px">${tmr.map(mk).join('')}</div>`:'<div style="font-size:13px;color:var(--sub);padding:6px 0">明日沒有待辦</div>';
+}
+
+const MN=['一月','二月','三月','四月','五月','六月','七月','八月','九月','十月','十一月','十二月'];
+function renderCalendar(){
+  document.getElementById('cal-label').textContent=`${calYear} ${MN[calMonth-1]}`;
+  const grid=document.getElementById('cal-grid');
+  let html=['日','一','二','三','四','五','六'].map(d=>`<div class="cdname">${d}</div>`).join('');
+  const first=new Date(calYear,calMonth-1,1).getDay();const days=new Date(calYear,calMonth,0).getDate();const now=new Date();
+  for(let i=0;i<first;i++)html+=`<div class="cd om"></div>`;
+  for(let d=1;d<=days;d++){const ds=`${calYear}-${String(calMonth).padStart(2,'0')}-${String(d).padStart(2,'0')}`;const isT=d===now.getDate()&&calMonth-1===now.getMonth()&&calYear===now.getFullYear();const isSel=d===calDay;const hasE=DB.tours.some(t=>t.date===ds);html+=`<div class="cd${isT?' today':''}${isSel&&!isT?' sel':''}${hasE?' hase':''}" data-calday="${d}">${d}</div>`;}
+  grid.innerHTML=html;renderDayTours();
+}
+function renderDayTours(){
+  const ds=`${calYear}-${String(calMonth).padStart(2,'0')}-${String(calDay).padStart(2,'0')}`;
+  document.getElementById('cal-day-label').textContent=`${calMonth}月${calDay}日帶看`;
+  const el=document.getElementById('cal-day-tours');
+  const list=DB.tours.filter(t=>t.date===ds).sort((a,b)=>(a.time||'').localeCompare(b.time||''));
+  if(!list.length){el.innerHTML='<div style="text-align:center;padding:18px;color:var(--sub);font-size:14px">今日沒有帶看</div>';return;}
+  el.innerHTML=list.map(t=>`<div class="cti" data-tour-id="${t.id}"><div style="font-size:13px;font-weight:700;color:var(--primary-dark);width:44px;flex-shrink:0">${t.time||'—'}</div><div style="flex:1"><div style="font-size:14px;font-weight:600">${t.client}</div><div style="font-size:12px;color:var(--sub);margin-top:1px">${t.addr}</div></div><span class="tag ${tsCls(t.status)}">${t.status}</span></div>`).join('');
+}
+
+function renderRoute(){
+  const today=todayStr();const list=DB.tours.filter(t=>t.date===today).sort((a,b)=>(a.time||'').localeCompare(b.time||''));
+  const el=document.getElementById('route-list');
+  if(!list.length){el.innerHTML='<div class="empty"><p>今日沒有帶看行程</p></div>';document.getElementById('map-dist').textContent='—';document.getElementById('map-time').textContent='—';clearMap();return;}
+  el.innerHTML=list.map((t,i)=>`<div class="card" style="margin-bottom:8px;cursor:pointer" data-tour-id="${t.id}"><div style="display:flex;align-items:flex-start;gap:12px"><div style="width:28px;height:28px;border-radius:50%;background:${i===0?'var(--text)':'var(--primary)'};display:flex;align-items:center;justify-content:center;flex-shrink:0;color:${i===0?'#fff':'var(--text)'};font-size:13px;font-weight:700">${i+1}</div><div style="flex:1"><div style="display:flex;justify-content:space-between;align-items:center"><div style="font-size:15px;font-weight:700">${t.client}</div><span style="font-size:12px;color:var(--primary-dark);font-weight:600">${t.time||'—'}</span></div><div style="font-size:12px;color:var(--sub);margin:3px 0">${t.addr}</div><span class="tag ${tsCls(t.status)}" style="margin-top:4px;display:inline-block">${t.status}</span></div><button class="actbtn" data-nav="${t.addr}" style="flex-shrink:0;background:var(--primary);border-color:var(--primary)">導航</button></div></div>`).join('');
+  initMap(list);
+}
+
+let gmap=null,markers=[],directionsRenderer=null;
+function clearMap(){if(gmap){markers.forEach(m=>m.setMap(null));markers=[];if(directionsRenderer)directionsRenderer.setMap(null);}}
+
+function initMap(tours){
+  if(typeof google==='undefined'||!google.maps){setTimeout(()=>initMap(tours),500);return;}
+  document.getElementById('map-loading').style.display='none';
+  if(!gmap){
+    gmap=new google.maps.Map(document.getElementById('gmap'),{
+      zoom:13,center:{lat:24.1477,lng:120.6736},
+      mapTypeControl:false,fullscreenControl:false,streetViewControl:false,
+      styles:[{featureType:'poi',elementType:'labels',stylers:[{visibility:'off'}]},{featureType:'transit',elementType:'labels',stylers:[{visibility:'off'}]}]
+    });
+  }
+  clearMap();
+  if(!tours||!tours.length)return;
+  const geo=new google.maps.Geocoder();
+  const bounds=new google.maps.LatLngBounds();
+  let resolved=0;
+  const positions=[];
+  tours.forEach((t,i)=>{
+    geo.geocode({address:t.addr+',台灣'},res=>{
+      if(res&&res[0]){
+        const pos=res[0].geometry.location;
+        positions[i]={pos,t};
+        const marker=new google.maps.Marker({
+          position:pos,map:gmap,
+          label:{text:String(i+1),color:'#fff',fontWeight:'700'},
+          icon:{path:google.maps.SymbolPath.CIRCLE,scale:16,fillColor:i===0?'#4A3F38':'#C4A98A',fillOpacity:1,strokeColor:'#fff',strokeWeight:2}
+        });
+        const info=new google.maps.InfoWindow({content:`<div style="font-size:13px;font-weight:700;padding:4px 6px">${t.client}<br><span style="font-weight:400;color:#666">${t.time||''}</span></div>`});
+        marker.addListener('click',()=>info.open(gmap,marker));
+        markers.push(marker);
+        bounds.extend(pos);
+      }
+      resolved++;
+      if(resolved===tours.length){
+        gmap.fitBounds(bounds);
+        if(tours.length>1)calcRoute(positions.filter(Boolean));
+      }
+    });
+  });
+}
+
+function calcRoute(positions){
+  if(positions.length<2)return;
+  if(!directionsRenderer){directionsRenderer=new google.maps.DirectionsRenderer({suppressMarkers:true,polylineOptions:{strokeColor:'#C4A98A',strokeWeight:4,strokeOpacity:.8}});}
+  directionsRenderer.setMap(gmap);
+  const svc=new google.maps.DirectionsService();
+  const waypoints=positions.slice(1,-1).map(p=>({location:p.pos,stopover:true}));
+  svc.route({origin:positions[0].pos,destination:positions[positions.length-1].pos,waypoints,travelMode:google.maps.TravelMode.DRIVING,optimizeWaypoints:true},
+    (res,status)=>{
+      if(status==='OK'){
+        directionsRenderer.setDirections(res);
+        let totalDist=0,totalTime=0;
+        res.routes[0].legs.forEach(leg=>{totalDist+=leg.distance.value;totalTime+=leg.duration.value;});
+        document.getElementById('map-dist').textContent=(totalDist/1000).toFixed(1);
+        document.getElementById('map-time').textContent=Math.round(totalTime/60);
+      }
+    }
+  );
+}
+
+function renderHome(){
+  const today=todayStr();const todayTours=DB.tours.filter(t=>t.date===today).sort((a,b)=>(a.time||'').localeCompare(b.time||''));const overdue=DB.todos.filter(t=>!t.done&&t.date<today);const todTodos=DB.todos.filter(t=>t.date===today);
+  document.getElementById('h-closed').textContent=DB.clients.filter(c=>c.status==='已成交').length;document.getElementById('h-tours').textContent=DB.tours.length;document.getElementById('h-overdue').textContent=overdue.length;document.getElementById('h-track').textContent=DB.clients.filter(c=>['新客戶','已約看','已帶看','考慮中'].includes(c.status)).length;document.getElementById('h-stops').textContent=todayTours.length;
+  if(todayTours.length){document.getElementById('h-dist').textContent=(todayTours.length*6)+'.0';document.getElementById('h-time').textContent=todayTours.length*15;}else{document.getElementById('h-dist').textContent='—';document.getElementById('h-time').textContent='—';}
+  document.getElementById('home-tours').innerHTML=todayTours.length?todayTours.map(t=>`<div style="display:flex;align-items:center;gap:12px;padding:12px;border-bottom:1px solid var(--border);cursor:pointer" data-tour-id="${t.id}"><div style="font-size:13px;font-weight:700;color:var(--primary-dark);width:44px;flex-shrink:0">${t.time||'—'}</div><div style="flex:1"><div style="font-size:14px;font-weight:600">${t.client}</div><div style="font-size:12px;color:var(--sub)">${t.addr}</div></div><span class="tag ${tsCls(t.status)}">${t.status}</span></div>`).join(''):'<div style="color:var(--sub);font-size:14px;text-align:center;padding:14px">今日沒有帶看</div>';
+  const allTodos=[...overdue,...todTodos].slice(0,5);
+  document.getElementById('home-todos').innerHTML=allTodos.length?`<div class="card${overdue.length?' overdue':''}" style="padding:0 14px">${allTodos.map(t=>`<div class="titem" style="padding:12px 0"><button class="tck${t.done?' done':''}" data-todo-toggle="${t.id}">${t.done?'<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>':''}</button><div class="ttxt${t.done?' done':''}" style="flex:1">${t.text}</div>${!t.done&&t.date<today?'<span style="font-size:11px;color:var(--alert);flex-shrink:0">逾期</span>':''}</div>`).join('')}</div>`:'<div class="card"><div style="color:var(--sub);font-size:14px;text-align:center;padding:14px">今日沒有待辦</div></div>';
+}
+
+function renderPhrases(){
+  document.getElementById('phrase-list').innerHTML=PHRASES.map(p=>`<div class="pitem" data-phrase-copy="${p.id}"><div class="plbl">${p.label}</div><div class="ptxt">${p.text}</div><div style="font-size:11px;color:var(--primary-dark);margin-top:6px;font-weight:600">點擊複製</div><button class="pedit" data-phrase-edit="${p.id}"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#9A8880" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button></div>`).join('');
+}
+function copyPhrase(id){const p=PHRASES.find(x=>x.id===id);if(p)fbCopy(p.text);}
+function editPhrase(id){const p=PHRASES.find(x=>x.id===id);if(!p)return;editingPhraseId=id;document.getElementById('phrase-edit-title').textContent='編輯話術';document.getElementById('phrase-edit-label').value=p.label;document.getElementById('phrase-edit-text').value=p.text;closeModal('modal-phrase');openModal('modal-phrase-edit');}
+async function savePhrase(){
+  const label=document.getElementById('phrase-edit-label').value.trim();const text=document.getElementById('phrase-edit-text').value.trim();
+  if(!label||!text){toast('請填寫標題和內容');return;}
+  let phrase;
+  if(editingPhraseId===null){ phrase={id:Date.now(),label,text}; PHRASES.push(phrase); }
+  else { const idx=PHRASES.findIndex(x=>x.id===editingPhraseId); if(idx>=0){PHRASES[idx].label=label;PHRASES[idx].text=text;phrase=PHRASES[idx];} }
+  saveDB();closeModal('modal-phrase-edit');renderPhrases();openModal('modal-phrase');toast(editingPhraseId===null?'話術已新增 ✓':'話術已更新 ✓');
+  editingPhraseId=null;
+  try{ if(phrase) await sbUpsertPhrase(phrase); }catch(e){ console.error(e); toast('雲端儲存失敗，請檢查網路'); }
+}
+
+function renderDeals(){const closed=DB.clients.filter(c=>c.status==='已成交'||c.status==='已下定');document.getElementById('deal-list').innerHTML=closed.length?closed.map(c=>`<div class="card" style="margin-bottom:8px"><div style="display:flex;align-items:center;gap:12px"><div class="av" style="background:var(--success);color:#fff">${c.avatar||c.name[0]}</div><div style="flex:1"><div style="font-size:15px;font-weight:700">${c.name}</div><div style="font-size:12px;color:var(--sub)">${c.phone||'—'}</div></div><span class="tag cl-${c.status}">${c.status}</span></div></div>`).join(''):'<div class="empty"><p>尚無成交紀錄</p></div>';}
+
+function checkOverdueNow(){const today=todayStr();const overdue=DB.todos.filter(t=>!t.done&&t.date<today);if(!overdue.length){toast('目前沒有逾期待辦 🎉');return;}const ov=document.createElement('div');ov.style.cssText='position:fixed;inset:0;background:rgba(74,63,56,.5);z-index:999;display:flex;align-items:flex-end;justify-content:center';ov.innerHTML=`<div style="background:var(--card);border-radius:24px 24px 0 0;width:100%;max-width:430px;padding:0 20px 40px;animation:slideUp .3s cubic-bezier(.32,.72,0,1)"><div style="width:36px;height:4px;background:var(--border);border-radius:2px;margin:12px auto 20px"></div><div style="display:flex;align-items:center;gap:10px;margin-bottom:16px"><div style="width:36px;height:36px;border-radius:50%;background:#FFF0EC;display:flex;align-items:center;justify-content:center"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#C96F5A" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div><div><div style="font-size:17px;font-weight:800">逾期待辦提醒</div><div style="font-size:12px;color:var(--sub)">共 ${overdue.length} 項逾期未完成</div></div></div><div style="background:#FFF5F3;border-radius:14px;padding:0 14px;margin-bottom:16px">${overdue.map(t=>`<div style="display:flex;align-items:center;gap:10px;padding:12px 0;border-bottom:1px solid #FFE5E0"><div style="width:8px;height:8px;border-radius:50%;background:var(--alert);flex-shrink:0"></div><div style="flex:1;font-size:14px;font-weight:600">${t.text}</div><span style="font-size:11px;color:var(--alert)">${t.date}</span></div>`).join('')}</div><button id="oc-btn" style="width:100%;background:var(--text);color:#fff;border:none;border-radius:14px;padding:15px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit">了解，去處理</button></div>`;document.body.appendChild(ov);document.getElementById('oc-btn').addEventListener('click',()=>ov.remove());ov.addEventListener('click',e=>{if(e.target===ov)ov.remove();});}
+
+function exportData(){const data=JSON.stringify({clients:DB.clients,tours:DB.tours,todos:DB.todos},null,2);const blob=new Blob([data],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=`mimi_rent_backup_${todayStr()}.json`;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(url);document.body.removeChild(a);},100);toast('備份已下載 ✓');}
+function importData(input){const file=input.files[0];if(!file)return;const reader=new FileReader();reader.onload=e=>{try{const data=JSON.parse(e.target.result);if(data.clients)DB.clients=data.clients;if(data.tours)DB.tours=data.tours;if(data.todos)DB.todos=data.todos;saveDB();renderHome();renderClients();renderCalendar();renderRoute();toast('資料匯入成功 ✓');}catch(err){toast('檔案格式錯誤');}};reader.readAsText(file);input.value='';}
+
+function toast(msg){const t=document.createElement('div');t.style.cssText='position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:#4A3F38;color:#fff;padding:12px 20px;border-radius:20px;font-size:14px;font-weight:600;z-index:9999;box-shadow:0 4px 16px rgba(0,0,0,.2);white-space:nowrap;pointer-events:none';t.textContent=msg;document.body.appendChild(t);setTimeout(()=>t.remove(),2200);}
+</script>
+<script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCy8gcFcOc8oUWEjk3ZyRZtXUzugw79DIw&callback=initGoogleMaps&libraries=places"></script>
+</body>
+</html>
