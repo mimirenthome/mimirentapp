@@ -688,7 +688,7 @@ async function initApp(){
   loadDB();
   bindEvents();
   renderHome();renderClients();renderCalendar();renderRoute();
-  document.getElementById('t-date').value=todayStr();
+document.getElementById('t-date').value = todayStr();
   try{
     await sbLoadAll();
     saveDB();
@@ -789,7 +789,7 @@ function switchPage(page){
   const ni=document.querySelector(`.ni[data-page="${page}"]`);if(ni)ni.classList.add('active');
   if(page==='clients')renderClients();
   if(page==='schedule')renderCalendar();
-  if(page==='map')renderRoute();
+  if(page==='map'){renderRoute();}
   if(page==='more'){document.getElementById('stat-clients').textContent=DB.clients.length;document.getElementById('stat-tours').textContent=DB.tours.length;}
   if(page==='home')renderHome();
 }
@@ -922,8 +922,8 @@ function openTourDetail(id){
 function copyReminder(){const msg=window._reminder||'';if(!msg)return;if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(msg).then(()=>toast('已複製 ✓')).catch(()=>fbCopy(msg));}else fbCopy(msg);}
 function fbCopy(text){const ta=document.createElement('textarea');ta.value=text;ta.style.cssText='position:fixed;top:0;left:0;opacity:0';document.body.appendChild(ta);ta.focus();ta.select();try{document.execCommand('copy');toast('已複製 ✓');}catch(e){toast('請手動複製');}document.body.removeChild(ta);}
 
-function todayStr(){return new Date().toISOString().split('T')[0];}
-function tomStr(){return new Date(Date.now()+86400000).toISOString().split('T')[0];}
+function todayStr(){const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;}
+function tomStr(){const d=new Date(Date.now()+86400000);return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;}
 async function addTodo(){const text=document.getElementById('todo-input').value.trim();if(!text)return;const cat=document.getElementById('todo-cat').value;const todo={id:Date.now(),text,done:false,date:cat==='today'?todayStr():tomStr()};DB.todos.push(todo);saveDB();document.getElementById('todo-input').value='';renderTodos();renderHome();try{await sbInsertTodo(todo);}catch(e){console.error(e);toast('雲端儲存失敗，請檢查網路');}}
 async function toggleTodo(id){const t=DB.todos.find(x=>x.id===id);if(t){t.done=!t.done;saveDB();renderTodos();renderHome();try{await sbUpdateTodo(id,t.done);}catch(e){console.error(e);}}}
 async function deleteTodo(id){DB.todos=DB.todos.filter(t=>t.id!==id);saveDB();renderTodos();renderHome();try{await sbDeleteTodo(id);}catch(e){console.error(e);toast('雲端刪除失敗，請檢查網路');}}
@@ -956,7 +956,9 @@ function renderDayTours(){
 }
 
 function renderRoute(){
-  const today=todayStr();const list=DB.tours.filter(t=>t.date===today).sort((a,b)=>(a.time||'').localeCompare(b.time||''));
+  const today=todayStr();
+  const list=DB.tours.filter(t=>t.date===today).sort((a,b)=>(a.time||'').localeCompare(b.time||''));
+  console.log('renderRoute - today:', today, 'all tours:', DB.tours, 'filtered list:', list);
   const el=document.getElementById('route-list');
   if(!list.length){el.innerHTML='<div class="empty"><p>今日沒有帶看行程</p></div>';document.getElementById('map-dist').textContent='—';document.getElementById('map-time').textContent='—';clearMap();return;}
   el.innerHTML=list.map((t,i)=>`<div class="card" style="margin-bottom:8px;cursor:pointer" data-tour-id="${t.id}"><div style="display:flex;align-items:flex-start;gap:12px"><div style="width:28px;height:28px;border-radius:50%;background:${i===0?'var(--text)':'var(--primary)'};display:flex;align-items:center;justify-content:center;flex-shrink:0;color:${i===0?'#fff':'var(--text)'};font-size:13px;font-weight:700">${i+1}</div><div style="flex:1"><div style="display:flex;justify-content:space-between;align-items:center"><div style="font-size:15px;font-weight:700">${t.client}</div><span style="font-size:12px;color:var(--primary-dark);font-weight:600">${t.time||'—'}</span></div><div style="font-size:12px;color:var(--sub);margin:3px 0">${t.addr}</div><span class="tag ${tsCls(t.status)}" style="margin-top:4px;display:inline-block">${t.status}</span></div><button class="actbtn" data-nav="${t.addr}" style="flex-shrink:0;background:var(--primary);border-color:var(--primary)">導航</button></div></div>`).join('');
