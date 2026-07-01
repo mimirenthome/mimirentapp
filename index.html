@@ -561,11 +561,35 @@ html,body{width:100%;max-width:430px;margin:0 auto;background:var(--bg);font-fam
     <div class="mtitle">提醒設定</div>
     <div class="fg"><label class="fl">Email（接收提醒）</label><input class="fi" id="notif-email" placeholder="you@example.com" type="email"></div>
     <div class="card" style="box-shadow:none;border:1.5px solid var(--border);padding:0 14px">
-      <div class="titem" style="padding:14px 0"><div style="flex:1"><div style="font-weight:600">今日待辦</div><div style="font-size:12px;color:var(--sub)">每天早上 08:00</div></div><input type="checkbox" id="notif-today" checked style="width:18px;height:18px;accent-color:var(--primary-dark)"></div>
-      <div class="titem" style="padding:14px 0"><div style="flex:1"><div style="font-weight:600">今日帶看</div><div style="font-size:12px;color:var(--sub)">每天早上 08:30</div></div><input type="checkbox" id="notif-tour" checked style="width:18px;height:18px;accent-color:var(--primary-dark)"></div>
-      <div class="titem" style="padding:14px 0"><div style="flex:1"><div style="font-weight:600">帶看前一小時提醒</div><div style="font-size:12px;color:var(--sub)">帶看前60分鐘</div></div><input type="checkbox" id="notif-hour" checked style="width:18px;height:18px;accent-color:var(--primary-dark)"></div>
+      <div class="titem" style="padding:14px 0;flex-wrap:wrap">
+        <div style="flex:1;min-width:130px">
+          <div style="font-weight:600">今日待辦</div>
+          <div style="font-size:12px;color:var(--sub);display:flex;align-items:center;gap:6px;margin-top:5px">提醒時間<input type="time" id="notif-today-time" style="border:none;background:var(--bg);border-radius:8px;padding:5px 8px;font-size:12px;color:var(--text);font-family:inherit"></div>
+        </div>
+        <input type="checkbox" id="notif-today" checked style="width:18px;height:18px;accent-color:var(--primary-dark)">
+      </div>
+      <div class="titem" style="padding:14px 0;flex-wrap:wrap">
+        <div style="flex:1;min-width:130px">
+          <div style="font-weight:600">今日帶看</div>
+          <div style="font-size:12px;color:var(--sub);display:flex;align-items:center;gap:6px;margin-top:5px">提醒時間<input type="time" id="notif-tour-time" style="border:none;background:var(--bg);border-radius:8px;padding:5px 8px;font-size:12px;color:var(--text);font-family:inherit"></div>
+        </div>
+        <input type="checkbox" id="notif-tour" checked style="width:18px;height:18px;accent-color:var(--primary-dark)">
+      </div>
+      <div class="titem" style="padding:14px 0;flex-wrap:wrap">
+        <div style="flex:1;min-width:130px">
+          <div style="font-weight:600">帶看前提醒</div>
+          <div style="font-size:12px;color:var(--sub);display:flex;align-items:center;gap:6px;margin-top:5px">提前<input type="number" id="notif-hour-mins" min="5" max="720" step="5" style="width:60px;border:none;background:var(--bg);border-radius:8px;padding:5px 8px;font-size:12px;color:var(--text);font-family:inherit">分鐘</div>
+        </div>
+        <input type="checkbox" id="notif-hour" checked style="width:18px;height:18px;accent-color:var(--primary-dark)">
+      </div>
       <div class="titem" style="padding:14px 0;border-bottom:none"><div style="flex:1"><div style="font-weight:600">逾期待辦提醒</div><div style="font-size:12px;color:var(--sub)">開啟後立即顯示</div></div><input type="checkbox" id="notif-overdue" style="width:18px;height:18px;accent-color:var(--primary-dark)"></div>
     </div>
+    <div style="font-size:12px;font-weight:700;color:var(--sub);letter-spacing:.5px;margin:18px 0 10px 2px">EMAILJS 設定（至 emailjs.com 免費申請）</div>
+    <div class="fg"><label class="fl">Service ID</label><input class="fi" id="notif-ejs-service" placeholder="service_xxxxxxx" type="text"></div>
+    <div class="fg"><label class="fl">Template ID</label><input class="fi" id="notif-ejs-template" placeholder="template_xxxxxxx" type="text"></div>
+    <div class="fg"><label class="fl">Public Key</label><input class="fi" id="notif-ejs-key" placeholder="Public Key" type="text"></div>
+    <div id="notif-test-result" style="font-size:12px;margin-bottom:10px;display:none;line-height:1.6"></div>
+    <button class="btno" id="btn-test-notif" style="margin-top:0;border-color:var(--primary-dark)">📧 測試寄送 Email</button>
     <button class="btnp" id="btn-save-notif">儲存設定</button>
     <button class="btno" id="btn-close-notif">關閉</button>
   </div>
@@ -591,6 +615,7 @@ html,body{width:100%;max-width:430px;margin:0 auto;background:var(--bg);font-fam
   </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 <script>
 let DB={clients:[],tours:[],todos:[]};
 let PHRASES=[];
@@ -642,8 +667,13 @@ async function sbLoadAll(){
   DB.todos = todos||[];
   PHRASES = phrases||[];
   const s = (settings&&settings[0])||{};
-  saveSettings({name:s.name||'',company:s.company||'',base:s.base_address||'',email:s.email||'',
-    notifToday:s.notif_today!==false, notifTour:s.notif_tour!==false, notifHour:s.notif_hour!==false, notifOverdue:!!s.notif_overdue});
+  const existingLocal=loadSettings();
+  saveSettings({...existingLocal,
+    name:s.name||existingLocal.name, company:s.company||existingLocal.company, base:s.base_address||existingLocal.base, email:s.email||existingLocal.email,
+    notifToday:s.notif_today!==undefined?s.notif_today!==false:existingLocal.notifToday,
+    notifTour:s.notif_tour!==undefined?s.notif_tour!==false:existingLocal.notifTour,
+    notifHour:s.notif_hour!==undefined?s.notif_hour!==false:existingLocal.notifHour,
+    notifOverdue:s.notif_overdue!==undefined?!!s.notif_overdue:existingLocal.notifOverdue});
   const a = (auth&&auth[0])||{};
   if(a.username) saveAuth({username:a.username, password:a.password});
 }
@@ -691,6 +721,7 @@ function saveDB(){try{localStorage.setItem('mimi_db',JSON.stringify(DB));}catch(
 async function initApp(){
   const now=new Date();calYear=now.getFullYear();calMonth=now.getMonth()+1;calDay=now.getDate();
   loadDB();
+  initEmailJS();
   bindEvents();
   renderHome();renderClients();renderCalendar();renderRoute();
 document.getElementById('t-date').value = todayStr();
@@ -787,11 +818,19 @@ function bindEvents(){
     s.notifTour=document.getElementById('notif-tour').checked;
     s.notifHour=document.getElementById('notif-hour').checked;
     s.notifOverdue=cb.checked;
+    s.todayTime=document.getElementById('notif-today-time').value||'08:00';
+    s.tourTime=document.getElementById('notif-tour-time').value||'08:30';
+    s.hourMins=Number(document.getElementById('notif-hour-mins').value)||60;
+    s.ejsService=document.getElementById('notif-ejs-service').value.trim();
+    s.ejsTemplate=document.getElementById('notif-ejs-template').value.trim();
+    s.ejsKey=document.getElementById('notif-ejs-key').value.trim();
     saveSettings(s);
+    initEmailJS();
     if(cb.checked)checkOverdueNow();
     closeModal('modal-notif');toast('提醒設定已儲存 ✓');
     try{ await sbSaveSettings(s); }catch(e){ console.error(e); toast('雲端儲存失敗，請檢查網路'); }
   });
+  document.getElementById('btn-test-notif').addEventListener('click',testSendNotifEmail);
   document.getElementById('btn-close-notif').addEventListener('click',()=>closeModal('modal-notif'));
   document.getElementById('more-deals').addEventListener('click',function(e){e.stopPropagation();renderDeals();openModal('modal-deals');});
   document.getElementById('more-todo').addEventListener('click',function(e){e.stopPropagation();renderTodos();openModal('modal-todo');});
@@ -1227,8 +1266,11 @@ function toast(msg){const t=document.createElement('div');t.style.cssText='posit
 
 // ── SETTINGS PERSIST ───────────────────────────────────
 function loadSettings(){
-  try{return JSON.parse(localStorage.getItem('mimi_settings')||'null')||{name:'',company:'',base:'',email:'',notifToday:true,notifTour:true,notifHour:true,notifOverdue:false};}
-  catch(e){return {name:'',company:'',base:'',email:'',notifToday:true,notifTour:true,notifHour:true,notifOverdue:false};}
+  const defaults={name:'',company:'',base:'',email:'',notifToday:true,notifTour:true,notifHour:true,notifOverdue:false,todayTime:'08:00',tourTime:'08:30',hourMins:60,ejsService:'',ejsTemplate:'',ejsKey:''};
+  try{
+    const saved=JSON.parse(localStorage.getItem('mimi_settings')||'null');
+    return saved? {...defaults,...saved} : {...defaults};
+  }catch(e){ return {...defaults}; }
 }
 function saveSettings(s){try{localStorage.setItem('mimi_settings',JSON.stringify(s));}catch(e){}}
 function fillSettingsForm(){
@@ -1244,7 +1286,102 @@ function fillNotifForm(){
   document.getElementById('notif-tour').checked=s.notifTour!==false;
   document.getElementById('notif-hour').checked=s.notifHour!==false;
   document.getElementById('notif-overdue').checked=!!s.notifOverdue;
+  document.getElementById('notif-today-time').value=s.todayTime||'08:00';
+  document.getElementById('notif-tour-time').value=s.tourTime||'08:30';
+  document.getElementById('notif-hour-mins').value=s.hourMins||60;
+  document.getElementById('notif-ejs-service').value=s.ejsService||'';
+  document.getElementById('notif-ejs-template').value=s.ejsTemplate||'';
+  document.getElementById('notif-ejs-key').value=s.ejsKey||'';
+  const resultEl=document.getElementById('notif-test-result');
+  if(resultEl){ resultEl.style.display='none'; resultEl.textContent=''; }
 }
+
+// ── EMAIL NOTIFICATIONS (EmailJS) ──────────────────────
+let emailjsReady=false;
+function initEmailJS(){
+  const s=loadSettings();
+  if(s.ejsKey && window.emailjs){
+    try{ emailjs.init({publicKey:s.ejsKey}); emailjsReady=true; }
+    catch(e){ console.error('EmailJS init failed:',e); emailjsReady=false; }
+  } else {
+    emailjsReady=false;
+  }
+}
+function sendNotifEmail(subject,message){
+  const s=loadSettings();
+  if(!emailjsReady||!s.ejsService||!s.ejsTemplate||!s.email){
+    return Promise.reject(new Error('EmailJS 尚未設定完整（Service ID / Template ID / Public Key / Email）'));
+  }
+  return emailjs.send(s.ejsService, s.ejsTemplate, { to_email:s.email, subject:subject, message:message });
+}
+function testSendNotifEmail(){
+  const btn=document.getElementById('btn-test-notif');
+  const resultEl=document.getElementById('notif-test-result');
+  const email=document.getElementById('notif-email').value.trim();
+  const service=document.getElementById('notif-ejs-service').value.trim();
+  const template=document.getElementById('notif-ejs-template').value.trim();
+  const key=document.getElementById('notif-ejs-key').value.trim();
+  if(!email||!service||!template||!key){
+    resultEl.style.display='block'; resultEl.style.color='var(--alert)';
+    resultEl.textContent='請先填寫 Email 及 EmailJS 三個欄位（Service ID / Template ID / Public Key）再測試';
+    return;
+  }
+  if(!window.emailjs){
+    resultEl.style.display='block'; resultEl.style.color='var(--alert)';
+    resultEl.textContent='EmailJS 程式庫尚未載入，請確認網路連線後重新整理頁面';
+    return;
+  }
+  btn.disabled=true; btn.textContent='寄送中…';
+  try{ emailjs.init({publicKey:key}); }catch(e){}
+  emailjs.send(service, template, {
+    to_email:email,
+    subject:'【Mimi Rent】測試通知',
+    message:'這是一封測試信，如果您收到這封信，代表 Email 通知功能設定成功 ✓\n\n寄送時間：'+new Date().toLocaleString('zh-TW')
+  }).then(()=>{
+    resultEl.style.display='block'; resultEl.style.color='var(--success)';
+    resultEl.textContent='✓ 測試信已送出，請至 '+email+' 收信（記得也檢查垃圾郵件匣）';
+    toast('測試信已送出 ✓');
+  }).catch(err=>{
+    console.error('EmailJS test send failed:',err);
+    resultEl.style.display='block'; resultEl.style.color='var(--alert)';
+    resultEl.textContent='✗ 寄送失敗：'+(err&&(err.text||err.message)||'請檢查 Service ID / Template ID / Public Key 是否正確');
+  }).finally(()=>{
+    btn.disabled=false; btn.textContent='📧 測試寄送 Email';
+  });
+}
+function notifFlagKey(kind){ return 'mimi_notif_'+kind+'_'+todayStr(); }
+function alreadySentNotif(kind){ return localStorage.getItem(notifFlagKey(kind))==='1'; }
+function markNotifSent(kind){ try{ localStorage.setItem(notifFlagKey(kind),'1'); }catch(e){} }
+function runNotificationChecker(){
+  const s=loadSettings();
+  if(!s.email) return;
+  const now=new Date();
+  const hhmm=String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
+  const today=todayStr();
+  if(s.notifToday && s.todayTime && hhmm===s.todayTime && !alreadySentNotif('today')){
+    const todos=DB.todos.filter(t=>t.date===today && !t.done);
+    const list=todos.length? todos.map(t=>'・'+t.text).join('\n') : '今天沒有待辦事項';
+    sendNotifEmail('【Mimi Rent】今日待辦提醒', list).then(()=>markNotifSent('today')).catch(err=>console.error('今日待辦通知寄送失敗:',err));
+  }
+  if(s.notifTour && s.tourTime && hhmm===s.tourTime && !alreadySentNotif('tour')){
+    const tours=DB.tours.filter(t=>t.date===today).sort((a,b)=>(a.time||'').localeCompare(b.time||''));
+    const list=tours.length? tours.map(t=>`・${t.time||'—'} ${t.client} - ${t.addr}`).join('\n') : '今天沒有帶看行程';
+    sendNotifEmail('【Mimi Rent】今日帶看提醒', list).then(()=>markNotifSent('tour')).catch(err=>console.error('今日帶看通知寄送失敗:',err));
+  }
+  if(s.notifHour){
+    const mins=Number(s.hourMins)||60;
+    DB.tours.filter(t=>t.date===today && t.time).forEach(t=>{
+      const parts=t.time.split(':').map(Number);
+      const tourDate=new Date(now.getFullYear(),now.getMonth(),now.getDate(),parts[0],parts[1],0,0);
+      const diffMin=(tourDate-now)/60000;
+      const flagKind='hourbefore_'+t.id;
+      if(diffMin<=mins && diffMin>mins-1 && !alreadySentNotif(flagKind)){
+        sendNotifEmail('【Mimi Rent】帶看提醒：'+mins+'分鐘後', `${t.time} 與 ${t.client} 有約看\n地址：${t.addr}`).then(()=>markNotifSent(flagKind)).catch(err=>console.error('帶看前提醒寄送失敗:',err));
+      }
+    });
+  }
+}
+setInterval(runNotificationChecker, 30000);
 
 // ── AUTH ──────────────────────────────────────────────
 function loadAuth(){
