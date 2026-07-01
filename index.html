@@ -390,21 +390,6 @@ html,body{width:100%;max-width:430px;margin:0 auto;background:var(--bg);font-fam
   <div class="dcontent" id="detail-body"></div>
 </div>
 
-<!-- TOUR DETAIL MODAL (bottom sheet style) -->
-<div class="modal-wrap" id="modal-tour-detail">
-  <div class="modal-box">
-    <div class="mhandle"></div>
-    <div class="mtitle" id="tour-detail-title">帶看詳細</div>
-    <div id="tour-detail-body"></div>
-    <div class="actrow" id="tour-action-row" style="margin:14px 0"></div>
-    <div class="abtnrow">
-      <button class="btnd" id="btn-tour-del">刪除</button>
-      <button class="btno" id="btn-tour-edit" style="flex:1;margin-top:0;border-color:var(--primary-dark)">編輯</button>
-    </div>
-    <button class="btnp" id="btn-tour-close" style="margin-top:8px">關閉</button>
-  </div>
-</div>
-
 <!-- MODAL: CLIENT -->
 <div class="modal-wrap" id="modal-client">
   <div class="modal-box">
@@ -498,6 +483,10 @@ html,body{width:100%;max-width:430px;margin:0 auto;background:var(--bg);font-fam
     <div class="fg"><label class="fl">備註</label><textarea class="fta" id="t-note" style="min-height:70px" placeholder="停車資訊、鑰匙取得…"></textarea></div>
     <button class="btnp" id="btn-save-tour">儲存帶看</button>
     <button class="btno" id="btn-close-tour">取消</button>
+  </div>
+</div>
+
+<!-- MODAL: TODO -->
 <div class="modal-wrap" id="modal-todo">
   <div class="modal-box">
     <div class="mhandle"></div>
@@ -521,16 +510,18 @@ html,body{width:100%;max-width:430px;margin:0 auto;background:var(--bg);font-fam
 <div class="modal-wrap" id="modal-tour-detail">
   <div class="modal-box">
     <div class="mhandle"></div>
-    <div class="mtitle">帶看詳細</div>
+    <div class="mtitle" id="tour-detail-title">帶看詳細</div>
     <div id="tour-detail-body"></div>
     <div class="actrow" id="tour-action-row"></div>
-    <div class="abtnrow" style="margin-top:4px">
-      <button class="btnd" id="btn-del-tour">刪除</button>
-      <button class="btno" id="btn-edit-tour" style="flex:1;margin-top:0;border-color:var(--primary-dark);color:var(--text)">編輯</button>
+    <div class="abtnrow">
+      <button class="btnd" id="btn-tour-del">刪除</button>
+      <button class="btno" id="btn-tour-edit" style="flex:1;margin-top:0;border-color:var(--primary-dark)">編輯</button>
     </div>
-    <button class="btnp" id="btn-close-tour-detail" style="margin-top:8px">關閉</button>
+    <button class="btnp" id="btn-tour-close" style="margin-top:8px">關閉</button>
   </div>
 </div>
+
+<!-- MODAL: PHRASE -->
 <div class="modal-wrap" id="modal-phrase">
   <div class="modal-box">
     <div class="mhandle"></div>
@@ -724,10 +715,6 @@ function bindEvents(){
     if(el){ handleAction(el.dataset.action,el.dataset); return; }
     const ot=e.target.closest('[data-open-tour2]');
     if(ot){ openTourDetail(Number(ot.dataset.openTour2)); return; }
-    const tEdit=e.target.closest('[data-tour-page-edit]');
-    if(tEdit){ editTour(Number(tEdit.dataset.tourPageEdit)); return; }
-    const tDel=e.target.closest('[data-tour-page-del]');
-    if(tDel){ deleteTourFromPage(Number(tDel.dataset.tourPageDel)); return; }
     const tStatus=e.target.closest('[data-tour-status]');
     if(tStatus && currentTourDetailId){
       const t=DB.tours.find(x=>x.id===currentTourDetailId);
@@ -744,7 +731,6 @@ function bindEvents(){
     if(cReminder){ copyReminder(); return; }
   });
   document.getElementById('btn-notif').addEventListener('click',()=>{fillNotifForm();openModal('modal-notif');});
-  document.getElementById('btn-setting').addEventListener('click',()=>{const auth=loadAuth();document.getElementById('setting-username').value=auth.username;fillSettingsForm();openModal('modal-setting');});
   document.getElementById('btn-setting').addEventListener('click',()=>{const auth=loadAuth();document.getElementById('setting-username').value=auth.username;fillSettingsForm();openModal('modal-setting');});
   document.querySelectorAll('.modal-wrap').forEach(wrap=>{wrap.addEventListener('click',e=>{if(e.target===wrap)closeModal(wrap.id);});});
   document.getElementById('btn-next-survey').addEventListener('click',()=>showTab('t-survey'));
@@ -770,7 +756,7 @@ function bindEvents(){
     closeModal('modal-tour-detail');
     renderCalendar();renderHome();renderRoute();
     toast('帶看已刪除');
-    try{await sbDeleteTour(id);}catch(e){console.error(e);}
+    try{await sbDeleteTour(id);}catch(e){console.error(e);toast('雲端刪除失敗，請檢查網路');}
   });
   document.getElementById('btn-tour-edit').addEventListener('click',()=>{
     if(currentTourDetailId){ closeModal('modal-tour-detail'); editTour(currentTourDetailId); }
@@ -780,9 +766,6 @@ function bindEvents(){
   document.getElementById('cpick-btn').addEventListener('click',e=>{e.stopPropagation();toggleCPick();});
   document.getElementById('cpick-search').addEventListener('input',function(){renderCPickList(this.value);});
   document.addEventListener('click',e=>{if(!e.target.closest('#cpick'))closeCPick();});
-  document.getElementById('btn-close-tour-detail').addEventListener('click',()=>closeModal('modal-tour-detail'));
-  document.getElementById('btn-edit-tour').addEventListener('click',()=>{if(currentTourDetailId)editTour(currentTourDetailId);});
-  document.getElementById('btn-del-tour').addEventListener('click',async()=>{if(!currentTourDetailId)return;const id=currentTourDetailId;DB.tours=DB.tours.filter(t=>t.id!==id);saveDB();closeModal('modal-tour-detail');renderCalendar();renderHome();renderRoute();toast('帶看已刪除');try{await sbDeleteTour(id);}catch(e){console.error(e);toast('雲端刪除失敗，請檢查網路');}});
   document.getElementById('cal-prev').addEventListener('click',()=>{calMonth--;if(calMonth<1){calMonth=12;calYear--;}renderCalendar();});
   document.getElementById('cal-next').addEventListener('click',()=>{calMonth++;if(calMonth>12){calMonth=1;calYear++;}renderCalendar();});
   document.getElementById('btn-add-tour-sched').addEventListener('click',()=>{editingTourId=null;resetTourForm();openModal('modal-tour');});
@@ -810,13 +793,13 @@ function bindEvents(){
     try{ await sbSaveSettings(s); }catch(e){ console.error(e); toast('雲端儲存失敗，請檢查網路'); }
   });
   document.getElementById('btn-close-notif').addEventListener('click',()=>closeModal('modal-notif'));
-  document.getElementById('more-deals').addEventListener('click',function(e){console.log('more-deals clicked');e.stopPropagation();renderDeals();openModal('modal-deals');});
-  document.getElementById('more-todo').addEventListener('click',function(e){console.log('more-todo clicked');e.stopPropagation();renderTodos();openModal('modal-todo');});
-  document.getElementById('more-phrase').addEventListener('click',function(e){console.log('more-phrase clicked');e.stopPropagation();renderPhrases();openModal('modal-phrase');});
-  document.getElementById('more-notif').addEventListener('click',function(e){console.log('more-notif clicked');e.stopPropagation();fillNotifForm();openModal('modal-notif');});
-  document.getElementById('more-setting').addEventListener('click',function(e){console.log('more-setting clicked');e.stopPropagation();const auth=loadAuth();document.getElementById('setting-username').value=auth.username;fillSettingsForm();openModal('modal-setting');});
-  document.getElementById('btn-export').addEventListener('click',function(e){console.log('export clicked');exportData();});
-  document.getElementById('btn-import').addEventListener('click',function(e){console.log('import clicked');document.getElementById('import-input').click();});
+  document.getElementById('more-deals').addEventListener('click',function(e){e.stopPropagation();renderDeals();openModal('modal-deals');});
+  document.getElementById('more-todo').addEventListener('click',function(e){e.stopPropagation();renderTodos();openModal('modal-todo');});
+  document.getElementById('more-phrase').addEventListener('click',function(e){e.stopPropagation();renderPhrases();openModal('modal-phrase');});
+  document.getElementById('more-notif').addEventListener('click',function(e){e.stopPropagation();fillNotifForm();openModal('modal-notif');});
+  document.getElementById('more-setting').addEventListener('click',function(e){e.stopPropagation();const auth=loadAuth();document.getElementById('setting-username').value=auth.username;fillSettingsForm();openModal('modal-setting');});
+  document.getElementById('btn-export').addEventListener('click',function(e){exportData();});
+  document.getElementById('btn-import').addEventListener('click',function(e){document.getElementById('import-input').click();});
   document.getElementById('import-input').addEventListener('change',function(){importData(this);});
   document.getElementById('page-more').addEventListener('click',e=>{const mi=e.target.closest('[data-action]');if(mi)handleAction(mi.dataset.action,mi.dataset);});
   document.getElementById('detail-body').addEventListener('click',e=>{const eb=e.target.closest('[data-edit-client]');const db=e.target.closest('[data-del-client]');if(eb)editClient(Number(eb.dataset.editClient));if(db)deleteClient(Number(db.dataset.delClient));});
@@ -1006,7 +989,7 @@ function editTour(id){
   document.getElementById('t-status').value=t.status||'待確認';
   document.getElementById('t-note').value=t.note||'';
   document.getElementById('btn-save-tour').textContent='✓ 更新帶看';
-  document.getElementById('tour-detail-page').classList.remove('show');
+  closeModal('modal-tour-detail');
   openModal('modal-tour');
 }
 async function sbFullUpdateTour(t){
@@ -1035,13 +1018,6 @@ function openTourDetail(id){
     <button class="actbtn" data-tour-status="已確認"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>標記已確認</button>
     <button class="actbtn danger" data-tour-status="放鳥"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>標記放鳥</button>`;
   openModal('modal-tour-detail');
-}
-async function deleteTourFromPage(id){
-  DB.tours=DB.tours.filter(t=>t.id!==id); saveDB();
-  document.getElementById('tour-detail-page').classList.remove('show');
-  renderCalendar();renderHome();renderRoute();
-  toast('帶看已刪除');
-  try{ await sbDeleteTour(id); }catch(e){ console.error(e); toast('雲端刪除失敗，請檢查網路'); }
 }
 function copyReminder(){const msg=window._reminder||'';if(!msg)return;if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(msg).then(()=>toast('已複製 ✓')).catch(()=>fbCopy(msg));}else fbCopy(msg);}
 function fbCopy(text){const ta=document.createElement('textarea');ta.value=text;ta.style.cssText='position:fixed;top:0;left:0;opacity:0';document.body.appendChild(ta);ta.focus();ta.select();try{document.execCommand('copy');toast('已複製 ✓');}catch(e){toast('請手動複製');}document.body.removeChild(ta);}
@@ -1082,7 +1058,6 @@ function renderDayTours(){
 function renderRoute(){
   const today=todayStr();
   const list=DB.tours.filter(t=>t.date===today).sort((a,b)=>(a.time||'').localeCompare(b.time||''));
-  console.log('renderRoute - today:', today, 'all tours:', DB.tours, 'filtered list:', list);
   const el=document.getElementById('route-list');
   if(!list.length){el.innerHTML='<div class="empty"><p>今日沒有帶看行程</p></div>';document.getElementById('map-dist').textContent='—';document.getElementById('map-time').textContent='—';clearMap();return;}
   el.innerHTML=list.map((t,i)=>`<div class="card" style="margin-bottom:8px;position:relative" data-tour-id="${t.id}"><div style="display:flex;align-items:flex-start;gap:12px"><div style="width:28px;height:28px;border-radius:50%;background:${i===0?'var(--text)':'var(--primary)'};display:flex;align-items:center;justify-content:center;flex-shrink:0;color:${i===0?'#fff':'var(--text)'};font-size:13px;font-weight:700;cursor:pointer" data-open-tour="${t.id}">${i+1}</div><div style="flex:1;cursor:pointer;min-width:0" data-open-tour="${t.id}"><div style="display:flex;justify-content:space-between;align-items:center"><div style="font-size:15px;font-weight:700">${t.client}</div><span style="font-size:12px;color:var(--primary-dark);font-weight:600">${t.time||'—'}</span></div><div style="font-size:12px;color:var(--sub);margin:3px 0">${t.addr}</div><span class="tag ${tsCls(t.status)}" style="margin-top:4px;display:inline-block">${t.status}</span></div><a href="https://maps.google.com/?q=${encodeURIComponent(t.addr)}" target="_blank" rel="noopener" class="actbtn" style="flex-shrink:0;background:var(--primary);border-color:var(--primary);text-decoration:none;display:inline-flex;align-items:center;justify-content:center">導航</a></div></div>`).join('');
