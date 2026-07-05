@@ -7,8 +7,9 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Mimi Rent">
 <meta name="theme-color" content="#F8F4EF">
+<link rel="apple-touch-icon" href="/mimiphoto.jpg">
+<link rel="icon" href="/mimiphoto.jpg">
 <title>Mimi Rent</title>
-<link rel=apple-touch-icon" href="/mimiphoto.jpg"/>
 <style>
 :root{
   --bg:#F8F4EF;--card:#FFF;--primary:#DCC8B4;--primary-dark:#C4A98A;
@@ -589,6 +590,8 @@ html,body{width:100%;max-width:430px;margin:0 auto;background:var(--bg);font-fam
     <div class="fg"><label class="fl">Service ID</label><input class="fi" id="notif-ejs-service" placeholder="service_xxxxxxx" type="text"></div>
     <div class="fg"><label class="fl">Template ID</label><input class="fi" id="notif-ejs-template" placeholder="template_xxxxxxx" type="text"></div>
     <div class="fg"><label class="fl">Public Key</label><input class="fi" id="notif-ejs-key" placeholder="Public Key" type="text"></div>
+    <div class="fg"><label class="fl">Private Key（後端自動排程用，Account → API Keys）</label><input class="fi" id="notif-ejs-private" placeholder="Private Key" type="text"></div>
+    <div style="font-size:11px;color:var(--sub);margin:-8px 0 14px;line-height:1.6">⚠️ Private Key 會存到 Supabase 資料庫（app_settings），是後端排程自動寄信必須的，跟只存在這支手機的 Public Key 不一樣，請不要外流。</div>
     <div id="notif-test-result" style="font-size:12px;margin-bottom:10px;display:none;line-height:1.6"></div>
     <button class="btno" id="btn-test-notif" style="margin-top:0;border-color:var(--primary-dark)">📧 測試寄送 Email</button>
     <button class="btnp" id="btn-save-notif">儲存設定</button>
@@ -674,7 +677,14 @@ async function sbLoadAll(){
     notifToday:s.notif_today!==undefined?s.notif_today!==false:existingLocal.notifToday,
     notifTour:s.notif_tour!==undefined?s.notif_tour!==false:existingLocal.notifTour,
     notifHour:s.notif_hour!==undefined?s.notif_hour!==false:existingLocal.notifHour,
-    notifOverdue:s.notif_overdue!==undefined?!!s.notif_overdue:existingLocal.notifOverdue});
+    notifOverdue:s.notif_overdue!==undefined?!!s.notif_overdue:existingLocal.notifOverdue,
+    todayTime:s.today_time||existingLocal.todayTime,
+    tourTime:s.tour_time||existingLocal.tourTime,
+    hourMins:s.hour_mins||existingLocal.hourMins,
+    ejsService:s.ejs_service||existingLocal.ejsService,
+    ejsTemplate:s.ejs_template||existingLocal.ejsTemplate,
+    ejsKey:s.ejs_public_key||existingLocal.ejsKey,
+    ejsPrivateKey:s.ejs_private_key||existingLocal.ejsPrivateKey});
   const a = (auth&&auth[0])||{};
   if(a.username) saveAuth({username:a.username, password:a.password});
 }
@@ -699,6 +709,8 @@ async function sbSaveSettings(s){
   await sbFetch('app_settings?id=eq.1', {method:'PATCH', prefer:'return=minimal',
     body:JSON.stringify({name:s.name,company:s.company,base_address:s.base,email:s.email,
       notif_today:s.notifToday,notif_tour:s.notifTour,notif_hour:s.notifHour,notif_overdue:s.notifOverdue,
+      today_time:s.todayTime,tour_time:s.tourTime,hour_mins:s.hourMins,
+      ejs_service:s.ejsService,ejs_template:s.ejsTemplate,ejs_public_key:s.ejsKey,ejs_private_key:s.ejsPrivateKey,
       updated_at:new Date().toISOString()})});
 }
 async function sbSaveAuth(a){
@@ -731,9 +743,11 @@ document.getElementById('t-date').value = todayStr();
     saveDB();
     renderHome();renderClients();renderCalendar();renderRoute();
     toast('資料已同步 ✓');
+    runNotificationChecker();
   }catch(err){
     console.error('Supabase sync failed:', err);
     toast('雲端同步失敗，使用本機快取資料');
+    runNotificationChecker();
   }
 }
 
@@ -825,6 +839,7 @@ function bindEvents(){
     s.ejsService=document.getElementById('notif-ejs-service').value.trim();
     s.ejsTemplate=document.getElementById('notif-ejs-template').value.trim();
     s.ejsKey=document.getElementById('notif-ejs-key').value.trim();
+    s.ejsPrivateKey=document.getElementById('notif-ejs-private').value.trim();
     saveSettings(s);
     initEmailJS();
     if(cb.checked)checkOverdueNow();
@@ -1281,7 +1296,7 @@ function toast(msg){const t=document.createElement('div');t.style.cssText='posit
 
 // ── SETTINGS PERSIST ───────────────────────────────────
 function loadSettings(){
-  const defaults={name:'',company:'',base:'',email:'',notifToday:true,notifTour:true,notifHour:true,notifOverdue:false,todayTime:'08:00',tourTime:'08:30',hourMins:60,ejsService:'',ejsTemplate:'',ejsKey:''};
+  const defaults={name:'',company:'',base:'',email:'',notifToday:true,notifTour:true,notifHour:true,notifOverdue:false,todayTime:'08:00',tourTime:'08:30',hourMins:60,ejsService:'',ejsTemplate:'',ejsKey:'',ejsPrivateKey:''};
   try{
     const saved=JSON.parse(localStorage.getItem('mimi_settings')||'null');
     return saved? {...defaults,...saved} : {...defaults};
@@ -1307,6 +1322,7 @@ function fillNotifForm(){
   document.getElementById('notif-ejs-service').value=s.ejsService||'';
   document.getElementById('notif-ejs-template').value=s.ejsTemplate||'';
   document.getElementById('notif-ejs-key').value=s.ejsKey||'';
+  document.getElementById('notif-ejs-private').value=s.ejsPrivateKey||'';
   const resultEl=document.getElementById('notif-test-result');
   if(resultEl){ resultEl.style.display='none'; resultEl.textContent=''; }
 }
@@ -1371,17 +1387,26 @@ function runNotificationChecker(){
   const s=loadSettings();
   if(!s.email) return;
   const now=new Date();
-  const hhmm=String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
+  const nowMinutes=now.getHours()*60+now.getMinutes();
   const today=todayStr();
-  if(s.notifToday && s.todayTime && hhmm===s.todayTime && !alreadySentNotif('today')){
-    const todos=DB.todos.filter(t=>t.date===today && !t.done);
-    const list=todos.length? todos.map(t=>'・'+t.text).join('\n') : '今天沒有待辦事項';
-    sendNotifEmail('【Mimi Rent】今日待辦提醒', list).then(()=>markNotifSent('today')).catch(err=>console.error('今日待辦通知寄送失敗:',err));
+
+  if(s.notifToday && s.todayTime && !alreadySentNotif('today')){
+    const parts=s.todayTime.split(':').map(Number);
+    const targetMinutes=parts[0]*60+parts[1];
+    if(nowMinutes>=targetMinutes){
+      const todos=DB.todos.filter(t=>t.date===today && !t.done);
+      const list=todos.length? todos.map(t=>'・'+t.text).join('\n') : '今天沒有待辦事項';
+      sendNotifEmail('【Mimi Rent】今日待辦提醒', list).then(()=>markNotifSent('today')).catch(err=>console.error('今日待辦通知寄送失敗:',err));
+    }
   }
-  if(s.notifTour && s.tourTime && hhmm===s.tourTime && !alreadySentNotif('tour')){
-    const tours=DB.tours.filter(t=>t.date===today).sort((a,b)=>(a.time||'').localeCompare(b.time||''));
-    const list=tours.length? tours.map(t=>`・${t.time||'—'} ${t.client} - ${t.addr}`).join('\n') : '今天沒有帶看行程';
-    sendNotifEmail('【Mimi Rent】今日帶看提醒', list).then(()=>markNotifSent('tour')).catch(err=>console.error('今日帶看通知寄送失敗:',err));
+  if(s.notifTour && s.tourTime && !alreadySentNotif('tour')){
+    const parts=s.tourTime.split(':').map(Number);
+    const targetMinutes=parts[0]*60+parts[1];
+    if(nowMinutes>=targetMinutes){
+      const tours=DB.tours.filter(t=>t.date===today).sort((a,b)=>(a.time||'').localeCompare(b.time||''));
+      const list=tours.length? tours.map(t=>`・${t.time||'—'} ${t.client} - ${t.addr}`).join('\n') : '今天沒有帶看行程';
+      sendNotifEmail('【Mimi Rent】今日帶看提醒', list).then(()=>markNotifSent('tour')).catch(err=>console.error('今日帶看通知寄送失敗:',err));
+    }
   }
   if(s.notifHour){
     const mins=Number(s.hourMins)||60;
@@ -1390,13 +1415,15 @@ function runNotificationChecker(){
       const tourDate=new Date(now.getFullYear(),now.getMonth(),now.getDate(),parts[0],parts[1],0,0);
       const diffMin=(tourDate-now)/60000;
       const flagKind='hourbefore_'+t.id;
-      if(diffMin<=mins && diffMin>mins-1 && !alreadySentNotif(flagKind)){
+      if(diffMin<=mins && diffMin>-30 && !alreadySentNotif(flagKind)){
         sendNotifEmail('【Mimi Rent】帶看提醒：'+mins+'分鐘後', `${t.time} 與 ${t.client} 有約看\n地址：${t.addr}`).then(()=>markNotifSent(flagKind)).catch(err=>console.error('帶看前提醒寄送失敗:',err));
       }
     });
   }
 }
 setInterval(runNotificationChecker, 30000);
+document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState==='visible') runNotificationChecker(); });
+window.addEventListener('focus', runNotificationChecker);
 
 // ── AUTH ──────────────────────────────────────────────
 function loadAuth(){
