@@ -83,13 +83,15 @@ html,body{width:100%;max-width:430px;margin:0 auto;background:var(--bg);font-fam
 .cl-考慮中{background:#FEF0E0;color:#C47A2B;}
 .cl-已下定{background:#E5F2E5;color:#4A8A4A;}
 .cl-已成交{background:#C8E6C8;color:#2E6B2E;}
-.cl-無效{background:#EBEBEB;color:#888;}
+.cl-取消帶看{background:#EBEBEB;color:#888;}
 .cl-放鳥{background:#FFE5E5;color:#C03030;}
+.cl-帶看後不考慮{background:#EDE4E8;color:#8A5468;}
 .ts-待確認{background:#FEF3E8;color:#C96F5A;}
 .ts-已確認{background:#DDE4EC;color:#4A6580;}
 .ts-已完成{background:#E5F2E5;color:#4A8A4A;}
 .ts-取消{background:#EBEBEB;color:#888;}
 .ts-放鳥{background:#FFE5E5;color:#C03030;}
+.ts-未成功{background:#F3E4DA;color:#8A5A3D;}
 .ts-已下定{background:#C8E6C8;color:#2E6B2E;}
 .tag{display:inline-block;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:600;}
 
@@ -290,10 +292,11 @@ html,body{width:100%;max-width:430px;margin:0 auto;background:var(--bg);font-fam
       <button class="fchip" data-filter="考慮中">考慮中</button>
       <button class="fchip" data-filter="已下定">已下定</button>
       <button class="fchip" data-filter="已成交">已成交</button>
-      <button class="fchip" data-filter="放鳥">放鳥</button>
       <button class="fchip" data-filter="新客戶">新客戶</button>
       <button class="fchip" data-filter="已帶看">已帶看</button>
-      <button class="fchip" data-filter="無效">無效</button>
+      <button class="fchip" data-filter="放鳥">放鳥</button>
+      <button class="fchip" data-filter="取消帶看">取消帶看</button>
+      <button class="fchip" data-filter="帶看後不考慮">帶看後不考慮</button>
     </div>
     <div id="client-list"></div>
   </div>
@@ -411,10 +414,11 @@ html,body{width:100%;max-width:430px;margin:0 auto;background:var(--bg);font-fam
           <div class="lopt cl-考慮中" data-label="考慮中"><div class="ldot" style="background:#C47A2B"></div>考慮中</div>
           <div class="lopt cl-已下定" data-label="已下定"><div class="ldot" style="background:#4A8A4A"></div>已下定</div>
           <div class="lopt cl-已成交" data-label="已成交"><div class="ldot" style="background:#2E6B2E"></div>已成交</div>
-          <div class="lopt cl-放鳥" data-label="放鳥"><div class="ldot" style="background:#C03030"></div>放鳥</div>
           <div class="lopt cl-新客戶" data-label="新客戶"><div class="ldot" style="background:#8B6B4A"></div>新客戶</div>
           <div class="lopt cl-已帶看" data-label="已帶看"><div class="ldot" style="background:#6B4E9E"></div>已帶看</div>
-          <div class="lopt cl-無效" data-label="無效"><div class="ldot" style="background:#888"></div>無效</div>
+          <div class="lopt cl-放鳥" data-label="放鳥"><div class="ldot" style="background:#C03030"></div>放鳥</div>
+          <div class="lopt cl-取消帶看" data-label="取消帶看"><div class="ldot" style="background:#888"></div>取消帶看</div>
+          <div class="lopt cl-帶看後不考慮" data-label="帶看後不考慮"><div class="ldot" style="background:#8A5468"></div>帶看後不考慮</div>
         </div>
       </div>
       <div class="fg"><label class="fl">備註</label><textarea class="fta" id="c-note" placeholder="其他補充說明…" style="min-height:70px"></textarea></div>
@@ -488,7 +492,7 @@ html,body{width:100%;max-width:430px;margin:0 auto;background:var(--bg);font-fam
     <div class="fg"><label class="fl">物件地址</label><input class="fi" id="t-addr" placeholder="台中市西屯區…" type="text"></div>
     <div class="fg"><label class="fl">日期</label><input class="fi" id="t-date" type="date"></div>
     <div class="fg"><label class="fl">時間</label><input class="fi" id="t-time" type="time"></div>
-    <div class="fg"><label class="fl">確認狀態</label><select class="fsel" id="t-status"><option>待確認</option><option>已確認</option><option>已完成</option><option>取消</option><option>放鳥</option><option>已下定</option></select></div>
+    <div class="fg"><label class="fl">確認狀態</label><select class="fsel" id="t-status"><option>待確認</option><option>已確認</option><option>已完成</option><option>取消</option><option>放鳥</option><option>未成功</option><option>已下定</option></select></div>
     <div class="fg"><label class="fl">備註</label><textarea class="fta" id="t-note" style="min-height:70px" placeholder="停車資訊、鑰匙取得…"></textarea></div>
     <button class="btnp" id="btn-save-tour">儲存帶看</button>
     <button class="btno" id="btn-close-tour">取消</button>
@@ -994,7 +998,7 @@ function editClient(id){
 }
 async function deleteClient(id){DB.clients=DB.clients.filter(c=>c.id!==id);saveDB();document.getElementById('detail-page').classList.remove('show');renderClients();renderHome();toast('客戶已刪除');try{await sbDeleteClient(id);}catch(e){console.error(e);toast('雲端刪除失敗，請檢查網路');}}
 
-const CLIENT_STATUS_ORDER=['已約看','考慮中','已下定','已成交','放鳥','新客戶','已帶看','無效'];
+const CLIENT_STATUS_ORDER=['已約看','考慮中','已下定','已成交','新客戶','已帶看','放鳥','取消帶看','帶看後不考慮'];
 function clientStatusRank(status){ const i=CLIENT_STATUS_ORDER.indexOf(status); return i===-1?CLIENT_STATUS_ORDER.length:i; }
 function renderClients(search){
   const q=(search||document.getElementById('client-search-input').value||'').trim();
@@ -1128,7 +1132,8 @@ function openTourDetail(id){
     ${ph?`<a href="tel:${ph}" class="actbtn" style="text-decoration:none"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.77 1.27h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9a16 16 0 0 0 6.91 6.91l1.81-1.81a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>撥打電話</a>`:''}
     <a href="https://maps.google.com/?q=${encodeURIComponent(t.addr)}" target="_blank" rel="noopener" class="actbtn" style="text-decoration:none"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>開啟導航</a>
     <button class="actbtn" data-tour-status="已確認"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>標記已確認</button>
-    <button class="actbtn danger" data-tour-status="放鳥"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>標記放鳥</button>`;
+    <button class="actbtn danger" data-tour-status="放鳥"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>標記放鳥</button>
+    <button class="actbtn danger" data-tour-status="未成功"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>標記帶看未成功</button>`;
   openModal('modal-tour-detail');
 }
 function copyReminder(){const msg=window._reminder||'';if(!msg)return;if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(msg).then(()=>toast('已複製 ✓')).catch(()=>fbCopy(msg));}else fbCopy(msg);}
@@ -1305,7 +1310,7 @@ function calcRoute(positions, startLoc){
 
 function renderHome(){
   const today=todayStr();const todayTours=DB.tours.filter(t=>t.date===today).sort((a,b)=>(a.time||'').localeCompare(b.time||''));const overdue=DB.todos.filter(t=>!t.done&&t.date<today);const todTodos=DB.todos.filter(t=>t.date===today);
-  document.getElementById('h-closed').textContent=DB.clients.filter(c=>c.status==='已成交').length;document.getElementById('h-tours').textContent=DB.tours.length;document.getElementById('h-overdue').textContent=overdue.length;document.getElementById('h-track').textContent=DB.clients.filter(c=>['新客戶','已約看','已帶看','考慮中'].includes(c.status)).length;document.getElementById('h-stops').textContent=todayTours.length;
+  document.getElementById('h-closed').textContent=DB.clients.filter(c=>c.status==='已成交').length;document.getElementById('h-tours').textContent=DB.tours.filter(t=>t.status!=='未成功').length;document.getElementById('h-overdue').textContent=overdue.length;document.getElementById('h-track').textContent=DB.clients.filter(c=>['新客戶','已約看','已帶看','考慮中'].includes(c.status)).length;document.getElementById('h-stops').textContent=todayTours.length;
   if(todayTours.length){document.getElementById('h-dist').textContent=(todayTours.length*6)+'.0';document.getElementById('h-time').textContent=todayTours.length*15;}else{document.getElementById('h-dist').textContent='—';document.getElementById('h-time').textContent='—';}
   document.getElementById('home-tours').innerHTML=todayTours.length?todayTours.map(t=>`<div style="display:flex;align-items:center;gap:12px;padding:12px;border-bottom:1px solid var(--border);cursor:pointer" data-open-tour2="${t.id}"><div style="font-size:13px;font-weight:700;color:var(--primary-dark);width:44px;flex-shrink:0">${t.time||'—'}</div><div style="flex:1"><div style="font-size:14px;font-weight:600">${t.client}</div><div style="font-size:12px;color:var(--sub)">${t.addr}</div></div><span class="tag ${tsCls(t.status)}">${t.status}</span></div>`).join(''):'<div style="color:var(--sub);font-size:14px;text-align:center;padding:14px">今日沒有帶看</div>';
   const allTodos=[...overdue,...todTodos].slice(0,5);
