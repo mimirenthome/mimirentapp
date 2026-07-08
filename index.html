@@ -427,7 +427,14 @@ html,body{width:100%;max-width:430px;margin:0 auto;background:var(--bg);font-fam
       <div class="fg"><label class="fl">房型需求</label><div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:4px" id="type-grid"><div class="chip" data-type="套房">套房</div><div class="chip" data-type="1房">1房</div><div class="chip" data-type="2房">2房</div><div class="chip" data-type="3房">3房</div><div class="chip" data-type="4房+">4房+</div></div></div>
       <div class="fg"><label class="fl">需求條件</label><textarea class="fta" id="s-conds" placeholder="需要電梯、停車位、寵物可…" style="min-height:80px"></textarea></div>
       <div class="fg"><label class="fl">入住時間</label><input class="fi" id="s-movein" placeholder="7月初、越快越好" type="text"></div>
-      <div class="fg"><label class="fl">自由填寫（貼上原始問卷）</label><textarea class="fta" id="s-raw" style="min-height:140px;font-size:13px;line-height:1.9" placeholder="直接貼上客戶傳來的問卷文字…"></textarea></div>
+      <div class="fg">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px">
+          <label class="fl" style="margin-bottom:0">自由填寫（貼上原始問卷）</label>
+          <button type="button" id="btn-ai-parse" style="flex-shrink:0;background:var(--primary);border:none;border-radius:20px;padding:5px 11px;font-size:11px;font-weight:700;color:var(--text);cursor:pointer;font-family:inherit;white-space:nowrap">🤖 自動帶入</button>
+        </div>
+        <textarea class="fta" id="s-raw" style="min-height:140px;font-size:13px;line-height:1.9" placeholder="直接貼上客戶傳來的問卷文字…"></textarea>
+        <div id="ai-parse-result" style="font-size:12px;color:var(--sub);margin-top:6px;display:none"></div>
+      </div>
       <button class="btnp" id="btn-next-photos">下一步：上傳截圖 →</button>
       <button class="btno" id="btn-back-survey">← 上一步</button>
     </div>
@@ -782,6 +789,7 @@ function bindEvents(){
   document.getElementById('btn-next-survey').addEventListener('click',()=>showTab('t-survey'));
   document.getElementById('btn-back-survey').addEventListener('click',()=>showTab('t-basic'));
   document.getElementById('btn-next-photos').addEventListener('click',()=>showTab('t-photos'));
+  document.getElementById('btn-ai-parse').addEventListener('click',aiAutoFillFromRaw);
   document.getElementById('btn-back-photos').addEventListener('click',()=>showTab('t-survey'));
   document.getElementById('btn-save-client').addEventListener('click',saveClient);
   document.querySelector('#modal-client .tabs').addEventListener('click',e=>{const tab=e.target.closest('.tab');if(tab)showTab(tab.dataset.tab);});
@@ -922,6 +930,41 @@ function renderCPickList(q){
   document.getElementById('cpick-manual-row').addEventListener('click',()=>{document.getElementById('t-client-val').value='';document.getElementById('t-phone-val').value='';document.getElementById('cpick-display').textContent='手動輸入';document.getElementById('cpick-display').style.color='var(--text)';document.getElementById('t-manual-wrap').style.display='block';closeCPick();});
 }
 
+function aiAutoFillFromRaw(){
+  const raw=document.getElementById('s-raw').value;
+  const resultEl=document.getElementById('ai-parse-result');
+  if(!raw.trim()){
+    resultEl.style.display='block'; resultEl.style.color='var(--alert)';
+    resultEl.textContent='請先貼上問卷內容再點這顆按鈕';
+    return;
+  }
+  const pick=(labels)=>{
+    for(const label of labels){
+      const re=new RegExp(label+'[：:]\\s*([^\\n]*)');
+      const m=raw.match(re);
+      if(m && m[1] && m[1].trim()) return m[1].trim();
+    }
+    return '';
+  };
+  const name=pick(['怎麼稱呼','姓名']);
+  const phone=pick(['手機號碼','電話']);
+  const movein=pick(['預計入住時間','預計入住','入住時間']);
+  const conds=pick(['需求條件','備註']);
+  const filled=[];
+  if(name){ document.getElementById('c-name').value=name; filled.push('姓名：'+name); }
+  if(phone){ document.getElementById('c-phone').value=phone; filled.push('電話：'+phone); }
+  if(movein){ document.getElementById('s-movein').value=movein; filled.push('入住時間：'+movein); }
+  if(conds){ document.getElementById('s-conds').value=conds; filled.push('需求條件：'+conds); }
+  resultEl.style.display='block';
+  if(filled.length){
+    resultEl.style.color='var(--success)';
+    resultEl.textContent='✓ 已自動帶入 → '+filled.join('｜');
+    toast('已自動帶入 '+filled.length+' 個欄位 ✓');
+  } else {
+    resultEl.style.color='var(--alert)';
+    resultEl.textContent='沒有辨識到符合的欄位，可能格式跟預期不同，麻煩手動填寫';
+  }
+}
 async function saveClient(){
   const name=document.getElementById('c-name').value.trim();if(!name){showTab('t-basic');alert('請輸入姓名');return;}
   const client={id:editingClientId||Date.now(),name,phone:document.getElementById('c-phone').value,source:selectedSource||'官網',status:selectedLabel,avatar:name[0],note:document.getElementById('c-note').value,survey:{budget:document.getElementById('s-budget').value,area:document.getElementById('s-area').value,size:document.getElementById('s-size').value,types:[...selectedTypes],conds:document.getElementById('s-conds').value,movein:document.getElementById('s-movein').value,raw:document.getElementById('s-raw').value},photos:uploadedPhotos.map(p=>({label:p.label,dataUrl:p.dataUrl}))};
