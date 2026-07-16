@@ -756,9 +756,20 @@ document.getElementById('t-date').value = todayStr();
     toast('資料已同步 ✓');
     runNotificationChecker();
   }catch(err){
-    console.error('Supabase sync failed:', err);
-    toast('雲端同步失敗，使用本機快取資料');
-    runNotificationChecker();
+    console.error('Supabase sync failed, retrying once:', err);
+    await new Promise(r=>setTimeout(r,1500));
+    try{
+      await sbLoadAll();
+      saveDB();
+      renderHome();renderClients();renderCalendar();renderRoute();
+      toast('資料已同步 ✓（重試成功）');
+      runNotificationChecker();
+    }catch(err2){
+      console.error('Supabase sync failed after retry:', err2);
+      const reason=(err2&&err2.message)?String(err2.message).slice(0,60):'未知錯誤';
+      toast('雲端同步失敗：'+reason);
+      runNotificationChecker();
+    }
   }
 }
 
@@ -1340,7 +1351,7 @@ function checkOverdueNow(){const today=todayStr();const overdue=DB.todos.filter(
 function exportData(){const data=JSON.stringify({clients:DB.clients,tours:DB.tours,todos:DB.todos},null,2);const blob=new Blob([data],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=`mimi_rent_backup_${todayStr()}.json`;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(url);document.body.removeChild(a);},100);toast('備份已下載 ✓');}
 function importData(input){const file=input.files[0];if(!file)return;const reader=new FileReader();reader.onload=e=>{try{const data=JSON.parse(e.target.result);if(data.clients)DB.clients=data.clients;if(data.tours)DB.tours=data.tours;if(data.todos)DB.todos=data.todos;saveDB();renderHome();renderClients();renderCalendar();renderRoute();toast('資料匯入成功 ✓');}catch(err){toast('檔案格式錯誤');}};reader.readAsText(file);input.value='';}
 
-function toast(msg){const t=document.createElement('div');t.style.cssText='position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:#4A3F38;color:#fff;padding:12px 20px;border-radius:20px;font-size:14px;font-weight:600;z-index:9999;box-shadow:0 4px 16px rgba(0,0,0,.2);white-space:nowrap;pointer-events:none';t.textContent=msg;document.body.appendChild(t);setTimeout(()=>t.remove(),2200);}
+function toast(msg){const t=document.createElement('div');const long=msg.length>16;t.style.cssText='position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:#4A3F38;color:#fff;padding:12px 20px;border-radius:20px;font-size:14px;font-weight:600;z-index:9999;box-shadow:0 4px 16px rgba(0,0,0,.2);pointer-events:none;max-width:85%;text-align:center;'+(long?'white-space:normal;line-height:1.5;':'white-space:nowrap;');t.textContent=msg;document.body.appendChild(t);setTimeout(()=>t.remove(),long?4500:2200);}
 
 // ── SETTINGS PERSIST ───────────────────────────────────
 function loadSettings(){
