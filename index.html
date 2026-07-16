@@ -645,16 +645,27 @@ const SB_URL='https://jhqmizdbvypgwljbwgcv.supabase.co';
 const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpocW1pemRidnlwZ3dsamJ3Z2N2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI4MDczOTIsImV4cCI6MjA5ODM4MzM5Mn0._Tqih94gD_vePVZIId_k3_WXdr5b8Bh2otPN266_8OU';
 
 async function sbFetch(path, opts={}){
-  const res = await fetch(SB_URL+'/rest/v1/'+path, {
-    ...opts,
-    headers:{
-      'apikey':SB_KEY,
-      'Authorization':'Bearer '+SB_KEY,
-      'Content-Type':'application/json',
-      'Prefer': opts.prefer || 'return=representation',
-      ...(opts.headers||{})
-    }
-  });
+  const controller=new AbortController();
+  const timeoutId=setTimeout(()=>controller.abort(),12000);
+  let res;
+  try{
+    res = await fetch(SB_URL+'/rest/v1/'+path, {
+      ...opts,
+      signal:controller.signal,
+      headers:{
+        'apikey':SB_KEY,
+        'Authorization':'Bearer '+SB_KEY,
+        'Content-Type':'application/json',
+        'Prefer': opts.prefer || 'return=representation',
+        ...(opts.headers||{})
+      }
+    });
+  }catch(e){
+    if(e.name==='AbortError') throw new Error(`Supabase 請求逾時（超過 12 秒無回應）: ${path}`);
+    throw e;
+  }finally{
+    clearTimeout(timeoutId);
+  }
   if(!res.ok){
     const errText = await res.text().catch(()=>res.statusText);
     console.error(`Supabase ${res.status} on ${path}:`, errText);
@@ -667,7 +678,7 @@ async function sbFetch(path, opts={}){
 
 async function sbLoadAll(){
   const [clients, tours, todos, phrases, settings, auth] = await Promise.all([
-    sbFetch('clients?select=*&order=created_at.desc'),
+    sbFetch('clients?select=id,name,phone,source,status,avatar,note,survey,created_at&order=created_at.desc'),
     sbFetch('tours?select=*&order=created_at.desc'),
     sbFetch('todos?select=*&order=created_at.desc'),
     sbFetch('phrases?select=*&order=id.asc'),
@@ -676,7 +687,7 @@ async function sbLoadAll(){
   ]);
   DB.clients = (clients||[]).map(c=>({
     id:c.id, name:c.name, phone:c.phone, source:c.source, status:c.status,
-    avatar:c.avatar, note:c.note, survey:c.survey||{}, photos:c.photos||[]
+    avatar:c.avatar, note:c.note, survey:c.survey||{}, photos:undefined
   }));
   DB.tours = tours||[];
   DB.todos = todos||[];
@@ -705,6 +716,10 @@ async function sbUpsertClient(c){
     body:JSON.stringify([{id:c.id,name:c.name,phone:c.phone,source:c.source,status:c.status,avatar:c.avatar,note:c.note,survey:c.survey,photos:c.photos,updated_at:new Date().toISOString()}])});
 }
 async function sbDeleteClient(id){ await sbFetch('clients?id=eq.'+id, {method:'DELETE', prefer:'return=minimal'}); }
+async function sbFetchClientPhotos(id){
+  const rows = await sbFetch('clients?id=eq.'+id+'&select=photos');
+  return (rows && rows[0] && rows[0].photos) || [];
+}
 
 async function sbInsertTour(t){ await sbFetch('tours', {method:'POST', prefer:'return=minimal', body:JSON.stringify([t])}); }
 async function sbUpdateTour(t){ await sbFetch('tours?id=eq.'+t.id, {method:'PATCH', prefer:'return=minimal', body:JSON.stringify({status:t.status})}); }
@@ -766,7 +781,7 @@ document.getElementById('t-date').value = todayStr();
       runNotificationChecker();
     }catch(err2){
       console.error('Supabase sync failed after retry:', err2);
-      const reason=(err2&&err2.message)?String(err2.message).slice(0,60):'未知錯誤';
+      const reason=(err2&&err2.message)?String(err2.message).slice(0,300):'未知錯誤';
       toast('雲端同步失敗：'+reason);
       runNotificationChecker();
     }
@@ -996,7 +1011,7 @@ function resetClientForm(){
   selectedSource='';selectedLabel='新客戶';selectedTypes=[];uploadedPhotos=[];renderPhotoGrid();showTab('t-basic');
   document.getElementById('btn-save-client').textContent='✓ 儲存客戶';
 }
-function editClient(id){
+async function editClient(id){
   const c=DB.clients.find(x=>x.id===id);if(!c)return;editingClientId=id;
   document.getElementById('c-name').value=c.name||'';document.getElementById('c-phone').value=c.phone||'';document.getElementById('c-note').value=c.note||'';
   selectedSource=c.source||'';selectedLabel=c.status||'新客戶';
@@ -1004,6 +1019,10 @@ function editClient(id){
   document.querySelectorAll('#label-grid .lopt').forEach(el=>el.classList.toggle('on',el.dataset.label===c.status));
   const s=c.survey||{};document.getElementById('s-budget').value=s.budget||'';document.getElementById('s-area').value=s.area||'';document.getElementById('s-size').value=s.size||'';document.getElementById('s-conds').value=s.conds||'';document.getElementById('s-movein').value=s.movein||'';document.getElementById('s-raw').value=s.raw||'';
   selectedTypes=[...(s.types||[])];document.querySelectorAll('#type-grid .chip').forEach(el=>el.classList.toggle('on',selectedTypes.includes(el.dataset.type)));
+  if(c.photos===undefined){
+    document.getElementById('photo-grid').innerHTML='<div style="grid-column:1/-1;text-align:center;color:var(--sub);font-size:12px;padding:10px">照片載入中…</div>';
+    try{ c.photos=await sbFetchClientPhotos(id); }catch(e){ console.error(e); c.photos=[]; }
+  }
   uploadedPhotos=(c.photos||[]).map(p=>({...p}));renderPhotoGrid();showTab('t-basic');
   document.getElementById('btn-save-client').textContent='✓ 更新客戶';openModal('modal-client');
 }
@@ -1020,11 +1039,19 @@ function renderClients(search){
   el.innerHTML=list.map(c=>`<div class="card" style="cursor:pointer" data-open-client="${c.id}"><div style="display:flex;align-items:center;gap:12px"><div class="av">${c.avatar||c.name[0]}</div><div style="flex:1"><div class="rbet"><div style="font-size:15px;font-weight:700">${c.name}</div><span class="tag cl-${c.status}">${c.status}</span></div><div style="font-size:12px;color:var(--sub);margin-top:2px">${c.phone||'—'} · ${c.source||'—'}</div></div></div></div>`).join('');
   el.querySelectorAll('[data-open-client]').forEach(card=>{card.addEventListener('click',()=>openClientDetail(Number(card.dataset.openClient)));});
 }
-function openClientDetail(id){
+async function openClientDetail(id){
   const c=DB.clients.find(x=>x.id===id);if(!c)return;
   document.getElementById('detail-name').textContent=c.name;document.getElementById('detail-sub').textContent=(c.phone||'')+(c.source?' · '+c.source:'');
   const st=document.getElementById('detail-tag');st.textContent=c.status;st.className='tag cl-'+c.status;
-  const s=c.survey||{};const hp=c.photos&&c.photos.length;
+  renderClientDetailBody(c,id);
+  document.getElementById('detail-page').classList.add('show');
+  if(c.photos===undefined){
+    try{ c.photos=await sbFetchClientPhotos(id); }catch(e){ console.error(e); c.photos=[]; }
+    if(document.getElementById('detail-page').classList.contains('show')) renderClientDetailBody(c,id);
+  }
+}
+function renderClientDetailBody(c,id){
+  const s=c.survey||{};const photosLoading=c.photos===undefined;const hp=c.photos&&c.photos.length;
   document.getElementById('detail-body').innerHTML=`
     <div class="dsec"><div class="dsect">基本資料</div>
       <div class="drow"><div class="dlbl">電話</div><div class="dval">${c.phone||'—'}</div></div>
@@ -1040,6 +1067,7 @@ function openClientDetail(id){
       ${s.conds?`<div class="drow"><div class="dlbl">需求</div><div class="dval">${s.conds}</div></div>`:''}
       ${s.raw?`<div class="drow" style="flex-direction:column;gap:8px"><div class="dlbl">原始問卷</div><div class="raw">${s.raw}</div></div>`:''}
     </div>`:''}
+    ${photosLoading?`<div class="dsec"><div class="dsect">截圖紀錄</div><div style="text-align:center;color:var(--sub);font-size:12px;padding:10px">照片載入中…</div></div>`:''}
     ${hp?`<div class="dsec"><div class="dsect">截圖紀錄（${c.photos.length}張）</div>
       <div class="pgv">${c.photos.map((p,i)=>`<div><div class="ptv" data-preview-idx="${i}" data-client-id="${id}"><img src="${p.dataUrl}"></div><div class="pbadge">${p.label}</div></div>`).join('')}</div>
     </div>`:''}
@@ -1351,7 +1379,7 @@ function checkOverdueNow(){const today=todayStr();const overdue=DB.todos.filter(
 function exportData(){const data=JSON.stringify({clients:DB.clients,tours:DB.tours,todos:DB.todos},null,2);const blob=new Blob([data],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=`mimi_rent_backup_${todayStr()}.json`;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(url);document.body.removeChild(a);},100);toast('備份已下載 ✓');}
 function importData(input){const file=input.files[0];if(!file)return;const reader=new FileReader();reader.onload=e=>{try{const data=JSON.parse(e.target.result);if(data.clients)DB.clients=data.clients;if(data.tours)DB.tours=data.tours;if(data.todos)DB.todos=data.todos;saveDB();renderHome();renderClients();renderCalendar();renderRoute();toast('資料匯入成功 ✓');}catch(err){toast('檔案格式錯誤');}};reader.readAsText(file);input.value='';}
 
-function toast(msg){const t=document.createElement('div');const long=msg.length>16;t.style.cssText='position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:#4A3F38;color:#fff;padding:12px 20px;border-radius:20px;font-size:14px;font-weight:600;z-index:9999;box-shadow:0 4px 16px rgba(0,0,0,.2);pointer-events:none;max-width:85%;text-align:center;'+(long?'white-space:normal;line-height:1.5;':'white-space:nowrap;');t.textContent=msg;document.body.appendChild(t);setTimeout(()=>t.remove(),long?4500:2200);}
+function toast(msg){const t=document.createElement('div');const long=msg.length>16;const veryLong=msg.length>80;t.style.cssText='position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:#4A3F38;color:#fff;padding:12px 20px;border-radius:20px;font-size:'+(veryLong?'12px':'14px')+';font-weight:600;z-index:9999;box-shadow:0 4px 16px rgba(0,0,0,.2);pointer-events:none;max-width:88%;max-height:70vh;overflow-y:auto;text-align:center;'+(long?'white-space:normal;line-height:1.5;word-break:break-all;':'white-space:nowrap;');t.textContent=msg;document.body.appendChild(t);setTimeout(()=>t.remove(),veryLong?9000:(long?4500:2200));}
 
 // ── SETTINGS PERSIST ───────────────────────────────────
 function loadSettings(){
@@ -1499,10 +1527,11 @@ async function doLogin(){
   const btn=document.getElementById('login-btn');
   btn.textContent='登入中…'; btn.disabled=true;
   try{
-    const auth = await sbFetch('app_auth?select=*&id=eq.1');
+    const timeoutPromise=new Promise((_,reject)=>setTimeout(()=>reject(new Error('timeout')),3000));
+    const auth = await Promise.race([sbFetch('app_auth?select=*&id=eq.1'), timeoutPromise]);
     const a = (auth&&auth[0]) || loadAuth();
     saveAuth({username:a.username, password:a.password});
-  }catch(e){ console.error('Auth fetch failed, using cached auth', e); }
+  }catch(e){ console.error('Auth fetch failed or timed out, using cached auth', e); }
   const auth=loadAuth();
   const u=document.getElementById('login-user').value.trim();
   const p=document.getElementById('login-pass').value;
