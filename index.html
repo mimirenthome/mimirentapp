@@ -775,16 +775,17 @@ async function initApp(){
   bindEvents();
   renderHome();renderClients();renderCalendar();renderRoute();
 document.getElementById('t-date').value = todayStr();
-  const syncTimeout=new Promise((_,r)=>setTimeout(()=>r(new Error('Sync timeout')),5000));
-  try{
-    await Promise.race([sbLoadAll(),syncTimeout]);
-    saveDB();
-    renderHome();renderClients();renderCalendar();renderRoute();
-    toast('資料已同步 ✓');
-  }catch(err){
-    console.error('Supabase sync failed:', err);
-    toast('⏱️ 同步超時，使用本機資料');
-  }
+  // 背景同步（不阻止登入）
+  setTimeout(async()=>{
+    try{
+      await Promise.race([sbLoadAll(),new Promise((_,r)=>setTimeout(()=>r(new Error('timeout')),8000))]);
+      saveDB();
+      renderHome();renderClients();renderCalendar();renderRoute();
+      toast('✓ 資料已同步');
+    }catch(err){
+      console.error('Background sync failed:', err);
+    }
+  },500);
 }
 
 function bindEvents(){
