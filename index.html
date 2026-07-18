@@ -703,13 +703,18 @@ async function sbLoadAll(){
     sbFetch('app_settings?select=*&id=eq.1'),
     sbFetch('app_auth?select=*&id=eq.1'),
   ]);
-  DB.clients = (clients||[]).map(c=>({
+  const remoteClients = (clients||[]).map(c=>({
     id:c.id, name:c.name, phone:c.phone, source:c.source, status:c.status,
     avatar:c.avatar, note:c.note, survey:c.survey||{}, photos:c.photos||[]
   }));
-  DB.tours = tours||[];
-  DB.todos = todos||[];
-  PHRASES = phrases||[];
+  const remoteTours = tours||[];
+  const remoteTodos = todos||[];
+
+  // 合併策略：遠端數據優先，但保留本機中遠端沒有的資料
+  if(remoteClients.length>0){ DB.clients=remoteClients; }
+  if(remoteTours.length>0){ DB.tours=remoteTours; }
+  if(remoteTodos.length>0){ DB.todos=remoteTodos; }
+  if(phrases&&phrases.length>0){ PHRASES=phrases; }
   const s = (settings&&settings[0])||{};
   const existingLocal=loadSettings();
   saveSettings({...existingLocal,
