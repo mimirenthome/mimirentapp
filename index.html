@@ -1504,11 +1504,6 @@ function checkLogin(){
 async function doLogin(){
   const btn=document.getElementById('login-btn');
   btn.textContent='登入中…'; btn.disabled=true;
-  try{
-    const auth = await sbFetch('app_auth?select=*&id=eq.1');
-    const a = (auth&&auth[0]) || loadAuth();
-    saveAuth({username:a.username, password:a.password});
-  }catch(e){ console.error('Auth fetch failed, using cached auth', e); }
   const auth=loadAuth();
   const u=document.getElementById('login-user').value.trim();
   const p=document.getElementById('login-pass').value;
@@ -1521,6 +1516,13 @@ async function doLogin(){
     document.getElementById('login-err').style.display='block';
     document.getElementById('login-pass').value='';
   }
+  // 背景同步認證資料（不阻止登入）
+  setTimeout(async()=>{
+    try{
+      const remoteAuth=await Promise.race([sbFetch('app_auth?select=*&id=eq.1'),new Promise((_,r)=>setTimeout(()=>r(null),3000))]);
+      if(remoteAuth&&remoteAuth[0]) saveAuth({username:remoteAuth[0].username, password:remoteAuth[0].password});
+    }catch(e){}
+  },100);
 }
 function doLogout(){
   sessionStorage.removeItem('mimi_logged');
