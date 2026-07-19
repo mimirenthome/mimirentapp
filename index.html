@@ -81,7 +81,8 @@ html,body{width:100%;max-width:430px;margin:0 auto;background:var(--bg);font-fam
 .cl-考慮中{background:#FEF0E0;color:#C47A2B;}
 .cl-已下定{background:#E5F2E5;color:#4A8A4A;}
 .cl-已成交{background:#C8E6C8;color:#2E6B2E;}
-.cl-無效{background:#EBEBEB;color:#888;}
+.cl-帶看後不考慮{background:#E8D5C4;color:#8B5A3C;}
+.cl-已取消{background:#EBEBEB;color:#888;}
 .cl-放鳥{background:#FFE5E5;color:#C03030;}
 .ts-待確認{background:#FEF3E8;color:#C96F5A;}
 .ts-已確認{background:#DDE4EC;color:#4A6580;}
@@ -288,9 +289,10 @@ html,body{width:100%;max-width:430px;margin:0 auto;background:var(--bg);font-fam
       <button class="fchip" data-filter="已約看">已約看</button>
       <button class="fchip" data-filter="已帶看">已帶看</button>
       <button class="fchip" data-filter="考慮中">考慮中</button>
+      <button class="fchip" data-filter="帶看後不考慮">帶看後不考慮</button>
       <button class="fchip" data-filter="已下定">已下定</button>
       <button class="fchip" data-filter="已成交">已成交</button>
-      <button class="fchip" data-filter="無效">無效</button>
+      <button class="fchip" data-filter="已取消">已取消</button>
       <button class="fchip" data-filter="放鳥">放鳥</button>
     </div>
     <div id="client-list"></div>
@@ -411,7 +413,8 @@ html,body{width:100%;max-width:430px;margin:0 auto;background:var(--bg);font-fam
           <div class="lopt cl-考慮中" data-label="考慮中"><div class="ldot" style="background:#C47A2B"></div>考慮中</div>
           <div class="lopt cl-已下定" data-label="已下定"><div class="ldot" style="background:#4A8A4A"></div>已下定</div>
           <div class="lopt cl-已成交" data-label="已成交"><div class="ldot" style="background:#2E6B2E"></div>已成交</div>
-          <div class="lopt cl-無效" data-label="無效"><div class="ldot" style="background:#888"></div>無效</div>
+          <div class="lopt cl-帶看後不考慮" data-label="帶看後不考慮"><div class="ldot" style="background:#8B5A3C"></div>帶看後不考慮</div>
+          <div class="lopt cl-已取消" data-label="已取消"><div class="ldot" style="background:#888"></div>已取消</div>
           <div class="lopt cl-放鳥" data-label="放鳥"><div class="ldot" style="background:#C03030"></div>放鳥</div>
         </div>
       </div>
