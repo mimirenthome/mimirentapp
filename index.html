@@ -1090,24 +1090,24 @@ async function openClientDetail(id){
       const img=document.querySelector(`[data-preview-idx="${i}"]`);
       if(img){
         const dataUrl=p.dataUrl||(await getPhotoFromIDB(p.id));
-        if(dataUrl){img.querySelector('img').src=dataUrl;}
+        if(dataUrl){img.querySelector('img').src=dataUrl;img.dataset.fullUrl=dataUrl;}
       }
     }
   }
-  document.querySelectorAll('[data-preview-idx]').forEach(el=>{el.addEventListener('click',async()=>{const dataUrl=await getPhotoFromIDB(el.dataset.photoId);if(dataUrl)previewImg(dataUrl);});});
+  document.querySelectorAll('[data-preview-idx]').forEach(el=>{el.addEventListener('click',()=>{const dataUrl=el.dataset.fullUrl;if(dataUrl)previewImg(dataUrl);});});
   document.getElementById('detail-page').classList.add('show');
 }
 
 async function renderPhotoGrid(){
   const gridEl=document.getElementById('photo-grid');
-  gridEl.innerHTML=uploadedPhotos.map((p,i)=>`<div class="photo-thumb"><img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect fill='%23EDE5DC' width='100' height='100'/%3E%3C/svg%3E" data-preview-photo="${i}" data-photo-id="${p.id}" style="cursor:pointer"><button class="pdel" data-del-photo="${i}"><svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button><div class="plbadge">${p.label}</div></div>`).join('');
+  gridEl.innerHTML=uploadedPhotos.map((p,i)=>`<div class="photo-thumb"><img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect fill='%23EDE5DC' width='100' height='100'/%3E%3C/svg%3E" data-preview-photo="${i}" data-photo-id="${p.id}" data-idx="${i}" style="cursor:pointer"><button class="pdel" data-del-photo="${i}"><svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button><div class="plbadge">${p.label}</div></div>`).join('');
   for(let i=0;i<uploadedPhotos.length;i++){
     const p=uploadedPhotos[i];
-    const dataUrl=await getPhotoFromIDB(p.id);
+    const dataUrl=p.dataUrl||await getPhotoFromIDB(p.id);
     const img=gridEl.querySelector(`[data-preview-photo="${i}"]`);
-    if(img&&dataUrl){img.src=dataUrl;}
+    if(img&&dataUrl){img.src=dataUrl;img.dataset.fullUrl=dataUrl;}
   }
-  gridEl.querySelectorAll('[data-preview-photo]').forEach(el=>{el.addEventListener('click',async()=>{const dataUrl=await getPhotoFromIDB(el.dataset.photoId);if(dataUrl)previewImg(dataUrl);});});
+  gridEl.querySelectorAll('[data-preview-photo]').forEach(el=>{el.addEventListener('click',()=>{const dataUrl=el.dataset.fullUrl;if(dataUrl)previewImg(dataUrl);});});
   gridEl.querySelectorAll('[data-del-photo]').forEach(el=>{el.addEventListener('click',async e=>{e.stopPropagation();const idx=Number(el.dataset.delPhoto);await deletePhotoFromIDB(uploadedPhotos[idx].id);uploadedPhotos.splice(idx,1);renderPhotoGrid();});});
 }
 function previewImg(src){const ov=document.createElement('div');ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:9998;display:flex;align-items:center;justify-content:center;padding:20px';const close=document.createElement('div');close.style.cssText='position:absolute;top:18px;right:18px;width:36px;height:36px;background:rgba(255,255,255,.15);border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer';close.innerHTML='<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" stroke="white" stroke-width="2.5" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';const img=document.createElement('img');img.src=src;img.style.cssText='max-width:100%;max-height:85dvh;border-radius:14px;object-fit:contain';ov.append(img,close);close.addEventListener('click',()=>ov.remove());ov.addEventListener('click',e=>{if(e.target===ov)ov.remove();});document.body.appendChild(ov);}
