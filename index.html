@@ -1148,7 +1148,7 @@ function openTourDetail(id){
   const t=DB.tours.find(x=>x.id===id); if(!t) return;
   currentTourDetailId=id;
   window._reminder=`您好～跟您確認明天的看房預約唷♡\n預約時間：明天${t.time||''} 看房地址：${t.addr}\n麻煩您明天出發前再跟我說一聲，讓我知道您有準備過來～\n如果臨時不方便也沒關係，也請提前約一個小時告知我一聲，這樣我比較好安排時間♡`;
-  const client=DB.clients.find(c=>c.name===t.client);
+  const client=DB.clients.find(c=>c.phone===t.phone)||DB.clients.find(c=>c.name===t.client);
   document.getElementById('tour-detail-title').innerHTML=client?`<a href="javascript:void(0)" onclick="closeModal('modal-tour-detail');openClientDetail(${client.id})" style="color:inherit;text-decoration:underline;cursor:pointer">${t.client}</a>`:t.client;
   document.getElementById('tour-detail-body').innerHTML=`
     <div class="tdr"><div class="tdl">電話</div><div class="tdv">${t.phone||'—'}</div></div>
