@@ -644,10 +644,26 @@ async function initIndexedDB(){
     };
   });
 }
+async function compressImage(dataUrl){
+  return new Promise(resolve=>{
+    const img=new Image();
+    img.onload=()=>{
+      const canvas=document.createElement('canvas');
+      const ctx=canvas.getContext('2d');
+      canvas.width=img.width*0.7;canvas.height=img.height*0.7;
+      ctx.drawImage(img,0,0,canvas.width,canvas.height);
+      const compressed=canvas.toDataURL('image/jpeg',0.7);
+      resolve(compressed.length>2000000?compressImage(compressed):compressed);
+    };
+    img.onerror=()=>resolve(dataUrl);
+    img.src=dataUrl;
+  });
+}
+
 async function savePhotoToIDB(photoId,dataUrl){
   return new Promise((resolve,reject)=>{
     try{
-      if(!dataUrl||dataUrl.length>5000000){reject(new Error('Photo too large'));return;}
+      if(!dataUrl||dataUrl.length>3000000){console.warn('Photo still too large');reject(new Error('Photo too large'));return;}
       const tx=IDB.transaction('photos','readwrite');
       const store=tx.objectStore('photos');
       store.put({id:photoId,dataUrl});
@@ -836,7 +852,7 @@ function bindEvents(){
   document.getElementById('type-grid').addEventListener('click',e=>{const c=e.target.closest('[data-type]');if(!c)return;c.classList.toggle('on');const t=c.dataset.type;if(c.classList.contains('on'))selectedTypes.push(t);else selectedTypes=selectedTypes.filter(x=>x!==t);});
   document.getElementById('photo-label-chips').addEventListener('click',e=>{const c=e.target.closest('[data-plabel]');if(!c)return;document.querySelectorAll('#photo-label-chips .chip').forEach(x=>x.classList.remove('on'));c.classList.add('on');currentPhotoLabel=c.dataset.plabel;});
   document.getElementById('upload-zone').addEventListener('click',()=>document.getElementById('photo-input').click());
-  document.getElementById('photo-input').addEventListener('change',async function(){let loadCount=0;const total=this.files.length;Array.from(this.files).forEach(file=>{const r=new FileReader();r.onload=async ev=>{const photoId='p_'+Date.now()+'_'+Math.random().toString(36).slice(2);await savePhotoToIDB(photoId,ev.target.result);uploadedPhotos.push({id:photoId,label:currentPhotoLabel});renderPhotoGrid();loadCount++;if(loadCount===total)toast(`已上傳 ${total} 張照片 ✓`);};r.readAsDataURL(file);});this.value='';});
+  document.getElementById('photo-input').addEventListener('change',async function(){let loadCount=0;const total=this.files.length;Array.from(this.files).forEach(file=>{const r=new FileReader();r.onload=async ev=>{const photoId='p_'+Date.now()+'_'+Math.random().toString(36).slice(2);const compressed=await compressImage(ev.target.result);await savePhotoToIDB(photoId,compressed);uploadedPhotos.push({id:photoId,label:currentPhotoLabel});renderPhotoGrid();loadCount++;if(loadCount===total)toast(`已上傳 ${total} 張照片 ✓`);};r.readAsDataURL(file);});this.value='';});
   document.getElementById('client-filter-row').addEventListener('click',e=>{const c=e.target.closest('[data-filter]');if(!c)return;document.querySelectorAll('#client-filter-row .fchip').forEach(x=>x.classList.remove('on'));c.classList.add('on');currentFilter=c.dataset.filter;renderClients();});
   document.getElementById('client-search-input').addEventListener('input',function(){renderClients(this.value);});
   document.getElementById('btn-back-detail').addEventListener('click',()=>document.getElementById('detail-page').classList.remove('show'));
