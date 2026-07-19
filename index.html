@@ -985,7 +985,8 @@ function renderCPickList(q){
 
 async function saveClient(){
   const name=document.getElementById('c-name').value.trim();if(!name){showTab('t-basic');alert('請輸入姓名');return;}
-  const client={id:editingClientId||Date.now(),name,phone:document.getElementById('c-phone').value,source:selectedSource||'其他',status:selectedLabel,avatar:name[0],note:document.getElementById('c-note').value,survey:{budget:document.getElementById('s-budget').value,area:document.getElementById('s-area').value,addr:document.getElementById('s-addr').value,size:document.getElementById('s-size').value,types:[...selectedTypes],conds:document.getElementById('s-conds').value,movein:document.getElementById('s-movein').value,raw:document.getElementById('s-raw').value},photos:uploadedPhotos.map(p=>({id:p.id,label:p.label}))};
+  const photosList=[];for(const p of uploadedPhotos){const dataUrl=await getPhotoFromIDB(p.id)||p.dataUrl;photosList.push({id:p.id,label:p.label,dataUrl});}
+  const client={id:editingClientId||Date.now(),name,phone:document.getElementById('c-phone').value,source:selectedSource||'其他',status:selectedLabel,avatar:name[0],note:document.getElementById('c-note').value,survey:{budget:document.getElementById('s-budget').value,area:document.getElementById('s-area').value,addr:document.getElementById('s-addr').value,size:document.getElementById('s-size').value,types:[...selectedTypes],conds:document.getElementById('s-conds').value,movein:document.getElementById('s-movein').value,raw:document.getElementById('s-raw').value},photos:photosList};
   if(editingClientId){const idx=DB.clients.findIndex(c=>c.id===editingClientId);if(idx>=0)DB.clients[idx]=client;}else{DB.clients.unshift(client);}
   saveDB();resetClientForm();closeModal('modal-client');document.getElementById('detail-page').classList.remove('show');renderClients();renderHome();toast(editingClientId?'客戶已更新 ✓':'客戶已新增 ✓');
   editingClientId=null;
@@ -1009,7 +1010,7 @@ function editClient(id){
   document.querySelectorAll('#label-grid .lopt').forEach(el=>el.classList.toggle('on',el.dataset.label===c.status));
   const s=c.survey||{};document.getElementById('s-budget').value=s.budget||'';document.getElementById('s-area').value=s.area||'';document.getElementById('s-addr').value=s.addr||'';document.getElementById('s-size').value=s.size||'';document.getElementById('s-conds').value=s.conds||'';document.getElementById('s-movein').value=s.movein||'';document.getElementById('s-raw').value=s.raw||'';
   selectedTypes=[...(s.types||[])];document.querySelectorAll('#type-grid .chip').forEach(el=>el.classList.toggle('on',selectedTypes.includes(el.dataset.type)));
-  uploadedPhotos=(c.photos||[]).map(p=>({id:p.id,label:p.label}));renderPhotoGrid();showTab('t-basic');
+  uploadedPhotos=(c.photos||[]).map(p=>({id:p.id,label:p.label,dataUrl:p.dataUrl}));renderPhotoGrid();showTab('t-basic');
   document.getElementById('btn-save-client').textContent='✓ 更新客戶';openModal('modal-client');
 }
 async function deleteClient(id){
@@ -1086,11 +1087,11 @@ async function openClientDetail(id){
   if(hp){
     for(let i=0;i<c.photos.length;i++){
       const p=c.photos[i];
-      try{
-        const dataUrl=await getPhotoFromIDB(p.id);
-        const img=document.querySelector(`[data-preview-idx="${i}"]`);
-        if(img&&dataUrl){img.querySelector('img').src=dataUrl;}
-      }catch(e){console.error(e);}
+      const img=document.querySelector(`[data-preview-idx="${i}"]`);
+      if(img){
+        const dataUrl=p.dataUrl||(await getPhotoFromIDB(p.id));
+        if(dataUrl){img.querySelector('img').src=dataUrl;}
+      }
     }
   }
   document.querySelectorAll('[data-preview-idx]').forEach(el=>{el.addEventListener('click',async()=>{const dataUrl=await getPhotoFromIDB(el.dataset.photoId);if(dataUrl)previewImg(dataUrl);});});
