@@ -1062,9 +1062,11 @@ async function openClientDetail(id){
   if(hp){
     for(let i=0;i<c.photos.length;i++){
       const p=c.photos[i];
-      const dataUrl=await getPhotoFromIDB(p.id);
-      const img=document.querySelector(`[data-preview-idx="${i}"]`);
-      if(img&&dataUrl){img.querySelector('img').src=dataUrl;}
+      try{
+        const dataUrl=await getPhotoFromIDB(p.id);
+        const img=document.querySelector(`[data-preview-idx="${i}"]`);
+        if(img&&dataUrl){img.querySelector('img').src=dataUrl;}
+      }catch(e){console.error(e);}
     }
   }
   document.querySelectorAll('[data-preview-idx]').forEach(el=>{el.addEventListener('click',async()=>{const dataUrl=await getPhotoFromIDB(el.dataset.photoId);if(dataUrl)previewImg(dataUrl);});});
