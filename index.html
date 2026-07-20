@@ -709,9 +709,7 @@ async function sbFetch(path, opts={}){
     }
   });
   if(!res.ok){
-    const errText = await res.text().catch(()=>res.statusText);
-    console.error(`Supabase ${res.status} on ${path}:`, errText);
-    throw new Error(`Supabase ${res.status}: ${errText}`);
+    throw new Error(`Supabase ${res.status}`);
   }
   const text = await res.text();
   if(!text) return null;
@@ -807,7 +805,6 @@ document.getElementById('t-date').value = todayStr();
       renderHome();renderClients();renderCalendar();renderRoute();
       toast('✓ 資料已同步');
     }catch(err){
-      console.error('Background sync failed:', err);
     }
   },500);
 }
@@ -830,7 +827,7 @@ function bindEvents(){
         renderCalendar();renderHome();renderRoute();
         openTourDetail(currentTourDetailId);
         toast(`已標記「${t.status}」`);
-        sbUpdateTour(t).catch(err=>console.error(err));
+        sbUpdateTour(t).catch(()=>{});
       }
       return;
     }
@@ -864,7 +861,7 @@ function bindEvents(){
     closeModal('modal-tour-detail');
     renderCalendar();renderHome();renderRoute();
     toast('帶看已刪除');
-    try{await sbDeleteTour(id);}catch(e){console.error(e);console.warn('Delete sync failed');}
+    try{await sbDeleteTour(id);}catch(e){console.warn('Delete sync failed');}
   });
   document.getElementById('btn-tour-edit').addEventListener('click',()=>{
     if(currentTourDetailId){ closeModal('modal-tour-detail'); editTour(currentTourDetailId); }
@@ -906,7 +903,7 @@ function bindEvents(){
     initEmailJS();
     if(cb.checked)checkOverdueNow();
     closeModal('modal-notif');toast('提醒設定已儲存 ✓');
-    try{ await sbSaveSettings(s); }catch(e){ console.error(e); console.warn('Sync failed'); }
+    try{ await sbSaveSettings(s); }catch(e){  console.warn('Sync failed'); }
   });
   document.getElementById('btn-test-notif').addEventListener('click',testSendNotifEmail);
   document.getElementById('btn-close-notif').addEventListener('click',()=>closeModal('modal-notif'));
@@ -991,7 +988,7 @@ async function saveClient(){
   if(editingClientId){const idx=DB.clients.findIndex(c=>c.id===editingClientId);if(idx>=0)DB.clients[idx]=client;}else{DB.clients.unshift(client);}
   saveDB();resetClientForm();closeModal('modal-client');document.getElementById('detail-page').classList.remove('show');renderClients();renderHome();toast(editingClientId?'客戶已更新 ✓':'客戶已新增 ✓');
   editingClientId=null;
-  try{ await sbUpsertClient(client); }catch(e){ console.error(e); console.warn('Sync failed'); }
+  try{ await sbUpsertClient(client); }catch(e){  console.warn('Sync failed'); }
 }
 async function resetClientForm(){
   ['c-name','c-phone','c-note','s-budget','s-area','s-addr','s-size','s-conds','s-movein','s-raw'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
@@ -999,7 +996,7 @@ async function resetClientForm(){
   document.querySelectorAll('#label-grid .lopt').forEach(l=>l.classList.remove('on'));
   document.querySelectorAll('#type-grid .chip').forEach(c=>c.classList.remove('on'));
   selectedSource='';selectedLabel='新客戶';selectedTypes=[];
-  for(const p of uploadedPhotos){ try{ await deletePhotoFromIDB(p.id); }catch(e){ console.error(e); } }
+  for(const p of uploadedPhotos){ try{ await deletePhotoFromIDB(p.id); }catch(e){  } }
   uploadedPhotos=[];renderPhotoGrid();showTab('t-basic');
   document.getElementById('btn-save-client').textContent='✓ 儲存客戶';
 }
@@ -1018,10 +1015,10 @@ async function deleteClient(id){
   const c=DB.clients.find(x=>x.id===id);
   if(c&&c.photos){
     for(const p of c.photos){
-      try{ await deletePhotoFromIDB(p.id); }catch(e){ console.error(e); }
+      try{ await deletePhotoFromIDB(p.id); }catch(e){  }
     }
   }
-  DB.clients=DB.clients.filter(c=>c.id!==id);saveDB();document.getElementById('detail-page').classList.remove('show');renderClients();renderHome();toast('客戶已刪除');try{await sbDeleteClient(id);}catch(e){console.error(e);console.warn('Delete sync failed');}
+  DB.clients=DB.clients.filter(c=>c.id!==id);saveDB();document.getElementById('detail-page').classList.remove('show');renderClients();renderHome();toast('客戶已刪除');try{await sbDeleteClient(id);}catch(e){console.warn('Delete sync failed');}
 }
 
 function autoFillFromRaw(){
@@ -1129,14 +1126,14 @@ async function saveTour(){
     renderCalendar();renderHome();renderRoute();
     toast('帶看已更新 ✓');
     const id=editingTourId; editingTourId=null;
-    try{ await sbFullUpdateTour({id,...data}); }catch(e){ console.error(e); console.warn('Sync failed'); }
+    try{ await sbFullUpdateTour({id,...data}); }catch(e){  console.warn('Sync failed'); }
   } else {
     const tour={id:Date.now(),...data};
     DB.tours.push(tour);
     saveDB();
     resetTourForm();
     closeModal('modal-tour');renderCalendar();renderHome();renderRoute();toast('帶看行程已新增 ✓');
-    try{ await sbInsertTour(tour); }catch(e){ console.error(e); console.warn('Sync failed'); }
+    try{ await sbInsertTour(tour); }catch(e){  console.warn('Sync failed'); }
   }
 }
 function resetTourForm(){
@@ -1214,14 +1211,14 @@ async function changeQuickStatus(tourId){
   saveDB();
   renderHome();renderCalendar();renderRoute();
   toast(`✓ 已標記「${newStatus}」`);
-  try{ await sbUpdateTour(t); }catch(e){ console.error(e); }
+  try{ await sbUpdateTour(t); }catch(e){  }
 }
 
 function todayStr(){const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;}
 function tomStr(){const d=new Date(Date.now()+86400000);return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;}
-async function addTodo(){const text=document.getElementById('todo-input').value.trim();if(!text)return;const cat=document.getElementById('todo-cat').value;const todo={id:Date.now(),text,done:false,date:cat==='today'?todayStr():tomStr()};DB.todos.push(todo);saveDB();document.getElementById('todo-input').value='';renderTodos();renderHome();try{await sbInsertTodo(todo);}catch(e){console.error(e);console.warn('Sync failed');}}
-async function toggleTodo(id){const t=DB.todos.find(x=>x.id===id);if(t){t.done=!t.done;saveDB();renderTodos();renderHome();try{await sbUpdateTodo(id,t.done);}catch(e){console.error(e);}}}
-async function deleteTodo(id){DB.todos=DB.todos.filter(t=>t.id!==id);saveDB();renderTodos();renderHome();try{await sbDeleteTodo(id);}catch(e){console.error(e);console.warn('Delete sync failed');}}
+async function addTodo(){const text=document.getElementById('todo-input').value.trim();if(!text)return;const cat=document.getElementById('todo-cat').value;const todo={id:Date.now(),text,done:false,date:cat==='today'?todayStr():tomStr()};DB.todos.push(todo);saveDB();document.getElementById('todo-input').value='';renderTodos();renderHome();try{await sbInsertTodo(todo);}catch(e){console.warn('Sync failed');}}
+async function toggleTodo(id){const t=DB.todos.find(x=>x.id===id);if(t){t.done=!t.done;saveDB();renderTodos();renderHome();try{await sbUpdateTodo(id,t.done);}catch(e){}}}
+async function deleteTodo(id){DB.todos=DB.todos.filter(t=>t.id!==id);saveDB();renderTodos();renderHome();try{await sbDeleteTodo(id);}catch(e){console.warn('Delete sync failed');}}
 function renderTodos(){
   const today=todayStr(),tom=tomStr();
   const overdue=DB.todos.filter(t=>!t.done&&t.date<today);const tod=DB.todos.filter(t=>t.date===today);const tmr=DB.todos.filter(t=>t.date===tom);
@@ -1433,7 +1430,7 @@ async function savePhrase(){
   else { const idx=PHRASES.findIndex(x=>x.id===editingPhraseId); if(idx>=0){PHRASES[idx].label=label;PHRASES[idx].text=text;phrase=PHRASES[idx];} }
   saveDB();closeModal('modal-phrase-edit');renderPhrases();openModal('modal-phrase');toast(editingPhraseId===null?'話術已新增 ✓':'話術已更新 ✓');
   editingPhraseId=null;
-  try{ if(phrase) await sbUpsertPhrase(phrase); }catch(e){ console.error(e); console.warn('Sync failed'); }
+  try{ if(phrase) await sbUpsertPhrase(phrase); }catch(e){  console.warn('Sync failed'); }
 }
 
 function renderDeals(){const closed=DB.clients.filter(c=>c.status==='已成交'||c.status==='已下定');document.getElementById('deal-list').innerHTML=closed.length?closed.map(c=>`<div class="card" style="margin-bottom:8px"><div style="display:flex;align-items:center;gap:12px"><div class="av" style="background:var(--success);color:#fff">${c.avatar||c.name[0]}</div><div style="flex:1"><div style="font-size:15px;font-weight:700">${c.name}</div><div style="font-size:12px;color:var(--sub)">${c.phone||'—'}</div></div><span class="tag cl-${c.status}">${c.status}</span></div></div>`).join(''):'<div class="empty"><p>尚無成交紀錄</p></div>';}
@@ -1631,7 +1628,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     document.getElementById('setting-password2').value='';
     closeModal('modal-setting');
     toast('設定已儲存 ✓');
-    try{ await Promise.all([sbSaveSettings(s), sbSaveAuth(auth)]); }catch(e){ console.error(e); console.warn('Sync failed'); }
+    try{ await Promise.all([sbSaveSettings(s), sbSaveAuth(auth)]); }catch(e){  console.warn('Sync failed'); }
   });
   document.getElementById('btn-logout').addEventListener('click',doLogout);
   document.getElementById('btn-close-setting').addEventListener('click',()=>closeModal('modal-setting'));
