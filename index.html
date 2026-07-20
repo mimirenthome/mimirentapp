@@ -1193,7 +1193,14 @@ function openTourDetail(id){
     <button class="actbtn danger" data-tour-status="放鳥"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>標記放鳥</button>`;
   openModal('modal-tour-detail');
 }
-function copyReminder(){const msg=window._reminder||'';if(!msg)return;if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(msg).then(()=>toast('已複製 ✓')).catch(()=>fbCopy(msg));}else fbCopy(msg);}
+function copyReminder(){
+  const phrase=PHRASES.find(p=>p.label==='看屋當天提醒');
+  const msg=phrase?.text||'';
+  if(!msg)return;
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(msg).then(()=>toast('已複製 ✓')).catch(()=>fbCopy(msg));
+  }else fbCopy(msg);
+}
 function fbCopy(text){const ta=document.createElement('textarea');ta.value=text;ta.style.cssText='position:fixed;top:0;left:0;opacity:0';document.body.appendChild(ta);ta.focus();ta.select();try{document.execCommand('copy');toast('已複製 ✓');}catch(e){toast('請手動複製');}document.body.removeChild(ta);}
 
 async function changeQuickStatus(tourId){
