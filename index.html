@@ -529,7 +529,7 @@ html,body{width:100%;max-width:430px;margin:0 auto;background:var(--bg);font-fam
 <div class="modal-wrap" id="modal-phrase">
   <div class="modal-box">
     <div class="mhandle"></div>
-    <div class="mtitle">常用話術</div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px"><div class="mtitle" style="margin:0">常用話術</div><button class="btno" id="btn-edit-phrase-order" style="font-size:13px;padding:8px 12px;margin:0">編輯排序</button></div>
     <div id="phrase-list"></div>
     <button class="btnp" id="btn-add-phrase" style="margin-top:12px">+ 新增話術</button>
     <button class="btno" id="btn-close-phrase">關閉</button>
@@ -883,6 +883,7 @@ function bindEvents(){
   ['todo-overdue','todo-today','todo-tomorrow'].forEach(id=>{document.getElementById(id).addEventListener('click',e=>{const tck=e.target.closest('[data-todo-toggle]');const tdel=e.target.closest('[data-todo-del]');if(tck)toggleTodo(Number(tck.dataset.todoToggle));if(tdel)deleteTodo(Number(tdel.dataset.todoDel));});});
   document.getElementById('btn-close-phrase').addEventListener('click',()=>closeModal('modal-phrase'));
   document.getElementById('btn-add-phrase').addEventListener('click',()=>{editingPhraseId=null;document.getElementById('phrase-edit-title').textContent='新增話術';document.getElementById('phrase-edit-label').value='';document.getElementById('phrase-edit-text').value='';closeModal('modal-phrase');openModal('modal-phrase-edit');});
+  document.getElementById('btn-edit-phrase-order').addEventListener('click',togglePhraseEditMode);
   document.getElementById('btn-save-phrase').addEventListener('click',savePhrase);
   document.getElementById('btn-cancel-phrase').addEventListener('click',()=>{closeModal('modal-phrase-edit');openModal('modal-phrase');});
   document.getElementById('phrase-list').addEventListener('click',e=>{const editBtn=e.target.closest('[data-phrase-edit]');const copyArea=e.target.closest('[data-phrase-copy]');if(editBtn){editPhrase(Number(editBtn.dataset.phraseEdit));return;}if(copyArea)copyPhrase(Number(copyArea.dataset.phraseCopy));});
@@ -1406,9 +1407,32 @@ function renderHome(){
 }
 
 function renderPhrases(){
-  document.getElementById('phrase-list').innerHTML=PHRASES.map(p=>`<div class="pitem" data-phrase-copy="${p.id}"><div class="plbl">${p.label}</div><div class="ptxt">${p.text}</div><div style="font-size:11px;color:var(--primary-dark);margin-top:6px;font-weight:600">點擊複製</div><button class="pedit" data-phrase-edit="${p.id}"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#9A8880" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button></div>`).join('');
+  if(phraseEditMode){
+    document.getElementById('phrase-list').innerHTML=PHRASES.map((p,i)=>`<div class="pitem" style="display:flex;align-items:center;gap:8px"><div style="flex:1"><div class="plbl">${p.label}</div><div class="ptxt">${p.text}</div></div><div style="display:flex;gap:4px;flex-shrink:0">${i>0?`<button class="pedit" data-phrase-move-up="${p.id}" style="padding:6px;background:var(--bg)"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#4A3F38" stroke-width="2"><polyline points="18 15 12 9 6 15"/></svg></button>`:'<div style="width:28px"></div>'}${i<PHRASES.length-1?`<button class="pedit" data-phrase-move-down="${p.id}" style="padding:6px;background:var(--bg)"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#4A3F38" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></button>`:'<div style="width:28px"></div>'}</div></div>`).join('');
+    document.querySelectorAll('[data-phrase-move-up]').forEach(btn=>{btn.addEventListener('click',e=>{e.stopPropagation();movePhrase(Number(btn.dataset.phraseMoveUp),-1);});});
+    document.querySelectorAll('[data-phrase-move-down]').forEach(btn=>{btn.addEventListener('click',e=>{e.stopPropagation();movePhrase(Number(btn.dataset.phraseMoveDown),1);});});
+  }else{
+    document.getElementById('phrase-list').innerHTML=PHRASES.map(p=>`<div class="pitem" data-phrase-copy="${p.id}"><div class="plbl">${p.label}</div><div class="ptxt">${p.text}</div><div style="font-size:11px;color:var(--primary-dark);margin-top:6px;font-weight:600">點擊複製</div><button class="pedit" data-phrase-edit="${p.id}"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#9A8880" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button></div>`).join('');
+  }
+}
+function movePhrase(id,direction){
+  const idx=PHRASES.findIndex(x=>x.id===id);
+  if(idx<0)return;
+  const newIdx=idx+direction;
+  if(newIdx<0||newIdx>=PHRASES.length)return;
+  [PHRASES[idx],PHRASES[newIdx]]=[PHRASES[newIdx],PHRASES[idx]];
+  saveDB();renderPhrases();
 }
 function copyPhrase(id){const p=PHRASES.find(x=>x.id===id);if(p)fbCopy(p.text);}
+let phraseEditMode=false;
+function togglePhraseEditMode(){
+  phraseEditMode=!phraseEditMode;
+  const btn=document.getElementById('btn-edit-phrase-order');
+  btn.textContent=phraseEditMode?'完成':'編輯排序';
+  btn.style.background=phraseEditMode?'var(--text)':'transparent';
+  btn.style.color=phraseEditMode?'#fff':'var(--text)';
+  renderPhrases();
+}
 function editPhrase(id){const p=PHRASES.find(x=>x.id===id);if(!p)return;editingPhraseId=id;document.getElementById('phrase-edit-title').textContent='編輯話術';document.getElementById('phrase-edit-label').value=p.label;document.getElementById('phrase-edit-text').value=p.text;closeModal('modal-phrase');openModal('modal-phrase-edit');}
 async function savePhrase(){
   const label=document.getElementById('phrase-edit-label').value.trim();const text=document.getElementById('phrase-edit-text').value.trim();
