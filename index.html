@@ -1208,6 +1208,7 @@ async function changeQuickStatus(tourId){
   const t=DB.tours.find(x=>x.id===tourId);if(!t)return;
   const statuses=['待確認','已確認','已完成','取消','放鳥','已下定'];
   const idx=statuses.indexOf(t.status);
+  console.log(`Tour: ${t.client}, Current status: "${t.status}", Index: ${idx}, Statuses:`, statuses);
   const newStatus=statuses[(idx+1)%statuses.length];
   t.status=newStatus;
   saveDB();
