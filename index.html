@@ -1206,7 +1206,7 @@ function fbCopy(text){const ta=document.createElement('textarea');ta.value=text;
 
 async function changeQuickStatus(tourId){
   const t=DB.tours.find(x=>x.id===tourId);if(!t)return;
-  const statuses=['待確認','已確認','已完成','取消','放鳥','已下定'];
+  const statuses=['待確認','已確認','已完成','放鳥','已下定','取消'];
   let idx=statuses.indexOf(t.status);
   if(idx===-1)idx=0;
   const newStatus=statuses[(idx+1)%statuses.length];
