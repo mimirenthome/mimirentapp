@@ -633,13 +633,16 @@ let cpickOpen=false;
 let IDB=null;
 async function initIndexedDB(){
   return new Promise((resolve,reject)=>{
-    const req=indexedDB.open('MimiRentDB',1);
+    const req=indexedDB.open('MimiRentDB',2);
     req.onerror=()=>reject(req.error);
     req.onsuccess=()=>{ IDB=req.result; resolve(IDB); };
     req.onupgradeneeded=e=>{
       const db=e.target.result;
       if(!db.objectStoreNames.contains('photos')){
         db.createObjectStore('photos',{keyPath:'id'});
+      }
+      if(!db.objectStoreNames.contains('app')){
+        db.createObjectStore('app',{keyPath:'key'});
       }
     };
   });
@@ -786,13 +789,42 @@ const PHRASE_DEFAULTS=[
   {id:7,label:'成交感謝',text:'恭喜您找到新家！感謝您的信任，之後如有任何問題都可以找我，祝您搬家順利 🏠'},
 ];
 
-function loadDB(){try{const saved=localStorage.getItem('mimi_db');if(saved){DB=JSON.parse(saved);}else{DB={clients:[],tours:[],todos:[]};}}catch(e){console.warn('Failed to load DB from localStorage:',e);DB={clients:[],tours:[],todos:[]};}try{const saved=localStorage.getItem('mimi_phrases');if(saved){PHRASES=JSON.parse(saved);}else{PHRASES=PHRASE_DEFAULTS;}}catch(e){PHRASES=PHRASE_DEFAULTS;}if(!DB.clients)DB.clients=[];if(!DB.tours)DB.tours=[];if(!DB.todos)DB.todos=[];}
-function saveDB(){try{const json=JSON.stringify(DB);localStorage.setItem('mimi_db',json);if(!localStorage.getItem('mimi_db')){throw new Error('Save verification failed');}}catch(e){console.warn('Failed to save DB to localStorage:',e);}try{const json=JSON.stringify(PHRASES);localStorage.setItem('mimi_phrases',json);}catch(e){console.warn('Failed to save phrases:',e);}}
+function loadDB(){
+  try{const saved=localStorage.getItem('mimi_db');if(saved){DB=JSON.parse(saved);}}catch(e){}
+  try{const saved=localStorage.getItem('mimi_phrases');if(saved){PHRASES=JSON.parse(saved);}}catch(e){}
+  if(!DB.clients)DB.clients=[];if(!DB.tours)DB.tours=[];if(!DB.todos)DB.todos=[];
+}
+async function loadDBFromIDB(){
+  if(!IDB)return;
+  return new Promise(resolve=>{
+    try{
+      const tx=IDB.transaction('app','readonly');
+      const store=tx.objectStore('app');
+      const req1=store.get('mimi_db');
+      const req2=store.get('mimi_phrases');
+      req1.onsuccess=()=>{if(req1.result?.data){DB=req1.result.data;}};
+      req2.onsuccess=()=>{if(req2.result?.data){PHRASES=req2.result.data;}};
+      tx.oncomplete=()=>resolve();
+    }catch(e){resolve();}
+  });
+}
+function saveDB(){
+  try{localStorage.setItem('mimi_db',JSON.stringify(DB));}catch(e){}
+  try{localStorage.setItem('mimi_phrases',JSON.stringify(PHRASES));}catch(e){}
+  if(IDB){
+    try{
+      const tx=IDB.transaction('app','readwrite');
+      tx.objectStore('app').put({key:'mimi_db',data:DB});
+      tx.objectStore('app').put({key:'mimi_phrases',data:PHRASES});
+    }catch(e){}
+  }
+}
 
 async function initApp(){
   const now=new Date();calYear=now.getFullYear();calMonth=now.getMonth()+1;calDay=now.getDate();
   try{ await initIndexedDB(); }catch(e){ console.error('IndexedDB init failed:', e); }
   loadDB();
+  try{ await loadDBFromIDB(); }catch(e){}
   initEmailJS();
   bindEvents();
   renderHome();renderClients();renderCalendar();renderRoute();
