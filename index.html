@@ -786,8 +786,8 @@ const PHRASE_DEFAULTS=[
   {id:7,label:'成交感謝',text:'恭喜您找到新家！感謝您的信任，之後如有任何問題都可以找我，祝您搬家順利 🏠'},
 ];
 
-function loadDB(){try{DB=JSON.parse(localStorage.getItem('mimi_db')||'null')||{clients:[],tours:[],todos:[]};}catch(e){DB={clients:[],tours:[],todos:[]};}try{PHRASES=JSON.parse(localStorage.getItem('mimi_phrases')||'null')||PHRASE_DEFAULTS;}catch(e){PHRASES=PHRASE_DEFAULTS;}if(!DB.clients)DB.clients=[];if(!DB.tours)DB.tours=[];if(!DB.todos)DB.todos=[];}
-function saveDB(){try{localStorage.setItem('mimi_db',JSON.stringify(DB));}catch(e){}try{localStorage.setItem('mimi_phrases',JSON.stringify(PHRASES));}catch(e){}}
+function loadDB(){try{const saved=localStorage.getItem('mimi_db');if(saved){DB=JSON.parse(saved);}else{DB={clients:[],tours:[],todos:[]};}}catch(e){console.warn('Failed to load DB from localStorage:',e);DB={clients:[],tours:[],todos:[]};}try{const saved=localStorage.getItem('mimi_phrases');if(saved){PHRASES=JSON.parse(saved);}else{PHRASES=PHRASE_DEFAULTS;}}catch(e){PHRASES=PHRASE_DEFAULTS;}if(!DB.clients)DB.clients=[];if(!DB.tours)DB.tours=[];if(!DB.todos)DB.todos=[];}
+function saveDB(){try{const json=JSON.stringify(DB);localStorage.setItem('mimi_db',json);if(!localStorage.getItem('mimi_db')){throw new Error('Save verification failed');}}catch(e){console.warn('Failed to save DB to localStorage:',e);}try{const json=JSON.stringify(PHRASES);localStorage.setItem('mimi_phrases',json);}catch(e){console.warn('Failed to save phrases:',e);}}
 
 async function initApp(){
   const now=new Date();calYear=now.getFullYear();calMonth=now.getMonth()+1;calDay=now.getDate();
