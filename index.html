@@ -860,6 +860,10 @@ function bindEvents(){
   document.body.addEventListener('click',e=>{
     const quickStatus=e.target.closest('[data-quick-status]');
     if(quickStatus){ e.stopPropagation(); const tourId=quickStatus.dataset.quickStatus; changeQuickStatus(tourId); return; }
+    const cycleClient=e.target.closest('[data-cycle-client-status]');
+    if(cycleClient){ e.stopPropagation(); const clientId=cycleClient.dataset.cycleClientStatus; changeClientStatus(clientId); return; }
+    const openClient=e.target.closest('[data-open-client]');
+    if(openClient){ openClientDetail(String(openClient.dataset.openClient)); return; }
     const el=e.target.closest('[data-action]');
     if(el){ handleAction(el.dataset.action,el.dataset); return; }
     const ot=e.target.closest('[data-open-tour2]');
@@ -1099,13 +1103,12 @@ function renderClients(search){
   let list=DB.clients;if(currentFilter!=='all')list=list.filter(c=>c.status===currentFilter);if(q)list=list.filter(c=>c.name.includes(q)||(c.phone||'').includes(q));
   const el=document.getElementById('client-list');
   if(!list.length){el.innerHTML='<div class="empty"><p>沒有符合的客戶</p></div>';return;}
-  el.innerHTML=list.map(c=>`<div class="card" style="cursor:pointer" data-open-client="${c.id}"><div style="display:flex;align-items:center;gap:12px"><div class="av">${c.avatar||c.name[0]}</div><div style="flex:1"><div class="rbet"><div style="font-size:15px;font-weight:700">${c.name}</div><span class="tag cl-${c.status}">${c.status}</span></div><div style="font-size:12px;color:var(--sub);margin-top:2px">${c.phone||'—'} · ${c.source||'—'}</div></div></div></div>`).join('');
-  el.querySelectorAll('[data-open-client]').forEach(card=>{card.addEventListener('click',()=>openClientDetail(Number(card.dataset.openClient)));});
+  el.innerHTML=list.map(c=>`<div class="card" style="cursor:pointer" data-open-client="${c.id}"><div style="display:flex;align-items:center;gap:12px"><div class="av">${c.avatar||c.name[0]}</div><div style="flex:1"><div class="rbet"><div style="font-size:15px;font-weight:700">${c.name}</div><span class="tag cl-${c.status}" data-cycle-client-status="${c.id}" style="cursor:pointer">${c.status}</span></div><div style="font-size:12px;color:var(--sub);margin-top:2px">${c.phone||'—'} · ${c.source||'—'}</div></div></div></div>`).join('');
 }
 async function openClientDetail(id){
   const c=DB.clients.find(x=>x.id===id);if(!c)return;
   document.getElementById('detail-name').textContent=c.name;document.getElementById('detail-sub').textContent=(c.phone||'')+(c.source?' · '+c.source:'');
-  const st=document.getElementById('detail-tag');st.textContent=c.status;st.className='tag cl-'+c.status;
+  const st=document.getElementById('detail-tag');st.textContent=c.status;st.className='tag cl-'+c.status;st.dataset.cycleClientStatus=c.id;st.style.cursor='pointer';
   const s=c.survey||{};const hp=c.photos&&c.photos.length;
   document.getElementById('detail-body').innerHTML=`
     <div class="dsec"><div class="dsect">基本資料</div>
@@ -1266,6 +1269,35 @@ function changeQuickStatus(tourId){
   renderHome();renderCalendar();renderRoute();
   toast(`✓ 已標記「${nextStatus}」`);
   try{ sbUpdateTour(t).catch(e=>{}); }catch(e){}
+}
+
+function changeClientStatus(clientId){
+  const clientStatusNextMap={
+    '新客戶':'已約看',
+    '已約看':'已帶看',
+    '已帶看':'考慮中',
+    '考慮中':'已下定',
+    '已下定':'已成交',
+    '已成交':'帶看後不考慮',
+    '帶看後不考慮':'已取消',
+    '已取消':'放鳥',
+    '放鳥':'新客戶'
+  };
+
+  const c=DB.clients.find(x=>String(x.id)===String(clientId));
+  if(!c)return;
+
+  const currentStatus=String(c.status||'新客戶').trim();
+  const nextStatus=clientStatusNextMap[currentStatus]||'新客戶';
+
+  c.status=nextStatus;
+  saveDB();
+  renderHome();renderClients();
+  if(document.getElementById('detail-page').classList.contains('show')){
+    openClientDetail(clientId);
+  }
+  toast(`✓ 已標記「${nextStatus}」`);
+  try{ sbUpsertClient(c).catch(e=>{}); }catch(e){}
 }
 
 function todayStr(){const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;}
