@@ -429,6 +429,7 @@ html,body{width:100%;max-width:430px;margin:0 auto;background:var(--bg);font-fam
       <div class="fg"><label class="fl">房型需求</label><div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:4px" id="type-grid"><div class="chip" data-type="套房">套房</div><div class="chip" data-type="1房">1房</div><div class="chip" data-type="2房">2房</div><div class="chip" data-type="3房">3房</div><div class="chip" data-type="4房+">4房+</div></div></div>
       <div class="fg"><label class="fl">需求條件</label><textarea class="fta" id="s-conds" placeholder="需要電梯、停車位、寵物可…" style="min-height:80px"></textarea></div>
       <div class="fg"><label class="fl">入住時間</label><input class="fi" id="s-movein" placeholder="7月初、越快越好" type="text"></div>
+      <input type="hidden" id="s-viewTime">
       <div class="fg"><label class="fl">自由填寫（貼上原始問卷）</label><textarea class="fta" id="s-raw" style="min-height:140px;font-size:13px;line-height:1.9" placeholder="直接貼上客戶傳來的問卷文字…"></textarea><button class="btno" id="btn-auto-fill" style="margin-top:8px;width:100%">🤖 自動填充問卷資訊</button></div>
       <button class="btnp" id="btn-next-photos">下一步：上傳截圖 →</button>
       <button class="btno" id="btn-back-survey">← 上一步</button>
@@ -1019,21 +1020,21 @@ function renderCPickList(q){
   if(q)items=items.filter(c=>c.name.includes(q)||(c.phone||'').includes(q));
   const manualRow=`<div class="cpick-row" id="cpick-manual-row" style="color:var(--sub)"><div style="width:32px;height:32px;border-radius:50%;background:var(--border);display:flex;align-items:center;justify-content:center;flex-shrink:0"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#9A8880" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></div><span style="font-size:14px;font-weight:600">手動輸入</span></div>`;
   list.innerHTML=items.map(c=>`<div class="cpick-row" data-cpick-id="${c.id}"><div style="width:32px;height:32px;border-radius:50%;background:var(--primary);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:var(--text);flex-shrink:0">${c.avatar||c.name[0]}</div><div style="flex:1"><div style="font-size:14px;font-weight:700">${c.name}</div><div style="font-size:12px;color:var(--sub)">${c.phone||'—'}</div></div><span class="tag cl-${c.status}">${c.status}</span></div>`).join('')+manualRow;
-  list.querySelectorAll('[data-cpick-id]').forEach(row=>{row.addEventListener('click',()=>{const c=DB.clients.find(x=>x.id===Number(row.dataset.cpickId));if(!c)return;document.getElementById('t-client-val').value=c.name;document.getElementById('t-phone-val').value=c.phone||'';document.getElementById('cpick-display').textContent=c.name;document.getElementById('cpick-display').style.color='var(--text)';document.getElementById('t-manual-wrap').style.display='none';const s=c.survey||{};if(s.addr){document.getElementById('t-addr').value=s.addr;}closeCPick();});});
+  list.querySelectorAll('[data-cpick-id]').forEach(row=>{row.addEventListener('click',()=>{const c=DB.clients.find(x=>x.id===Number(row.dataset.cpickId));if(!c)return;document.getElementById('t-client-val').value=c.name;document.getElementById('t-phone-val').value=c.phone||'';document.getElementById('cpick-display').textContent=c.name;document.getElementById('cpick-display').style.color='var(--text)';document.getElementById('t-manual-wrap').style.display='none';const s=c.survey||{};if(s.addr){document.getElementById('t-addr').value=s.addr;}if(s.movein){document.getElementById('t-date').value=s.movein;}if(s.viewTime){document.getElementById('t-time').value=s.viewTime;}closeCPick();});});
   document.getElementById('cpick-manual-row').addEventListener('click',()=>{document.getElementById('t-client-val').value='';document.getElementById('t-phone-val').value='';document.getElementById('cpick-display').textContent='手動輸入';document.getElementById('cpick-display').style.color='var(--text)';document.getElementById('t-manual-wrap').style.display='block';document.getElementById('t-addr').value='';closeCPick();});
 }
 
 async function saveClient(){
   const name=document.getElementById('c-name').value.trim();if(!name){showTab('t-basic');alert('請輸入姓名');return;}
   const photosList=[];for(const p of uploadedPhotos){const dataUrl=await getPhotoFromIDB(p.id)||p.dataUrl;photosList.push({id:p.id,label:p.label,dataUrl});}
-  const client={id:editingClientId||Date.now(),name,phone:document.getElementById('c-phone').value,source:selectedSource||'官網',status:selectedLabel,avatar:name[0],note:document.getElementById('c-note').value,survey:{budget:document.getElementById('s-budget').value,area:document.getElementById('s-area').value,addr:document.getElementById('s-addr').value,size:document.getElementById('s-size').value,types:[...selectedTypes],conds:document.getElementById('s-conds').value,movein:document.getElementById('s-movein').value,raw:document.getElementById('s-raw').value},photos:photosList};
+  const client={id:editingClientId||Date.now(),name,phone:document.getElementById('c-phone').value,source:selectedSource||'官網',status:selectedLabel,avatar:name[0],note:document.getElementById('c-note').value,survey:{budget:document.getElementById('s-budget').value,area:document.getElementById('s-area').value,addr:document.getElementById('s-addr').value,size:document.getElementById('s-size').value,types:[...selectedTypes],conds:document.getElementById('s-conds').value,movein:document.getElementById('s-movein').value,viewTime:document.getElementById('s-viewTime').value||'',raw:document.getElementById('s-raw').value},photos:photosList};
   if(editingClientId){const idx=DB.clients.findIndex(c=>c.id===editingClientId);if(idx>=0)DB.clients[idx]=client;}else{DB.clients.unshift(client);}
   saveDB();resetClientForm();closeModal('modal-client');document.getElementById('detail-page').classList.remove('show');renderClients();renderHome();toast(editingClientId?'客戶已更新 ✓':'客戶已新增 ✓');
   editingClientId=null;
   try{ await sbUpsertClient(client); }catch(e){  console.warn('Sync failed'); }
 }
 async function resetClientForm(){
-  ['c-name','c-phone','c-note','s-budget','s-area','s-addr','s-size','s-conds','s-movein','s-raw'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  ['c-name','c-phone','c-note','s-budget','s-area','s-addr','s-size','s-conds','s-movein','s-viewTime','s-raw'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   document.querySelectorAll('#src-grid .chip').forEach(c=>c.classList.remove('on'));
   document.querySelectorAll('#label-grid .lopt').forEach(l=>l.classList.remove('on'));
   document.querySelectorAll('#type-grid .chip').forEach(c=>c.classList.remove('on'));
@@ -1048,7 +1049,7 @@ function editClient(id){
   selectedSource=c.source||'';selectedLabel=c.status||'新客戶';
   document.querySelectorAll('#src-grid .chip').forEach(el=>el.classList.toggle('on',el.dataset.src===c.source));
   document.querySelectorAll('#label-grid .lopt').forEach(el=>el.classList.toggle('on',el.dataset.label===c.status));
-  const s=c.survey||{};document.getElementById('s-budget').value=s.budget||'';document.getElementById('s-area').value=s.area||'';document.getElementById('s-addr').value=s.addr||'';document.getElementById('s-size').value=s.size||'';document.getElementById('s-conds').value=s.conds||'';document.getElementById('s-movein').value=s.movein||'';document.getElementById('s-raw').value=s.raw||'';
+  const s=c.survey||{};document.getElementById('s-budget').value=s.budget||'';document.getElementById('s-area').value=s.area||'';document.getElementById('s-addr').value=s.addr||'';document.getElementById('s-size').value=s.size||'';document.getElementById('s-conds').value=s.conds||'';document.getElementById('s-movein').value=s.movein||'';document.getElementById('s-viewTime').value=s.viewTime||'';document.getElementById('s-raw').value=s.raw||'';
   selectedTypes=[...(s.types||[])];document.querySelectorAll('#type-grid .chip').forEach(el=>el.classList.toggle('on',selectedTypes.includes(el.dataset.type)));
   uploadedPhotos=(c.photos||[]).map(p=>({id:p.id,label:p.label,dataUrl:p.dataUrl}));renderPhotoGrid();showTab('t-basic');
   document.getElementById('btn-save-client').textContent='✓ 更新客戶';openModal('modal-client');
@@ -1078,16 +1079,13 @@ function autoFillFromRaw(){
   if(petMatch)details+='🐾 '+petMatch[1].trim()+'\n';
   const rentMatch=raw.match(/租金補助[：:]\s*(.+?)[\n]/)||raw.match(/租金補助[：:]\s*(.+)$/m)||raw.match(/租補[：:]\s*(.+?)[\n]/)||raw.match(/租補[：:]\s*(.+)$/m);
   if(rentMatch)details+='💰 租補：'+rentMatch[1].trim()+'\n';
-  const smokeMatch=raw.match(/抽菸習慣[：:]\s*(.+?)[\n]/)||raw.match(/抽菸習慣[：:]\s*(.+)$/m);
-  if(smokeMatch)details+='🚭 '+smokeMatch[1].trim()+'\n';
-  const certMatch=raw.match(/清楚服務費[：:]\s*(.+?)[\n]/)||raw.match(/清楚服務費[：:]\s*(.+)$/m);
-  if(certMatch)details+='✓ 服務費：'+certMatch[1].trim()+'\n';
   if(name)document.getElementById('c-name').value=name;
   if(phone)document.getElementById('c-phone').value=phone;
   if(addr)document.getElementById('s-addr').value=addr;
   if(movein)document.getElementById('s-movein').value=movein;
+  if(timeStr)document.getElementById('s-viewTime').value=timeStr;
   if(details)document.getElementById('s-conds').value=details+'\n'+document.getElementById('s-conds').value;
-  if(name||phone||addr||movein||details){
+  if(name||phone||addr||movein||timeStr||details){
     toast('✓ 問卷資訊已自動填充');
   }else{
     toast('⚠️ 無法解析問卷，請檢查格式');
