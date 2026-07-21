@@ -802,11 +802,21 @@ async function loadDBFromIDB(){
       const store=tx.objectStore('app');
       const req1=store.get('mimi_db');
       const req2=store.get('mimi_phrases');
-      req1.onsuccess=()=>{if(req1.result?.data){DB=req1.result.data;}};
+      req1.onsuccess=()=>{if(req1.result?.data){DB=req1.result.data;fixTourStatuses();}};
       req2.onsuccess=()=>{if(req2.result?.data){PHRASES=req2.result.data;}};
       tx.oncomplete=()=>resolve();
     }catch(e){resolve();}
   });
+}
+function fixTourStatuses(){
+  const validStatuses=['待確認','已確認','已完成','放鳥','取消','已下定'];
+  if(DB.tours){
+    DB.tours.forEach(t=>{
+      if(!validStatuses.includes(t.status)){
+        t.status='待確認';
+      }
+    });
+  }
 }
 function saveDB(){
   try{localStorage.setItem('mimi_db',JSON.stringify(DB));}catch(e){}
