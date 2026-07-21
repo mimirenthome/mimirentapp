@@ -858,6 +858,8 @@ function bindEvents(){
   document.getElementById('overlay').addEventListener('click',closeSheet);
   document.getElementById('bsheet').addEventListener('click',e=>{const item=e.target.closest('[data-action]');if(!item)return;closeSheet();handleAction(item.dataset.action,item.dataset);});
   document.body.addEventListener('click',e=>{
+    const quickStatus=e.target.closest('[data-quick-status]');
+    if(quickStatus){ e.stopPropagation(); const tourId=quickStatus.dataset.quickStatus; changeQuickStatus(tourId); return; }
     const el=e.target.closest('[data-action]');
     if(el){ handleAction(el.dataset.action,el.dataset); return; }
     const ot=e.target.closest('[data-open-tour2]');
@@ -1243,21 +1245,27 @@ function copyReminder(){
 }
 function fbCopy(text){const ta=document.createElement('textarea');ta.value=text;ta.style.cssText='position:fixed;top:0;left:0;opacity:0';document.body.appendChild(ta);ta.focus();ta.select();try{document.execCommand('copy');toast('已複製 ✓');}catch(e){toast('請手動複製');}document.body.removeChild(ta);}
 
-async function changeQuickStatus(tourId){
-  const t=DB.tours.find(x=>x.id===tourId);if(!t)return;
-  const statusOrder=['待確認','已確認','已完成','取消','放鳥','已下定'];
+function changeQuickStatus(tourId){
+  const statusNextMap={
+    '待確認':'已確認',
+    '已確認':'已完成',
+    '已完成':'取消',
+    '取消':'放鳥',
+    '放鳥':'已下定',
+    '已下定':'待確認'
+  };
 
-  const currentStatus=t.status||'待確認';
-  const currentIndex=statusOrder.indexOf(currentStatus);
+  const t=DB.tours.find(x=>x.id===tourId);
+  if(!t)return;
 
-  const nextIndex=currentIndex===-1?0:(currentIndex+1)%statusOrder.length;
-  const newStatus=statusOrder[nextIndex];
+  const currentStatus=String(t.status||'待確認').trim();
+  const nextStatus=statusNextMap[currentStatus]||'待確認';
 
-  t.status=newStatus;
+  t.status=nextStatus;
   saveDB();
   renderHome();renderCalendar();renderRoute();
-  toast(`✓ 已標記「${newStatus}」`);
-  try{ await sbUpdateTour(t); }catch(e){  }
+  toast(`✓ 已標記「${nextStatus}」`);
+  try{ sbUpdateTour(t).catch(e=>{}); }catch(e){}
 }
 
 function todayStr(){const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;}
@@ -1291,7 +1299,6 @@ function renderDayTours(){
   const list=DB.tours.filter(t=>t.date===ds).sort((a,b)=>(a.time||'').localeCompare(b.time||''));
   if(!list.length){el.innerHTML='<div style="text-align:center;padding:18px;color:var(--sub);font-size:14px">今日沒有帶看</div>';return;}
   el.innerHTML=list.map(t=>`<div class="cti" data-open-tour2="${t.id}" style="cursor:pointer"><div style="font-size:13px;font-weight:700;color:var(--primary-dark);width:44px;flex-shrink:0">${t.time||'—'}</div><div style="flex:1"><div style="font-size:14px;font-weight:600">${t.client}</div><div style="font-size:12px;color:var(--sub);margin-top:1px">${t.addr}</div></div><span class="tag ${tsCls(t.status)}" data-quick-status="${t.id}" style="cursor:pointer">${t.status}</span></div>`).join('');
-  document.querySelectorAll('[data-quick-status]').forEach(el=>{el.addEventListener('click',e=>{e.stopPropagation();const tourId=Number(el.dataset.quickStatus);changeQuickStatus(tourId);});});
 }
 
 function renderRoute(){
@@ -1300,7 +1307,6 @@ function renderRoute(){
   const el=document.getElementById('route-list');
   if(!list.length){el.innerHTML='<div class="empty"><p>今日沒有帶看行程</p></div>';document.getElementById('map-dist').textContent='—';document.getElementById('map-time').textContent='—';clearMap();return;}
   el.innerHTML=list.map((t,i)=>`<div class="card" style="margin-bottom:8px;position:relative" data-tour-id="${t.id}"><div style="display:flex;align-items:flex-start;gap:12px"><div style="width:28px;height:28px;border-radius:50%;background:${i===0?'var(--text)':'var(--primary)'};display:flex;align-items:center;justify-content:center;flex-shrink:0;color:${i===0?'#fff':'var(--text)'};font-size:13px;font-weight:700;cursor:pointer" data-open-tour="${t.id}">${i+1}</div><div style="flex:1;cursor:pointer;min-width:0" data-open-tour="${t.id}"><div style="display:flex;justify-content:space-between;align-items:center"><div style="font-size:15px;font-weight:700">${t.client}</div><span style="font-size:12px;color:var(--primary-dark);font-weight:600">${t.time||'—'}</span></div><div style="font-size:12px;color:var(--sub);margin:3px 0">${t.addr}</div><span class="tag ${tsCls(t.status)}" data-quick-status="${t.id}" style="margin-top:4px;display:inline-block;cursor:pointer">${t.status}</span></div><a href="https://maps.google.com/?q=${encodeURIComponent(t.addr)}" target="_blank" rel="noopener" class="actbtn" style="flex-shrink:0;background:var(--primary);border-color:var(--primary);text-decoration:none;display:inline-flex;align-items:center;justify-content:center">導航</a></div></div>`).join('');
-  document.querySelectorAll('[data-quick-status]').forEach(el=>{el.addEventListener('click',e=>{e.stopPropagation();const tourId=Number(el.dataset.quickStatus);changeQuickStatus(tourId);});});
   initMap(list);
 }
 
