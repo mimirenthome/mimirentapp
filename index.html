@@ -1255,7 +1255,7 @@ function changeQuickStatus(tourId){
     '已下定':'待確認'
   };
 
-  const t=DB.tours.find(x=>x.id===tourId);
+  const t=DB.tours.find(x=>String(x.id)===String(tourId));
   if(!t)return;
 
   const currentStatus=String(t.status||'待確認').trim();
