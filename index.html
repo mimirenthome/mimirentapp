@@ -1076,6 +1076,8 @@ function autoFillFromRaw(){
   let details='';
   const petMatch=raw.match(/是否養寵物[：:]\s*(.+?)[\n]/)||raw.match(/是否養寵物[：:]\s*(.+)$/m);
   if(petMatch)details+='🐾 '+petMatch[1].trim()+'\n';
+  const rentMatch=raw.match(/租金補助[：:]\s*(.+?)[\n]/)||raw.match(/租金補助[：:]\s*(.+)$/m)||raw.match(/租補[：:]\s*(.+?)[\n]/)||raw.match(/租補[：:]\s*(.+)$/m);
+  if(rentMatch)details+='💰 租補：'+rentMatch[1].trim()+'\n';
   const smokeMatch=raw.match(/抽菸習慣[：:]\s*(.+?)[\n]/)||raw.match(/抽菸習慣[：:]\s*(.+)$/m);
   if(smokeMatch)details+='🚭 '+smokeMatch[1].trim()+'\n';
   const certMatch=raw.match(/清楚服務費[：:]\s*(.+?)[\n]/)||raw.match(/清楚服務費[：:]\s*(.+)$/m);
