@@ -1425,12 +1425,23 @@ function initMap(tours){
         if(valid.length){
           gmap.fitBounds(bounds);
           if(valid.length===1) gmap.setZoom(15);
-          // try to include current location as route origin
-          locateUser(loc=>{
-            bounds.extend(loc);
-            gmap.fitBounds(bounds);
-            calcRoute(valid, loc);
-          });
+          // use company base address as route origin
+          const settings=loadSettings();
+          const baseAddr=settings.base||'';
+          if(baseAddr){
+            geo.geocode({address:baseAddr,region:'tw',componentRestrictions:{country:'TW'}},(res,status)=>{
+              if(status==='OK'&&res&&res[0]){
+                const baseLoc=res[0].geometry.location;
+                bounds.extend(baseLoc);
+                gmap.fitBounds(bounds);
+                calcRoute(valid, baseLoc);
+              } else {
+                calcRoute(valid);
+              }
+            });
+          } else {
+            calcRoute(valid);
+          }
         } else {
           toast('地址無法定位，請確認地址格式（例如：台中市西屯區○○路○號）');
         }
