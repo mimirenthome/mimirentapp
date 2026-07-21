@@ -1237,12 +1237,20 @@ async function changeQuickStatus(tourId){
   const t=DB.tours.find(x=>x.id===tourId);if(!t)return;
   const statuses=['待確認','已確認','已完成','放鳥','取消','已下定'];
   const map={'待確認':0,'已確認':1,'已完成':2,'放鳥':3,'取消':4,'已下定':5};
-  let idx=map[t.status]??0;
-  const newStatus=statuses[(idx+1)%statuses.length];
+  let idx=map[t.status]??-1;
+  if(idx===-1){
+    toast(`⚠️ 異常狀態: "${t.status}" - 重設為待確認`);
+    t.status='待確認';
+    saveDB();
+    renderHome();renderCalendar();renderRoute();
+    return;
+  }
+  idx=(idx+1)%statuses.length;
+  const newStatus=statuses[idx];
   t.status=newStatus;
   saveDB();
   renderHome();renderCalendar();renderRoute();
-  toast(`✓ 已標記「${newStatus}」`);
+  toast(`✓ 已標記「${newStatus}」 [${idx+1}/6]`);
   try{ await sbUpdateTour(t); }catch(e){  }
 }
 
