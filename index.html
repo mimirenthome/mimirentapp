@@ -1245,20 +1245,18 @@ function fbCopy(text){const ta=document.createElement('textarea');ta.value=text;
 
 async function changeQuickStatus(tourId){
   const t=DB.tours.find(x=>x.id===tourId);if(!t)return;
-  const statuses=['待確認','已確認','已完成','放鳥','取消','已下定'];
+  const statusOrder=['待確認','已確認','已完成','取消','放鳥','已下定'];
 
-  // 找到當前狀態在列表中的位置，如果找不到就從 0 開始
-  let currentIdx=statuses.indexOf(t.status);
-  if(currentIdx===-1)currentIdx=-1;
+  const currentStatus=t.status||'待確認';
+  const currentIndex=statusOrder.indexOf(currentStatus);
 
-  // 下一個狀態是當前位置的下一個（循環）
-  const nextIdx=(currentIdx+1)%statuses.length;
-  const newStatus=statuses[nextIdx];
+  const nextIndex=currentIndex===-1?0:(currentIndex+1)%statusOrder.length;
+  const newStatus=statusOrder[nextIndex];
 
   t.status=newStatus;
   saveDB();
   renderHome();renderCalendar();renderRoute();
-  toast(`✓ 已標記「${newStatus}」 [${nextIdx+1}/6]`);
+  toast(`✓ 已標記「${newStatus}」`);
   try{ await sbUpdateTour(t); }catch(e){  }
 }
 
