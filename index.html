@@ -1426,7 +1426,7 @@ function initMap(tours){
         if(valid.length){
           gmap.fitBounds(bounds);
           if(valid.length===1) gmap.setZoom(15);
-          // use company base address as route origin
+          // calculate round-trip distance for each tour (company → location → company)
           const settings=loadSettings();
           const baseAddr=settings.base||'';
           if(baseAddr){
@@ -1435,17 +1435,48 @@ function initMap(tours){
                 const baseLoc=res[0].geometry.location;
                 bounds.extend(baseLoc);
                 gmap.fitBounds(bounds);
-                calcRoute(valid, baseLoc);
+                calcRoundTripDistances(valid, baseLoc);
               } else {
-                calcRoute(valid);
+                calcRoundTripDistances(valid);
               }
             });
           } else {
-            calcRoute(valid);
+            calcRoundTripDistances(valid);
           }
         } else {
           toast('地址無法定位，請確認地址格式（例如：台中市西屯區○○路○號）');
         }
+      }
+    });
+  });
+}
+
+function calcRoundTripDistances(positions, baseLoc){
+  const svc=new google.maps.DistanceMatrixService();
+  let completed=0;
+  let totalDist=0;
+
+  positions.forEach((p,idx)=>{
+    const origin=baseLoc||p.pos;
+    const destination=p.pos;
+
+    svc.getDistanceMatrix({
+      origins:[origin],
+      destinations:[destination],
+      travelMode:google.maps.TravelMode.DRIVING
+    },(res,status)=>{
+      if(status==='OK'&&res.rows[0].elements[0].status==='OK'){
+        const dist=res.rows[0].elements[0].distance.value*2;
+        if(p.t){
+          p.t.distance=dist;
+          totalDist+=dist;
+        }
+      }
+      completed++;
+      if(completed===positions.length){
+        saveDB();renderHome();
+        document.getElementById('map-dist').textContent=(totalDist/1000).toFixed(1);
+        gmap.fitBounds(new google.maps.LatLngBounds(...positions.map(p=>p.pos)));
       }
     });
   });
