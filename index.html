@@ -1606,11 +1606,11 @@ function parseCSVLine(line){const result=[];let current='';let inQuotes=false;fo
 function importClientsFromCSV(input){const file=input.files[0];if(!file)return;const reader=new FileReader();reader.onload=e=>{try{const text=e.target.result;const lines=text.split('\n').map(l=>l.trim()).filter(l=>l);if(lines.length<2){toast('CSV 檔案為空');return;}
 const headers=parseCSVLine(lines[0]);const nameIdx=headers.indexOf('客戶名稱');const surveyIdx=headers.indexOf('問卷');const typeIdx=headers.indexOf('客人類型');const needsIdx=headers.indexOf('客戶需求');const lastIdx=headers.indexOf('最後');const phoneIdx=headers.indexOf('電話');const scheduleIdx=headers.indexOf('預約時間');const statusIdx=headers.indexOf('洽談狀態');
 const statusMap={'未帶看-已找到房':'取消','已帶看-考慮後失聯':'帶看後不考慮','已帶看-結案':'已帶看','已帶看-不考慮':'帶看後不考慮','未帶看-放鳥客':'放鳥','已帶看-浪費時間客':'帶看後不考慮','已帶看-只是來看看客':'帶看後不考慮','已帶看-看房後封鎖':'帶看後不考慮'};
-let imported=0;for(let i=1;i<lines.length;i++){const fields=parseCSVLine(lines[i]);if(fields.length<2)continue;const name=(nameIdx>=0?fields[nameIdx]:'').trim();if(!name)continue;
-const raw=(surveyIdx>=0?fields[surveyIdx]:'').trim();const clientType=(typeIdx>=0?fields[typeIdx]:'').trim();const needs=(needsIdx>=0?fields[needsIdx]:'').trim();const note=(lastIdx>=0?fields[lastIdx]:'').trim();const phone=(phoneIdx>=0?fields[phoneIdx]:'').trim();const schedule=(scheduleIdx>=0?fields[scheduleIdx]:'').trim();const talStatus=(statusIdx>=0?fields[statusIdx]:'').trim();
+let imported=0;for(let i=1;i<lines.length;i++){try{const fields=parseCSVLine(lines[i]);if(fields.length<2)continue;const name=((nameIdx>=0&&fields[nameIdx])?fields[nameIdx]:'').trim();if(!name)continue;
+const raw=((surveyIdx>=0&&fields[surveyIdx])?fields[surveyIdx]:'').trim();const clientType=((typeIdx>=0&&fields[typeIdx])?fields[typeIdx]:'').trim();const needs=((needsIdx>=0&&fields[needsIdx])?fields[needsIdx]:'').trim();const note=((lastIdx>=0&&fields[lastIdx])?fields[lastIdx]:'').trim();const phone=((phoneIdx>=0&&fields[phoneIdx])?fields[phoneIdx]:'').trim();const schedule=((scheduleIdx>=0&&fields[scheduleIdx])?fields[scheduleIdx]:'').trim();const talStatus=((statusIdx>=0&&fields[statusIdx])?fields[statusIdx]:'').trim();
 const status=statusMap[talStatus]||'新客戶';const conds=[needs,schedule].filter(s=>s).join(' | ');
 const client={id:Date.now()+Math.random(),name,phone,source:'手動匯入',status,avatar:name[0],note,survey:{budget:'',area:'',addr:'',size:'',types:[],conds,movein:'',viewTime:'',raw},photos:[]};
-DB.clients.push(client);imported++;}
+DB.clients.push(client);imported++;}catch(e){console.warn('Skip row',i,e);}}
 if(imported>0){saveDB();renderClients();renderHome();toast(`已匯入 ${imported} 位客戶 ✓`);}else{toast('未找到有效的客戶資料');}
 }catch(err){console.error(err);toast('匯入失敗：'+err.message);}};reader.readAsText(file);input.value='';}
 
