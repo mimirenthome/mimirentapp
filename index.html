@@ -1610,7 +1610,7 @@ let imported=0;for(let i=1;i<lines.length;i++){const fields=parseCSVLine(lines[i
 const raw=(surveyIdx>=0?fields[surveyIdx]:'').trim();const clientType=(typeIdx>=0?fields[typeIdx]:'').trim();const needs=(needsIdx>=0?fields[needsIdx]:'').trim();const note=(lastIdx>=0?fields[lastIdx]:'').trim();const phone=(phoneIdx>=0?fields[phoneIdx]:'').trim();const schedule=(scheduleIdx>=0?fields[scheduleIdx]:'').trim();const talStatus=(statusIdx>=0?fields[statusIdx]:'').trim();
 const status=statusMap[talStatus]||'新客戶';const conds=[needs,schedule].filter(s=>s).join(' | ');
 const client={id:Date.now()+Math.random(),name,phone,source:'手動匯入',status,avatar:name[0],note,survey:{budget:'',area:'',addr:'',size:'',types:[],conds,movein:'',viewTime:'',raw},photos:[]};
-DB.clients.unshift(client);imported++;}
+DB.clients.push(client);imported++;}
 if(imported>0){saveDB();renderClients();renderHome();toast(`已匯入 ${imported} 位客戶 ✓`);}else{toast('未找到有效的客戶資料');}
 }catch(err){console.error(err);toast('匯入失敗：'+err.message);}};reader.readAsText(file);input.value='';}
 
