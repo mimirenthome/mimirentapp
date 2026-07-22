@@ -864,7 +864,7 @@ function bindEvents(){
     const cycleClient=e.target.closest('[data-cycle-client-status]');
     if(cycleClient){ e.stopPropagation(); const clientId=cycleClient.dataset.cycleClientStatus; changeClientStatus(clientId); return; }
     const openClient=e.target.closest('[data-open-client]');
-    if(openClient){ openClientDetail(String(openClient.dataset.openClient)); return; }
+    if(openClient){ openClientDetail(Number(openClient.dataset.openClient)); return; }
     const el=e.target.closest('[data-action]');
     if(el){ handleAction(el.dataset.action,el.dataset); return; }
     const ot=e.target.closest('[data-open-tour2]');
