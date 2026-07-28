@@ -1149,7 +1149,7 @@ function autoFillFromRaw(){
   if(phone)document.getElementById('c-phone').value=phone;
   if(addr)document.getElementById('s-addr').value=addr;
   if(movein)document.getElementById('s-movein').value=movein;
-  if(timeStr)document.getElementById('s-viewTime').value=timeStr;
+  if(timeStr){const parsed=parseViewTime(timeStr);if(parsed.time)document.getElementById('s-viewTime').value=parsed.time;}
   if(details)document.getElementById('s-conds').value=details+'\n'+document.getElementById('s-conds').value;
   if(name||phone||addr||movein||timeStr||details){
     toast('✓ 問卷資訊已自動填充');
