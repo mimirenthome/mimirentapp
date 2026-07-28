@@ -727,6 +727,36 @@ async function sbFetch(path, opts={}){
   try{ return JSON.parse(text); }catch(e){ return null; }
 }
 
+async function autoBackupToSupabase(){
+  try{
+    const backup=[];
+    for(const c of DB.clients){
+      try{
+        await sbUpsertClient(c);
+        backup.push('client');
+      }catch(e){}
+    }
+    for(const t of DB.tours){
+      try{
+        await sbInsertTour(t);
+        backup.push('tour');
+      }catch(e){}
+    }
+    for(const todo of DB.todos){
+      try{
+        await sbInsertTodo(todo);
+        backup.push('todo');
+      }catch(e){}
+    }
+    const today=new Date().toDateString();
+    localStorage.setItem('mimi_last_backup',today);
+    if(backup.length>0){
+      console.log('✓ 自動備份完成：'+backup.length+'筆資料');
+    }
+  }catch(e){
+    console.error('自動備份失敗',e);
+  }
+}
 async function sbLoadAll(){
   const [clients, tours, todos, phrases, settings, auth] = await Promise.all([
     sbFetch('clients?select=*&order=created_at.desc'),
@@ -860,6 +890,12 @@ async function initApp(){
   renderHome();renderClients();renderCalendar();renderRoute();
 document.getElementById('t-date').value = todayStr();
   setInterval(updateNextTourCountdown,60000);
+  // 每天自動備份到 Supabase
+  const today=new Date().toDateString();
+  const lastBackup=localStorage.getItem('mimi_last_backup');
+  if(lastBackup!==today){
+    setTimeout(()=>autoBackupToSupabase(),5000);
+  }
   // 背景同步（不阻止登入）
   setTimeout(async()=>{
     try{
