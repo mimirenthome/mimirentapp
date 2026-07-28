@@ -743,24 +743,21 @@ async function sbLoadAll(){
   const remoteTours = tours||[];
   const remoteTodos = todos||[];
 
-  // 合併策略：遠端資料為主（優先恢復丟失的資料）
+  // 本地優先：保留所有本地資料，只補充本地沒有的遠端資料
   if(remoteClients.length>0){
     const localIds=new Set(DB.clients.map(c=>c.id));
-    const remoteIds=new Set(remoteClients.map(c=>c.id));
-    const localOnly=DB.clients.filter(c=>!remoteIds.has(c.id));
-    DB.clients=[...remoteClients,...localOnly];
+    const newRemote=remoteClients.filter(c=>!localIds.has(c.id));
+    DB.clients=[...DB.clients,...newRemote];
   }
   if(remoteTours.length>0){
     const localIds=new Set(DB.tours.map(t=>t.id));
-    const remoteIds=new Set(remoteTours.map(t=>t.id));
-    const localOnly=DB.tours.filter(t=>!remoteIds.has(t.id));
-    DB.tours=[...remoteTours,...localOnly];
+    const newRemote=remoteTours.filter(t=>!localIds.has(t.id));
+    DB.tours=[...DB.tours,...newRemote];
   }
   if(remoteTodos.length>0){
     const localIds=new Set(DB.todos.map(t=>t.id));
-    const remoteIds=new Set(remoteTodos.map(t=>t.id));
-    const localOnly=DB.todos.filter(t=>!remoteIds.has(t.id));
-    DB.todos=[...remoteTodos,...localOnly];
+    const newRemote=remoteTodos.filter(t=>!localIds.has(t.id));
+    DB.todos=[...DB.todos,...newRemote];
   }
   if(phrases&&phrases.length>0){ PHRASES=phrases; }
   const s = (settings&&settings[0])||{};
