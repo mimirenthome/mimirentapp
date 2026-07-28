@@ -743,18 +743,25 @@ async function sbLoadAll(){
   const remoteTours = tours||[];
   const remoteTodos = todos||[];
 
-  // 如果本機資料明顯丟失（本機少於遠端的50%），則從遠端恢復
-  const localClientCount=DB.clients.length;
-  const localTourCount=DB.tours.length;
-  const remoteClientCount=remoteClients.length;
-  const remoteTourCount=remoteTours.length;
-
-  const clientDataLost=(remoteClientCount>10&&localClientCount<remoteClientCount*0.5);
-  const tourDataLost=(remoteTourCount>10&&localTourCount<remoteTourCount*0.5);
-
-  if(clientDataLost||localClientCount===0){if(remoteClients.length>0)DB.clients=remoteClients;}else if(remoteClients.length>0){const localIds=new Set(DB.clients.map(c=>c.id));const newRemote=remoteClients.filter(c=>!localIds.has(c.id));DB.clients=[...DB.clients,...newRemote];}
-  if(tourDataLost||localTourCount===0){if(remoteTours.length>0)DB.tours=remoteTours;}else if(remoteTours.length>0){const localIds=new Set(DB.tours.map(t=>t.id));const newRemote=remoteTours.filter(t=>!localIds.has(t.id));DB.tours=[...DB.tours,...newRemote];}
-  if(remoteTodos.length>0&&remoteTodos.length>localTourCount*0.5){DB.todos=remoteTodos;}else if(remoteTodos.length>0){const localIds=new Set(DB.todos.map(t=>t.id));const newRemote=remoteTodos.filter(t=>!localIds.has(t.id));DB.todos=[...DB.todos,...newRemote];}
+  // 合併策略：遠端資料為主（優先恢復丟失的資料）
+  if(remoteClients.length>0){
+    const localIds=new Set(DB.clients.map(c=>c.id));
+    const remoteIds=new Set(remoteClients.map(c=>c.id));
+    const localOnly=DB.clients.filter(c=>!remoteIds.has(c.id));
+    DB.clients=[...remoteClients,...localOnly];
+  }
+  if(remoteTours.length>0){
+    const localIds=new Set(DB.tours.map(t=>t.id));
+    const remoteIds=new Set(remoteTours.map(t=>t.id));
+    const localOnly=DB.tours.filter(t=>!remoteIds.has(t.id));
+    DB.tours=[...remoteTours,...localOnly];
+  }
+  if(remoteTodos.length>0){
+    const localIds=new Set(DB.todos.map(t=>t.id));
+    const remoteIds=new Set(remoteTodos.map(t=>t.id));
+    const localOnly=DB.todos.filter(t=>!remoteIds.has(t.id));
+    DB.todos=[...remoteTodos,...localOnly];
+  }
   if(phrases&&phrases.length>0){ PHRASES=phrases; }
   const s = (settings&&settings[0])||{};
   const existingLocal=loadSettings();
