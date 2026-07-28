@@ -743,10 +743,22 @@ async function sbLoadAll(){
   const remoteTours = tours||[];
   const remoteTodos = todos||[];
 
-  // 合併策略：遠端數據優先，但保留本機中遠端沒有的資料
-  if(remoteClients.length>0){ DB.clients=remoteClients; }
-  if(remoteTours.length>0){ DB.tours=remoteTours; }
-  if(remoteTodos.length>0){ DB.todos=remoteTodos; }
+  // 合併策略：本機有的資料優先，只補充本機沒有的遠端資料
+  if(remoteClients.length>0){
+    const localIds=new Set(DB.clients.map(c=>c.id));
+    const newRemote=remoteClients.filter(c=>!localIds.has(c.id));
+    DB.clients=[...DB.clients,...newRemote];
+  }
+  if(remoteTours.length>0){
+    const localIds=new Set(DB.tours.map(t=>t.id));
+    const newRemote=remoteTours.filter(t=>!localIds.has(t.id));
+    DB.tours=[...DB.tours,...newRemote];
+  }
+  if(remoteTodos.length>0){
+    const localIds=new Set(DB.todos.map(t=>t.id));
+    const newRemote=remoteTodos.filter(t=>!localIds.has(t.id));
+    DB.todos=[...DB.todos,...newRemote];
+  }
   if(phrases&&phrases.length>0){ PHRASES=phrases; }
   const s = (settings&&settings[0])||{};
   const existingLocal=loadSettings();
