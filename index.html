@@ -434,7 +434,7 @@ input[type="date"].fi,input[type="time"].fi{width:100%;box-sizing:border-box;}
       <div class="fg"><label class="fl">房型需求</label><div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:4px" id="type-grid"><div class="chip" data-type="套房">套房</div><div class="chip" data-type="1房">1房</div><div class="chip" data-type="2房">2房</div><div class="chip" data-type="3房">3房</div><div class="chip" data-type="4房+">4房+</div></div></div>
       <div class="fg"><label class="fl">需求條件</label><textarea class="fta" id="s-conds" placeholder="需要電梯、停車位、寵物可…" style="min-height:80px"></textarea></div>
       <div class="fg"><label class="fl">入住時間</label><input class="fi" id="s-movein" placeholder="7月初、越快越好" type="text"></div>
-      <div style="display:flex;gap:8px"><div class="fg" style="flex:1"><label class="fl">預約看房日期</label><input class="fi" id="s-viewDate" type="date"></div><div class="fg" style="flex:1"><label class="fl">預約看房時間</label><input class="fi" id="s-viewTime" type="time"></div></div>
+      <div class="fg"><label class="fl">預約看房時間</label><input class="fi" id="s-viewTime" type="datetime-local"></div>
       <div class="fg"><label class="fl">自由填寫（貼上原始問卷）</label><textarea class="fta" id="s-raw" style="min-height:140px;font-size:13px;line-height:1.9" placeholder="直接貼上客戶傳來的問卷文字…"></textarea><button class="btno" id="btn-auto-fill" style="margin-top:8px;width:100%">🤖 自動填充問卷資訊</button></div>
       <button class="btnp" id="btn-next-photos">下一步：上傳截圖 →</button>
       <button class="btno" id="btn-back-survey">← 上一步</button>
@@ -1093,7 +1093,7 @@ function renderCPickList(q){
 async function saveClient(){
   const name=document.getElementById('c-name').value.trim();if(!name){showTab('t-basic');alert('請輸入姓名');return;}
   const photosList=[];for(const p of uploadedPhotos){const dataUrl=await getPhotoFromIDB(p.id)||p.dataUrl;photosList.push({id:p.id,label:p.label,dataUrl});}
-  const viewDate=document.getElementById('s-viewDate').value;const viewTime=document.getElementById('s-viewTime').value;const viewTimeStr=viewDate&&viewTime?`${viewDate} ${viewTime}`:viewTime||'';
+  const viewTimeVal=document.getElementById('s-viewTime').value;const viewTimeStr=viewTimeVal.replace('T',' ');
   const client={id:editingClientId||Date.now(),name,phone:document.getElementById('c-phone').value,source:selectedSource||'官網',status:selectedLabel,avatar:name[0],note:document.getElementById('c-note').value,survey:{budget:document.getElementById('s-budget').value,area:document.getElementById('s-area').value,addr:document.getElementById('s-addr').value,size:document.getElementById('s-size').value,types:[...selectedTypes],conds:document.getElementById('s-conds').value,movein:document.getElementById('s-movein').value,viewTime:viewTimeStr,raw:document.getElementById('s-raw').value},photos:photosList};
   if(editingClientId){const idx=DB.clients.findIndex(c=>c.id===editingClientId);if(idx>=0)DB.clients[idx]=client;}else{DB.clients.unshift(client);}
   saveDB();resetClientForm();closeModal('modal-client');document.getElementById('detail-page').classList.remove('show');renderClients();renderHome();toast(editingClientId?'客戶已更新 ✓':'客戶已新增 ✓');
@@ -1101,7 +1101,7 @@ async function saveClient(){
   try{ await sbUpsertClient(client); }catch(e){  console.warn('Sync failed'); }
 }
 async function resetClientForm(){
-  ['c-name','c-phone','c-note','s-budget','s-area','s-addr','s-size','s-conds','s-movein','s-viewDate','s-viewTime','s-raw'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  ['c-name','c-phone','c-note','s-budget','s-area','s-addr','s-size','s-conds','s-movein','s-viewTime','s-raw'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   document.querySelectorAll('#src-grid .chip').forEach(c=>c.classList.remove('on'));
   document.querySelectorAll('#label-grid .lopt').forEach(l=>l.classList.remove('on'));
   document.querySelectorAll('#type-grid .chip').forEach(c=>c.classList.remove('on'));
@@ -1116,7 +1116,7 @@ function editClient(id){
   selectedSource=c.source||'';selectedLabel=c.status||'新客戶';
   document.querySelectorAll('#src-grid .chip').forEach(el=>el.classList.toggle('on',el.dataset.src===c.source));
   document.querySelectorAll('#label-grid .lopt').forEach(el=>el.classList.toggle('on',el.dataset.label===c.status));
-  const s=c.survey||{};document.getElementById('s-budget').value=s.budget||'';document.getElementById('s-area').value=s.area||'';document.getElementById('s-addr').value=s.addr||'';document.getElementById('s-size').value=s.size||'';document.getElementById('s-conds').value=s.conds||'';document.getElementById('s-movein').value=s.movein||'';const vt=parseViewTime(s.viewTime||'');if(vt.date)document.getElementById('s-viewDate').value=vt.date;if(vt.time)document.getElementById('s-viewTime').value=vt.time;else document.getElementById('s-viewTime').value=s.viewTime||'';document.getElementById('s-raw').value=s.raw||'';
+  const s=c.survey||{};document.getElementById('s-budget').value=s.budget||'';document.getElementById('s-area').value=s.area||'';document.getElementById('s-addr').value=s.addr||'';document.getElementById('s-size').value=s.size||'';document.getElementById('s-conds').value=s.conds||'';document.getElementById('s-movein').value=s.movein||'';if(s.viewTime)document.getElementById('s-viewTime').value=s.viewTime.replace(' ','T');document.getElementById('s-raw').value=s.raw||'';
   selectedTypes=[...(s.types||[])];document.querySelectorAll('#type-grid .chip').forEach(el=>el.classList.toggle('on',selectedTypes.includes(el.dataset.type)));
   uploadedPhotos=(c.photos||[]).map(p=>({id:p.id,label:p.label,dataUrl:p.dataUrl}));renderPhotoGrid();showTab('t-basic');
   document.getElementById('btn-save-client').textContent='✓ 更新客戶';openModal('modal-client');
@@ -1150,7 +1150,7 @@ function autoFillFromRaw(){
   if(phone)document.getElementById('c-phone').value=phone;
   if(addr)document.getElementById('s-addr').value=addr;
   if(movein)document.getElementById('s-movein').value=movein;
-  if(timeStr){const parsed=parseViewTime(timeStr);if(parsed.date)document.getElementById('s-viewDate').value=parsed.date;if(parsed.time)document.getElementById('s-viewTime').value=parsed.time;}
+  if(timeStr){const parsed=parseViewTime(timeStr);if(parsed.date&&parsed.time)document.getElementById('s-viewTime').value=`${parsed.date}T${parsed.time}`;else if(parsed.time)document.getElementById('s-viewTime').value=parsed.time;}
   if(details)document.getElementById('s-conds').value=details+'\n'+document.getElementById('s-conds').value;
   if(name||phone||addr||movein||timeStr||details){
     toast('✓ 問卷資訊已自動填充');
