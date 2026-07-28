@@ -1581,6 +1581,12 @@ function calcRoute(positions, startLoc){
 
 function parseViewTime(timeStr){
   if(!timeStr)return {date:'',time:''};
+  // 嘗試解析「2026-07-30 14:00」格式（ISO 格式）
+  const isoMatch=timeStr.match(/(\d{4})-(\d{2})-(\d{2})\s+(\d{2}):(\d{2})/);
+  if(isoMatch){
+    const [,year,month,day,hour,min]=isoMatch;
+    return {date:`${year}-${month}-${day}`,time:`${hour}:${min}`};
+  }
   // 嘗試解析「2026年6月4日 下午3:00」格式
   const fullMatch=timeStr.match(/(\d{4})年(\d{1,2})月(\d{1,2})日\s*([^\s]*)(\d{1,2}):(\d{2})/);
   if(fullMatch){
