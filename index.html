@@ -1633,8 +1633,8 @@ function renderHome(){
 
   // 來源分析
   const allClients=DB.clients;const monthClients=DB.clients.filter(c=>{const cDate=c.created_at||'';return cDate.startsWith(thisMonth);});
-  const analyzeSource=(list)=>{const sources={};list.forEach(c=>{const s=c.source||'其他';sources[s]=(sources[s]||0)+1;});return Object.entries(sources).sort((a,b)=>b[1]-a[1]).map(([src,cnt])=>({src,cnt,pct:(cnt/list.length*100).toFixed(1)}));};
-  const allAnalysis=analyzeSource(allClients);const monthAnalysis=analyzeSource(monthClients);
+  const analyzeSource=(list)=>{if(list.length===0)return[];const sources={};list.forEach(c=>{const s=c.source||'其他';sources[s]=(sources[s]||0)+1;});return Object.entries(sources).sort((a,b)=>b[1]-a[1]).map(([src,cnt])=>({src,cnt,pct:(cnt/list.length*100).toFixed(1)}));};
+  const allAnalysis=analyzeSource(allClients);const monthAnalysis=monthClients.length>0?analyzeSource(monthClients):allAnalysis;
   document.getElementById('h-closed').textContent=DB.clients.filter(c=>c.status==='已成交').length;document.getElementById('h-tours').textContent=monthTours.length;document.getElementById('h-distance').textContent=monthTours.length>0?(monthDist/1000).toFixed(1):'—';document.getElementById('h-avg-tours').textContent=avgTours.toFixed(1);document.getElementById('h-overdue').textContent=overdue.length;document.getElementById('h-track').textContent=DB.clients.filter(c=>['新客戶','已約看','已帶看','考慮中'].includes(c.status)).length;
   if(todayActiveTours.length){const todayDist=todayActiveTours.reduce((sum,t)=>(sum+(t.distance||0)),0);document.getElementById('h-dist').textContent=(todayDist/1000).toFixed(1);document.getElementById('h-time').textContent=todayActiveTours.length*15;document.getElementById('h-stops').textContent=todayActiveTours.length;}else{document.getElementById('h-dist').textContent='—';document.getElementById('h-time').textContent='—';document.getElementById('h-stops').textContent='0';}
   if(nextTour){
