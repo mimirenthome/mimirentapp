@@ -915,11 +915,11 @@ function bindEvents(){
   document.getElementById('fab').addEventListener('click',toggleSheet);
   document.getElementById('overlay').addEventListener('click',closeSheet);
   document.getElementById('bsheet').addEventListener('click',e=>{const item=e.target.closest('[data-action]');if(!item)return;closeSheet();handleAction(item.dataset.action,item.dataset);});
-  document.body.addEventListener('click',e=>{
+  document.addEventListener('click',e=>{
     const quickStatus=e.target.closest('[data-quick-status]');
-    if(quickStatus){ e.stopPropagation(); const tourId=quickStatus.dataset.quickStatus; changeQuickStatus(tourId); return; }
+    if(quickStatus){ e.preventDefault(); e.stopPropagation(); const tourId=quickStatus.dataset.quickStatus; changeQuickStatus(tourId); return; }
     const cycleClient=e.target.closest('[data-cycle-client-status]');
-    if(cycleClient){ e.stopPropagation(); const clientId=cycleClient.dataset.cycleClientStatus; changeClientStatus(clientId); return; }
+    if(cycleClient){ e.preventDefault(); e.stopPropagation(); const clientId=cycleClient.dataset.cycleClientStatus; changeClientStatus(clientId); return; }
     const openClient=e.target.closest('[data-open-client]');
     if(openClient){ openClientDetail(Number(openClient.dataset.openClient)); return; }
     const el=e.target.closest('[data-action]');
