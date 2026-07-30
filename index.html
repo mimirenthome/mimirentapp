@@ -917,17 +917,17 @@ function bindEvents(){
   document.getElementById('bsheet').addEventListener('click',e=>{const item=e.target.closest('[data-action]');if(!item)return;closeSheet();handleAction(item.dataset.action,item.dataset);});
   document.addEventListener('click',e=>{
     // Check status tag clicks FIRST and most specifically
-    if(e.target.matches('[data-quick-status]') || (e.target.closest && e.target.closest('[data-quick-status]'))){
+    if(e.target.matches('[data-quick-status]')||e.target.closest?.('[data-quick-status]')){
       const quickStatus=e.target.closest('[data-quick-status]')||e.target;
-      if(quickStatus.dataset.quickStatus){
+      if(quickStatus.dataset?.quickStatus){
         e.preventDefault(); e.stopPropagation();
         changeQuickStatus(quickStatus.dataset.quickStatus);
         return;
       }
     }
-    if(e.target.matches('[data-cycle-client-status]') || (e.target.closest && e.target.closest('[data-cycle-client-status]'))){
+    if(e.target.matches('[data-cycle-client-status]')||e.target.closest?.('[data-cycle-client-status]')){
       const cycleClient=e.target.closest('[data-cycle-client-status]')||e.target;
-      if(cycleClient.dataset.cycleClientStatus){
+      if(cycleClient.dataset?.cycleClientStatus){
         e.preventDefault(); e.stopPropagation();
         changeClientStatus(cycleClient.dataset.cycleClientStatus);
         return;
