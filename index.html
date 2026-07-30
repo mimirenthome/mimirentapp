@@ -916,10 +916,23 @@ function bindEvents(){
   document.getElementById('overlay').addEventListener('click',closeSheet);
   document.getElementById('bsheet').addEventListener('click',e=>{const item=e.target.closest('[data-action]');if(!item)return;closeSheet();handleAction(item.dataset.action,item.dataset);});
   document.addEventListener('click',e=>{
-    const quickStatus=e.target.closest('[data-quick-status]');
-    if(quickStatus){ e.preventDefault(); e.stopPropagation(); const tourId=quickStatus.dataset.quickStatus; changeQuickStatus(tourId); return; }
-    const cycleClient=e.target.closest('[data-cycle-client-status]');
-    if(cycleClient){ e.preventDefault(); e.stopPropagation(); const clientId=cycleClient.dataset.cycleClientStatus; changeClientStatus(clientId); return; }
+    // Check status tag clicks FIRST and most specifically
+    if(e.target.matches('[data-quick-status]') || (e.target.closest && e.target.closest('[data-quick-status]'))){
+      const quickStatus=e.target.closest('[data-quick-status]')||e.target;
+      if(quickStatus.dataset.quickStatus){
+        e.preventDefault(); e.stopPropagation();
+        changeQuickStatus(quickStatus.dataset.quickStatus);
+        return;
+      }
+    }
+    if(e.target.matches('[data-cycle-client-status]') || (e.target.closest && e.target.closest('[data-cycle-client-status]'))){
+      const cycleClient=e.target.closest('[data-cycle-client-status]')||e.target;
+      if(cycleClient.dataset.cycleClientStatus){
+        e.preventDefault(); e.stopPropagation();
+        changeClientStatus(cycleClient.dataset.cycleClientStatus);
+        return;
+      }
+    }
     const openClient=e.target.closest('[data-open-client]');
     if(openClient){ openClientDetail(Number(openClient.dataset.openClient)); return; }
     const el=e.target.closest('[data-action]');
