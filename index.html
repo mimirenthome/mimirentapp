@@ -910,12 +910,15 @@ document.getElementById('t-date').value = todayStr();
   },500);
 }
 
+let globalClickListenerBound=false;
 function bindEvents(){
   document.getElementById('bnav').addEventListener('click',e=>{const ni=e.target.closest('.ni');if(ni)switchPage(ni.dataset.page);});
   document.getElementById('fab').addEventListener('click',toggleSheet);
   document.getElementById('overlay').addEventListener('click',closeSheet);
   document.getElementById('bsheet').addEventListener('click',e=>{const item=e.target.closest('[data-action]');if(!item)return;closeSheet();handleAction(item.dataset.action,item.dataset);});
-  document.addEventListener('click',e=>{
+  if(!globalClickListenerBound){
+    globalClickListenerBound=true;
+    document.addEventListener('click',e=>{
     // Check status tag clicks FIRST and most specifically
     if(e.target.matches('[data-quick-status]')||e.target.closest?.('[data-quick-status]')){
       const quickStatus=e.target.closest('[data-quick-status]')||e.target;
@@ -954,6 +957,7 @@ function bindEvents(){
     const cReminder=e.target.closest('[data-copy-reminder]');
     if(cReminder){ copyReminder(); return; }
   });
+  }
   document.getElementById('btn-notif').addEventListener('click',()=>{fillNotifForm();openModal('modal-notif');});
   document.getElementById('btn-setting').addEventListener('click',()=>{const auth=loadAuth();document.getElementById('setting-username').value=auth.username;fillSettingsForm();openModal('modal-setting');});;
   document.querySelectorAll('.modal-wrap').forEach(wrap=>{wrap.addEventListener('click',e=>{if(e.target===wrap)closeModal(wrap.id);});});
