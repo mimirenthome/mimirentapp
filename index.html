@@ -88,9 +88,10 @@ input[type="date"].fi,input[type="time"].fi{width:100%;box-sizing:border-box;}
 .ts-待確認{background:#FEF3E8;color:#C96F5A;}
 .ts-已確認{background:#DDE4EC;color:#4A6580;}
 .ts-已完成{background:#E5F2E5;color:#4A8A4A;}
+.ts-已下定{background:#C8E6C8;color:#2E6B2E;}
+.ts-已成交{background:#B8D5B8;color:#1A5A1A;}
 .ts-取消{background:#EBEBEB;color:#888;}
 .ts-放鳥{background:#FFE5E5;color:#C03030;}
-.ts-已下定{background:#C8E6C8;color:#2E6B2E;}
 .tag{display:inline-block;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:600;}
 
 .tabs{display:flex;background:var(--bg);border-radius:14px;padding:4px;margin-bottom:22px;}
@@ -490,7 +491,7 @@ input[type="date"].fi,input[type="time"].fi{width:100%;box-sizing:border-box;}
     <div class="fg"><label class="fl">物件地址</label><input class="fi" id="t-addr" placeholder="台中市西屯區…" type="text"></div>
     <div class="fg"><label class="fl">日期</label><input class="fi" id="t-date" type="date"></div>
     <div class="fg"><label class="fl">時間</label><input class="fi" id="t-time" type="time"></div>
-    <div class="fg"><label class="fl">確認狀態</label><select class="fsel" id="t-status"><option>待確認</option><option>已確認</option><option>已完成</option><option>取消</option><option>放鳥</option><option>已下定</option></select></div>
+    <div class="fg"><label class="fl">確認狀態</label><select class="fsel" id="t-status"><option>待確認</option><option>已確認</option><option>已完成</option><option>已下定</option><option>已成交</option><option>取消</option><option>放鳥</option></select></div>
     <div class="fg"><label class="fl">備註</label><textarea class="fta" id="t-note" style="min-height:70px" placeholder="停車資訊、鑰匙取得…"></textarea></div>
     <button class="btnp" id="btn-save-tour">儲存帶看</button>
     <button class="btno" id="btn-close-tour">取消</button>
@@ -1397,10 +1398,11 @@ function changeQuickStatus(tourId){
   const statusNextMap={
     '待確認':'已確認',
     '已確認':'已完成',
-    '已完成':'取消',
+    '已完成':'已下定',
+    '已下定':'已成交',
+    '已成交':'取消',
     '取消':'放鳥',
-    '放鳥':'已下定',
-    '已下定':'待確認'
+    '放鳥':'待確認'
   };
 
   const t=DB.tours.find(x=>String(x.id)===String(tourId));
