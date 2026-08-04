@@ -919,33 +919,18 @@ function bindEvents(){
   document.getElementById('fab').addEventListener('click',toggleSheet);
   document.getElementById('overlay').addEventListener('click',closeSheet);
   document.getElementById('bsheet').addEventListener('click',e=>{const item=e.target.closest('[data-action]');if(!item)return;closeSheet();handleAction(item.dataset.action,item.dataset);});
-  // Add status tag click handlers (only once)
-  if(!globalClickListenerBound){
-    globalClickListenerBound=true;
-    document.addEventListener('click',e=>{
-    let target=e.target;
-    // Handle text nodes inside clickable elements
-    if(target.nodeType===3)target=target.parentElement;
-    // Check for quick status (tour) click
-    if(target.hasAttribute('data-quick-status')){
-      changeQuickStatus(target.dataset.quickStatus);
-      return;
-    }
-    const qs=target.closest('[data-quick-status]');
-    if(qs&&qs.dataset.quickStatus){
-      changeQuickStatus(qs.dataset.quickStatus);
-      return;
-    }
-    // Check for cycle client status click
-    if(target.hasAttribute('data-cycle-client-status')){
-      changeClientStatus(target.dataset.cycleClientStatus);
-      return;
-    }
-    const cc=target.closest('[data-cycle-client-status]');
-    if(cc&&cc.dataset.cycleClientStatus){
-      changeClientStatus(cc.dataset.cycleClientStatus);
-      return;
-    }
+  // Add status tag click handlers with event delegation
+  document.addEventListener('click',e=>{
+    let t=e.target;
+    if(t.nodeType===3)t=t.parentElement;
+    // Tour status
+    if(t.dataset.quickStatus){changeQuickStatus(t.dataset.quickStatus);return;}
+    const qs=t.closest('[data-quick-status]');
+    if(qs){changeQuickStatus(qs.dataset.quickStatus);return;}
+    // Client status
+    if(t.dataset.cycleClientStatus){changeClientStatus(t.dataset.cycleClientStatus);return;}
+    const cc=t.closest('[data-cycle-client-status]');
+    if(cc){changeClientStatus(cc.dataset.cycleClientStatus);return;}
     const openClient=e.target.closest('[data-open-client]');
     if(openClient){ openClientDetail(Number(openClient.dataset.openClient)); return; }
     const el=e.target.closest('[data-action]');
