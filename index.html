@@ -7,7 +7,8 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Mimi Rent">
 <meta name="theme-color" content="#F8F4EF">
-<link rel="apple-touch-icon" sizes="180x180" href="data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Crect fill='%23DCC8B4' width='180' height='180'/%3E%3Ctext x='90' y='100' font-size='100' font-weight='bold' fill='%23FFF' text-anchor='middle' dominant-baseline='central'%3EM%3C/text%3E%3C/svg%3E">
+<link rel="apple-touch-icon" sizes="180x180" href="logo.png?v=20260813">
+<link rel="mask-icon" href="logo.png?v=20260813" color="#DCC8B4">
 <title>Mimi Rent</title>
 <style>
 :root{
@@ -355,6 +356,7 @@ input[type="date"].fi,input[type="time"].fi{width:100%;box-sizing:border-box;}
       <div class="mi" id="more-phrase"><div class="mico" style="background:#EEE8FF"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#7C5CBF" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div><div style="flex:1"><div class="mlbl">常用話術</div><div class="msub">帶看提醒・催定金・跟進</div></div><svg class="chev" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9A8880" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></div>
       <div class="mi" id="btn-export"><div class="mico" style="background:#DDE4EC"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#4A6580" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></div><div style="flex:1"><div class="mlbl">匯出資料</div><div class="msub">下載 JSON 備份檔</div></div><svg class="chev" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9A8880" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></div>
       <div class="mi" id="btn-import"><div class="mico" style="background:#EEF5EE"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#4A8A4A" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></div><div style="flex:1"><div class="mlbl">匯入資料</div><div class="msub">從 JSON 備份檔還原</div></div><svg class="chev" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9A8880" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></div>
+      <div class="mi" id="btn-home-data-maintenance"><div class="mico" style="background:#F5E8D8"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#C4A98A" stroke-width="2"><path d="M12 2L2 7v10c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-10-5z"/><path d="M8 12h8M12 8v8"/></svg></div><div style="flex:1"><div class="mlbl">資料維護</div><div class="msub">備份・清理・同步</div></div><svg class="chev" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9A8880" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></div>
       <input type="file" id="import-input" accept=".json" style="display:none">
     </div>
     <div class="sect">設定</div>
@@ -626,7 +628,6 @@ input[type="date"].fi,input[type="time"].fi{width:100%;box-sizing:border-box;}
     <div class="fg"><label class="fl">確認新密碼</label><input class="fi" id="setting-password2" type="password" placeholder="再輸入一次新密碼"></div>
     <button class="btnp" id="btn-save-setting">儲存設定</button>
     <div style="height:1px;background:var(--border);margin:16px 0 14px"></div>
-    <button class="btno" id="btn-open-data-maintenance" style="width:100%;margin-bottom:8px">📊 資料維護</button>
     <button class="btno" id="btn-logout" style="width:100%;margin-bottom:8px;color:var(--alert)">登出</button>
     <button class="btno" id="btn-close-setting">關閉</button>
   </div>
@@ -1439,6 +1440,7 @@ function bindEvents(){
   document.getElementById('import-input').addEventListener('change',function(){importData(this);});
   document.getElementById('btn-import-clients').addEventListener('click',function(){document.getElementById('import-csv-input').click();});
   document.getElementById('import-csv-input').addEventListener('change',function(){importClientsFromCSV(this);});
+  document.getElementById('btn-home-data-maintenance').addEventListener('click',()=>{openModal('modal-data-maintenance');});
   document.getElementById('btn-save-now').addEventListener('click',manualSaveNow);
 
   // Google Drive 認證按鈕
@@ -2380,7 +2382,7 @@ function renderHome(){
   const analyzeSource=(list)=>{if(list.length===0)return[];const sources={};list.forEach(c=>{const s=c.source||'其他';sources[s]=(sources[s]||0)+1;});return Object.entries(sources).sort((a,b)=>b[1]-a[1]).map(([src,cnt])=>({src,cnt,pct:(cnt/list.length*100).toFixed(1)}));};
   const allAnalysis=analyzeSource(allClients);const monthAnalysis=monthClients.length>0?analyzeSource(monthClients):allAnalysis;
   const setIfExists=(id,val)=>{const el=document.getElementById(id);if(el)el.textContent=val;};const setIfExistsHTML=(id,html)=>{const el=document.getElementById(id);if(el)el.innerHTML=html;};
-  setIfExists('h-closed',DB.clients.filter(c=>c.status==='已成交').length);
+  setIfExists('h-closed',monthClients.filter(c=>c.status==='已成交').length);
   setIfExists('h-tours',monthTours.length);
   setIfExists('h-distance',monthTours.length>0?(monthDist/1000).toFixed(1):'—');
   setIfExists('h-avg-tours',avgTours.toFixed(1));
