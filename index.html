@@ -262,7 +262,6 @@ input[type="date"].fi,input[type="time"].fi{width:100%;box-sizing:border-box;}
       <div class="sc"><div class="n" id="h-tours" style="color:var(--primary-dark)">0</div><div class="l">本月帶看數</div></div>
       <div class="sc"><div class="n" id="h-avg-tours">—</div><div class="l">平均帶看 / 日</div></div>
       <div class="sc"><div class="n" id="h-overdue" style="color:var(--alert)">0</div><div class="l">逾期待辦</div></div>
-      <div class="sc"><div class="n" id="h-track" style="color:var(--success)">0</div><div class="l">進行中客戶</div></div>
     </div>
     <div id="next-tour"></div>
     <div class="sect">今日帶看</div>
@@ -647,16 +646,12 @@ input[type="date"].fi,input[type="time"].fi{width:100%;box-sizing:border-box;}
     <button class="btnp" id="btn-save-now" style="width:100%;margin-bottom:8px">💾 立即保存（確保本機儲存）</button>
     <div id="save-status" style="font-size:12px;color:var(--success);text-align:center;margin-bottom:12px;min-height:20px"></div>
 
-    <div style="font-size:13px;font-weight:700;color:var(--sub);letter-spacing:.5px;margin-bottom:14px">📥📤 匯入/匯出</div>
-    <button class="btno" id="btn-import-clients" style="width:100%;margin-bottom:8px">📥 匯入客戶 (CSV)</button>
+    <div style="font-size:13px;font-weight:700;color:var(--sub);letter-spacing:.5px;margin-bottom:14px">📥 匯入</div>
+    <button class="btno" id="btn-import-clients" style="width:100%;margin-bottom:12px">📥 匯入客戶 (CSV)</button>
     <input type="file" id="import-csv-input" accept=".csv" style="display:none">
-    <button class="btno" id="btn-export" style="width:100%;margin-bottom:12px">📤 匯出資料 (JSON)</button>
-
-    <div style="font-size:13px;font-weight:700;color:var(--sub);letter-spacing:.5px;margin-bottom:14px">🧹 清理工具</div>
-    <button class="btno" id="btn-auto-clean-duplicates" style="width:100%;margin-bottom:8px">🧹 自動清理重複客戶</button>
 
     <div style="height:1px;background:var(--border);margin:16px 0 14px"></div>
-    <button class="btno" id="btn-close-data-maintenance">關閉</button>
+    <button class="btno" id="btn-close-data-maintenance" onclick="closeModal('modal-data-maintenance')">關閉</button>
   </div>
 </div>
 
@@ -1497,8 +1492,8 @@ window.initGoogleMaps=function(){
   if(document.getElementById('page-map').classList.contains('active'))initMap(list);
 };
 
-function openModal(id){const m=document.getElementById(id);if(m)m.classList.add('show');}
-function closeModal(id){const m=document.getElementById(id);if(m)m.classList.remove('show');}
+function openModal(id){const m=document.getElementById(id);if(m){m.classList.add('show');m.style.display='';}const o=document.querySelector('.overlay');if(o)o.classList.add('show');}
+function closeModal(id){const m=document.getElementById(id);if(m){m.classList.remove('show');m.style.display='';}const o=document.querySelector('.overlay');if(o)o.classList.remove('show');}
 
 function toggleSheet(){const open=document.getElementById('bsheet').classList.toggle('show');document.getElementById('overlay').classList.toggle('show',open);document.getElementById('fab').classList.toggle('open',open);}
 function closeSheet(){document.getElementById('bsheet').classList.remove('show');document.getElementById('overlay').classList.remove('show');document.getElementById('fab').classList.remove('open');}
@@ -2382,12 +2377,11 @@ function renderHome(){
   const analyzeSource=(list)=>{if(list.length===0)return[];const sources={};list.forEach(c=>{const s=c.source||'其他';sources[s]=(sources[s]||0)+1;});return Object.entries(sources).sort((a,b)=>b[1]-a[1]).map(([src,cnt])=>({src,cnt,pct:(cnt/list.length*100).toFixed(1)}));};
   const allAnalysis=analyzeSource(allClients);const monthAnalysis=monthClients.length>0?analyzeSource(monthClients):allAnalysis;
   const setIfExists=(id,val)=>{const el=document.getElementById(id);if(el)el.textContent=val;};const setIfExistsHTML=(id,html)=>{const el=document.getElementById(id);if(el)el.innerHTML=html;};
-  setIfExists('h-closed',monthClients.filter(c=>c.status==='已成交').length);
+  setIfExists('h-closed',monthTours.filter(t=>t.status==='已成交').length);
   setIfExists('h-tours',monthTours.length);
   setIfExists('h-distance',monthTours.length>0?(monthDist/1000).toFixed(1):'—');
   setIfExists('h-avg-tours',avgTours.toFixed(1));
   setIfExists('h-overdue',overdue.length);
-  setIfExists('h-track',DB.clients.filter(c=>['新客戶','已約看','已帶看','考慮中'].includes(c.status)).length);
   if(todayActiveTours.length){const todayDist=todayActiveTours.reduce((sum,t)=>(sum+(t.distance||0)),0);setIfExists('h-dist',(todayDist/1000).toFixed(1));setIfExists('h-time',todayActiveTours.length*15);setIfExists('h-stops',todayActiveTours.length);}else{setIfExists('h-dist','—');setIfExists('h-time','—');setIfExists('h-stops','0');}
   if(nextTour){
     const tourTime=(nextTour.time||'').padStart(5,'0');const [th,tm]=tourTime.split(':').map(Number);const tourMs=th*3600000+tm*60000;const nowMs=now.getHours()*3600000+now.getMinutes()*60000;const diffMs=tourMs-nowMs;const diffMins=Math.floor(diffMs/60000);const diffHours=Math.floor(diffMins/60);const mins=diffMins%60;
