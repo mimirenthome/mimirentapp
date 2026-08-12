@@ -627,23 +627,37 @@ input[type="date"].fi,input[type="time"].fi{width:100%;box-sizing:border-box;}
     <div class="fg"><label class="fl">新密碼</label><input class="fi" id="setting-password" type="password" placeholder="輸入新密碼（不改請留空）"></div>
     <div class="fg"><label class="fl">確認新密碼</label><input class="fi" id="setting-password2" type="password" placeholder="再輸入一次新密碼"></div>
     <button class="btnp" id="btn-save-setting">儲存設定</button>
+    <div style="height:1px;background:var(--border);margin:16px 0 14px"></div>
+    <button class="btno" id="btn-open-data-maintenance" style="width:100%;margin-bottom:8px">📊 資料維護</button>
+    <button class="btno" id="btn-logout" style="width:100%;margin-bottom:8px;color:var(--alert)">登出</button>
     <button class="btno" id="btn-close-setting">關閉</button>
-    <div style="height:1px;background:var(--border);margin:16px 0 14px"></div>
-    <div style="font-size:13px;font-weight:700;color:var(--sub);letter-spacing:.5px;margin-bottom:14px">Google Drive 同步</div>
-    <button class="btnp" id="btn-google-auth" style="width:100%;margin-bottom:8px">🔐 授權 Google Drive</button>
-    <div id="google-auth-status" style="font-size:12px;color:var(--sub);text-align:center;margin-bottom:8px;min-height:20px"></div>
+  </div>
+</div>
 
-    <div style="height:1px;background:var(--border);margin:16px 0 14px"></div>
-    <div style="font-size:13px;font-weight:700;color:var(--sub);letter-spacing:.5px;margin-bottom:14px">匯入/匯出</div>
+<!-- MODAL: DATA MAINTENANCE -->
+<div class="modal-wrap" id="modal-data-maintenance">
+  <div class="modal-box">
+    <div class="mhandle"></div>
+    <div class="mtitle">資料維護</div>
+
+    <div style="font-size:13px;font-weight:700;color:var(--sub);letter-spacing:.5px;margin-bottom:14px">☁️ Google Drive 雲端備份</div>
+    <button class="btnp" id="btn-google-auth" style="width:100%;margin-bottom:8px">🔐 授權 Google Drive</button>
+    <div id="google-auth-status" style="font-size:12px;color:var(--sub);text-align:center;margin-bottom:12px;min-height:20px"></div>
+
+    <div style="font-size:13px;font-weight:700;color:var(--sub);letter-spacing:.5px;margin-bottom:14px">💾 本機儲存</div>
+    <button class="btnp" id="btn-save-now" style="width:100%;margin-bottom:8px">💾 立即保存（確保本機儲存）</button>
+    <div id="save-status" style="font-size:12px;color:var(--success);text-align:center;margin-bottom:12px;min-height:20px"></div>
+
+    <div style="font-size:13px;font-weight:700;color:var(--sub);letter-spacing:.5px;margin-bottom:14px">📥📤 匯入/匯出</div>
     <button class="btno" id="btn-import-clients" style="width:100%;margin-bottom:8px">📥 匯入客戶 (CSV)</button>
     <input type="file" id="import-csv-input" accept=".csv" style="display:none">
-    <div style="height:8px"></div>
-    <button class="btnp" id="btn-save-now" style="width:100%;margin-bottom:8px">💾 立即保存（確保本機儲存）</button>
-    <div id="save-status" style="font-size:12px;color:var(--success);text-align:center;margin-bottom:8px;min-height:20px"></div>
-    <div style="height:1px;background:var(--border);margin:16px 0 14px"></div>
-    <div style="font-size:13px;font-weight:700;color:var(--sub);letter-spacing:.5px;margin-bottom:14px">維護</div>
+    <button class="btno" id="btn-export" style="width:100%;margin-bottom:12px">📤 匯出資料 (JSON)</button>
+
+    <div style="font-size:13px;font-weight:700;color:var(--sub);letter-spacing:.5px;margin-bottom:14px">🧹 清理工具</div>
     <button class="btno" id="btn-auto-clean-duplicates" style="width:100%;margin-bottom:8px">🧹 自動清理重複客戶</button>
-    <button id="btn-logout" style="width:100%;background:none;border:none;color:var(--alert);font-size:14px;font-weight:600;cursor:pointer;padding:10px;font-family:inherit">登出</button>
+
+    <div style="height:1px;background:var(--border);margin:16px 0 14px"></div>
+    <button class="btno" id="btn-close-data-maintenance">關閉</button>
   </div>
 </div>
 
@@ -3102,6 +3116,13 @@ document.addEventListener('DOMContentLoaded',()=>{
   });
   document.getElementById('btn-logout').addEventListener('click',doLogout);
   document.getElementById('btn-close-setting').addEventListener('click',()=>closeModal('modal-setting'));
+
+  // 資料維護 modal
+  document.getElementById('btn-open-data-maintenance').addEventListener('click',()=>{
+    closeModal('modal-setting');
+    openModal('modal-data-maintenance');
+  });
+  document.getElementById('btn-close-data-maintenance').addEventListener('click',()=>closeModal('modal-data-maintenance'));
 
   // 自動清理重複客戶
   document.getElementById('btn-auto-clean-duplicates').addEventListener('click',autoCleanDuplicates);
