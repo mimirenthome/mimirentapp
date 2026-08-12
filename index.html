@@ -2692,30 +2692,64 @@ let googleDataFileId=null; // 存儲 JSON 檔案的 ID
 
 async function initGoogleDrive(){
   return new Promise((resolve)=>{
-    gapi.load('client:auth2',()=>{
-      gapi.client.init({
-        clientId:GOOGLE_CLIENT_ID,
-        scope:GOOGLE_SCOPE
-      }).then(()=>{
-        console.log('✓ Google Drive API 初始化成功');
-        updateGoogleAuthStatus();
-        resolve();
-      }).catch(e=>{
-        console.error('❌ Google Drive 初始化失敗:',e);
-        resolve();
-      });
-    });
+    // 等待 gapi 加載
+    const checkGapi=setInterval(()=>{
+      if(window.gapi&&window.gapi.load){
+        clearInterval(checkGapi);
+
+        gapi.load('client:auth2',()=>{
+          gapi.client.init({
+            clientId:GOOGLE_CLIENT_ID,
+            scope:GOOGLE_SCOPE,
+            discoveryDocs:[]
+          }).then(()=>{
+            console.log('✓ Google Drive API 初始化成功');
+            updateGoogleAuthStatus();
+            resolve();
+          }).catch(e=>{
+            console.error('❌ Google Drive 初始化失敗:',e);
+            resolve();
+          });
+        });
+      }
+    },100);
+
+    // 3 秒後還沒加載就超時
+    setTimeout(()=>{
+      clearInterval(checkGapi);
+      console.warn('⚠️ Google Drive API 加載超時');
+      resolve();
+    },3000);
   });
 }
 
 async function googleSignIn(){
   try{
+    if(!gapi||!gapi.auth2){
+      console.error('❌ Google API 未初始化');
+      toast('❌ Google API 未初始化，請重新整理頁面');
+      return;
+    }
+
     const auth2=gapi.auth2.getAuthInstance();
+    if(!auth2){
+      console.error('❌ Google Auth2 未初始化');
+      toast('❌ Google 認證未初始化');
+      return;
+    }
+
+    console.log('🔐 正在請求 Google 授權...');
     const user=await auth2.signIn();
-    const access_token=user.getAuthResponse().accessToken;
+    const authResponse=user.getAuthResponse();
+    const access_token=authResponse.accessToken;
+
+    if(!access_token){
+      throw new Error('沒有獲得 access token');
+    }
 
     localStorage.setItem('google_access_token',access_token);
     googleAuthToken=access_token;
+    console.log('✓ 已獲得 Google 認證 token');
 
     // 創建或獲取「客戶資料」資料夾
     await getOrCreateFolder();
@@ -2731,7 +2765,7 @@ async function googleSignIn(){
     console.log('✓ 已授權 Google Drive，數據已同步');
   }catch(e){
     console.error('❌ 授權失敗:',e);
-    toast('❌ 授權失敗');
+    toast('❌ 授權失敗：'+e.message);
   }
 }
 
