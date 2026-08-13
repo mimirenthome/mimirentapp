@@ -722,24 +722,35 @@ async function compressImage(dataUrl){
 async function savePhotoToIDB(photoId,dataUrl){
   return new Promise((resolve,reject)=>{
     try{
+      if(!IDB){console.error('IndexedDB not initialized');reject(new Error('IDB not ready'));return;}
       if(!dataUrl||dataUrl.length>3000000){console.warn('Photo still too large');reject(new Error('Photo too large'));return;}
       const tx=IDB.transaction('photos','readwrite');
       const store=tx.objectStore('photos');
       store.put({id:photoId,dataUrl});
-      tx.oncomplete=()=>resolve();
-      tx.onerror=()=>reject(tx.error);
-    }catch(e){reject(e);}
+      tx.oncomplete=()=>{console.log(`Photo ${photoId} saved to IDB`);resolve();};
+      tx.onerror=()=>{console.error(`Photo save error: ${tx.error}`);reject(tx.error);};
+    }catch(e){console.error('Photo save exception:',e);reject(e);}
   });
 }
 async function getPhotoFromIDB(photoId){
   return new Promise((resolve,reject)=>{
     try{
+      if(!IDB){console.warn(`Cannot load photo ${photoId}: IDB not initialized`);resolve(null);return;}
       const tx=IDB.transaction('photos','readonly');
       const store=tx.objectStore('photos');
       const req=store.get(photoId);
-      req.onsuccess=()=>resolve(req.result?.dataUrl||null);
-      req.onerror=()=>resolve(null);
-    }catch(e){resolve(null);}
+      req.onsuccess=()=>{
+        const photo=req.result;
+        if(photo?.dataUrl){
+          console.log(`Photo ${photoId} loaded from IDB (${(photo.dataUrl.length/1024).toFixed(0)}KB)`);
+          resolve(photo.dataUrl);
+        } else {
+          console.warn(`Photo ${photoId} not found in IDB`);
+          resolve(null);
+        }
+      };
+      req.onerror=()=>{console.error(`Photo load error for ${photoId}: ${tx.error}`);resolve(null);};
+    }catch(e){console.error(`Photo load exception for ${photoId}:`,e);resolve(null);}
   });
 }
 async function deletePhotoFromIDB(photoId){
@@ -1520,6 +1531,18 @@ async function saveClient(){
   const name=document.getElementById('c-name').value.trim();if(!name){showTab('t-basic');alert('請輸入姓名');return;}
   // ✅ 只存照片的 id 和 label，dataUrl 存在 IndexedDB，不放在 localStorage（防止容量爆滿）
   const photosList=uploadedPhotos.map(p=>({id:p.id,label:p.label}));
+
+  // ✅ 確保所有照片都被保存到 IndexedDB
+  for(const p of uploadedPhotos){
+    if(p.dataUrl){
+      try{
+        await savePhotoToIDB(p.id,p.dataUrl);
+      }catch(err){
+        console.error(`Failed to save photo ${p.id} to IDB:`,err);
+      }
+    }
+  }
+
   const viewTimeVal=document.getElementById('s-viewTime').value;const viewTimeStr=viewTimeVal.replace('T',' ');
   const amountStr=document.getElementById('c-amount').value.replace(/,/g,'').trim();const amount=amountStr?parseInt(amountStr):null;
   const client={id:editingClientId||Date.now(),name,phone:document.getElementById('c-phone').value,job:document.getElementById('c-job').value,source:selectedSource||'官網',status:selectedLabel,avatar:name[0],note:document.getElementById('c-note').value,created_at:document.getElementById('c-created-at').value||new Date().toISOString().split('T')[0],amount,survey:{budget:document.getElementById('s-budget').value,area:document.getElementById('s-area').value,addr:document.getElementById('s-addr').value,size:document.getElementById('s-size').value,types:[...selectedTypes],conds:document.getElementById('s-conds').value,movein:document.getElementById('s-movein').value,viewTime:viewTimeStr,raw:document.getElementById('s-raw').value},photos:photosList};
@@ -1529,7 +1552,7 @@ async function saveClient(){
 
   // ✅ 上傳照片到 Google Drive
   if(googleAuthToken&&googleFolderId&&client.photos&&client.photos.length>0){
-    for(const photo of client.photos){
+    for(const photo of uploadedPhotos){
       if(photo.dataUrl){
         uploadPhotoToGoogleDrive(photo.id,photo.dataUrl,client.name);
       }
@@ -1938,7 +1961,12 @@ async function openClientDetail(id){
       const img=document.querySelector(`[data-preview-idx="${i}"]`);
       if(img){
         const dataUrl=p.dataUrl||(await getPhotoFromIDB(p.id));
-        if(dataUrl){img.querySelector('img').src=dataUrl;img.dataset.fullUrl=dataUrl;}
+        if(dataUrl){
+          img.querySelector('img').src=dataUrl;
+          img.dataset.fullUrl=dataUrl;
+        } else {
+          console.warn(`Photo ${p.id} not found in IndexedDB`);
+        }
       }
     }
   }
@@ -3110,16 +3138,6 @@ document.addEventListener('DOMContentLoaded',()=>{
   });
   document.getElementById('btn-logout').addEventListener('click',doLogout);
   document.getElementById('btn-close-setting').addEventListener('click',()=>closeModal('modal-setting'));
-
-  // 資料維護 modal
-  document.getElementById('btn-open-data-maintenance').addEventListener('click',()=>{
-    closeModal('modal-setting');
-    openModal('modal-data-maintenance');
-  });
-  document.getElementById('btn-close-data-maintenance').addEventListener('click',()=>closeModal('modal-data-maintenance'));
-
-  // 自動清理重複客戶
-  document.getElementById('btn-auto-clean-duplicates').addEventListener('click',autoCleanDuplicates);
 });
 </script>
 
