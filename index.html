@@ -2753,9 +2753,9 @@ async function initGoogleDrive(){
 
     setTimeout(()=>{
       clearInterval(checkGapi);
-      console.warn('⚠️ Google API 加載超時（5秒）');
+      console.warn('⚠️ Google API 加載超時（15秒）');
       resolve();
-    },5000);
+    },15000);
   });
 }
 
@@ -2763,21 +2763,35 @@ async function googleSignIn(){
   try{
     console.log('🔐 正在請求 Google 授權...');
 
+    // 等待 gapi 加載（增加重試）
+    let retries=0;
+    while((!window.gapi||!window.gapi.auth2)&&retries<5){
+      console.log(`等待 Google API 加載... (嘗試 ${retries+1}/5)`);
+      await new Promise(resolve=>setTimeout(resolve,2000));
+      retries++;
+    }
+
     if(!window.gapi||!window.gapi.auth2){
-      // 等待 gapi 加載
-      await new Promise(resolve=>setTimeout(resolve,1000));
-      if(!window.gapi||!window.gapi.auth2){
-        throw new Error('Google API 未能加載');
-      }
+      throw new Error('Google API 加載失敗，請重試');
     }
 
     const auth2=gapi.auth2.getAuthInstance();
     if(!auth2){
-      throw new Error('Google Auth2 未初始化');
+      console.log('Google Auth2 未初始化，重新初始化中...');
+      await new Promise((resolve,reject)=>{
+        gapi.load('auth2',()=>{
+          gapi.auth2.init({
+            clientId:GOOGLE_CLIENT_ID,
+            scope:GOOGLE_SCOPE,
+            cookie_policy:'single_host_origin'
+          }).then(resolve).catch(reject);
+        });
+      });
     }
 
     // 請求登入
-    const user=await auth2.signIn({scope:GOOGLE_SCOPE});
+    const auth2Instance=gapi.auth2.getAuthInstance();
+    const user=await auth2Instance.signIn({scope:GOOGLE_SCOPE});
     const authResponse=user.getAuthResponse(true);
     const access_token=authResponse.id_token||authResponse.accessToken;
 
