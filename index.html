@@ -731,27 +731,60 @@ async function compressImage(dataUrl){
 async function savePhotoToIDB(photoId,dataUrl){
   return new Promise((resolve,reject)=>{
     try{
-      if(!IDB){console.error('IndexedDB not initialized');reject(new Error('IDB not ready'));return;}
       if(!dataUrl||dataUrl.length>3000000){console.warn('Photo still too large');reject(new Error('Photo too large'));return;}
-      const tx=IDB.transaction('photos','readwrite');
-      const store=tx.objectStore('photos');
-      store.put({id:photoId,dataUrl});
-      tx.oncomplete=()=>{console.log(`Photo ${photoId} saved to IDB`);resolve();};
-      tx.onerror=()=>{console.error(`Photo save error: ${tx.error}`);reject(tx.error);};
+
+      // 優先使用 IndexedDB
+      if(IDB){
+        const tx=IDB.transaction('photos','readwrite');
+        const store=tx.objectStore('photos');
+        store.put({id:photoId,dataUrl});
+        tx.oncomplete=()=>{console.log(`✅ Photo ${photoId} saved to IDB`);resolve();};
+        tx.onerror=()=>{
+          console.warn(`IDB save failed, using localStorage backup`);
+          // 回退到 localStorage
+          try{
+            localStorage.setItem(`photo_${photoId}`,dataUrl);
+            console.log(`✅ Photo ${photoId} saved to localStorage backup`);
+            resolve();
+          }catch(e){
+            console.error(`All save methods failed:`,e);
+            reject(e);
+          }
+        };
+      }else{
+        // IDB 未初始化，使用 localStorage
+        try{
+          localStorage.setItem(`photo_${photoId}`,dataUrl);
+          console.log(`⚠️ Photo ${photoId} saved to localStorage (IDB not available)`);
+          resolve();
+        }catch(e){
+          console.error(`Photo save failed:`,e);
+          reject(e);
+        }
+      }
     }catch(e){console.error('Photo save exception:',e);reject(e);}
   });
 }
 async function getPhotoFromIDB(photoId){
-  return new Promise((resolve,reject)=>{
+  return new Promise((resolve)=>{
     try{
-      if(!IDB){console.warn(`Cannot load photo ${photoId}: IDB not initialized`);resolve(null);return;}
+      // 優先從 localStorage 讀取
+      const localStoragePhoto=localStorage.getItem(`photo_${photoId}`);
+      if(localStoragePhoto){
+        console.log(`✅ Photo ${photoId} loaded from localStorage (${(localStoragePhoto.length/1024).toFixed(0)}KB)`);
+        resolve(localStoragePhoto);
+        return;
+      }
+
+      // 然後嘗試從 IndexedDB 讀取
+      if(!IDB){console.warn(`Photo ${photoId} not found anywhere`);resolve(null);return;}
       const tx=IDB.transaction('photos','readonly');
       const store=tx.objectStore('photos');
       const req=store.get(photoId);
       req.onsuccess=()=>{
         const photo=req.result;
         if(photo?.dataUrl){
-          console.log(`Photo ${photoId} loaded from IDB (${(photo.dataUrl.length/1024).toFixed(0)}KB)`);
+          console.log(`✅ Photo ${photoId} loaded from IDB (${(photo.dataUrl.length/1024).toFixed(0)}KB)`);
           resolve(photo.dataUrl);
         } else {
           console.warn(`Photo ${photoId} not found in IDB`);
