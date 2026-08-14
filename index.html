@@ -1670,8 +1670,20 @@ function editClient(id){
   document.querySelectorAll('#label-grid .lopt').forEach(el=>el.classList.toggle('on',el.dataset.label===c.status));
   const s=c.survey||{};document.getElementById('s-budget').value=s.budget||'';document.getElementById('s-area').value=s.area||'';document.getElementById('s-addr').value=s.addr||'';document.getElementById('s-size').value=s.size||'';document.getElementById('s-conds').value=s.conds||'';document.getElementById('s-movein').value=s.movein||'';if(s.viewTime)document.getElementById('s-viewTime').value=s.viewTime.replace(' ','T');document.getElementById('s-raw').value=s.raw||'';
   selectedTypes=[...(s.types||[])];document.querySelectorAll('#type-grid .chip').forEach(el=>el.classList.toggle('on',selectedTypes.includes(el.dataset.type)));
-  // ✅ 只從 DB 讀 id 和 label，dataUrl 會在需要時從 IndexedDB 讀取
-  uploadedPhotos=(c.photos||[]).map(p=>({id:p.id,label:p.label}));renderPhotoGrid();showTab('t-basic');
+  // ✅ 從 DB 讀 id 和 label，並嘗試恢復 dataUrl
+  uploadedPhotos=(c.photos||[]).map(p=>({id:p.id,label:p.label}));
+
+  // 異步恢復舊照片的 dataUrl
+  for(let i=0;i<uploadedPhotos.length;i++){
+    const p=uploadedPhotos[i];
+    const dataUrl=await getPhotoFromIDB(p.id);
+    if(dataUrl){
+      uploadedPhotos[i].dataUrl=dataUrl;
+      console.log(`✅ Restored photo ${p.id} dataUrl from storage`);
+    }
+  }
+
+  renderPhotoGrid();showTab('t-basic');
   document.getElementById('btn-save-client').textContent='✓ 更新客戶';openModal('modal-client');
 }
 async function deleteClient(id){
@@ -2050,12 +2062,14 @@ async function openClientDetail(id){
       const p=c.photos[i];
       const img=document.querySelector(`[data-preview-idx="${i}"]`);
       if(img){
+        console.log(`Loading photo ${i}: id=${p.id}, has dataUrl=${!!p.dataUrl}`);
         const dataUrl=p.dataUrl||(await getPhotoFromIDB(p.id));
         if(dataUrl){
+          console.log(`✅ Photo ${p.id} loaded successfully`);
           img.querySelector('img').src=dataUrl;
           img.dataset.fullUrl=dataUrl;
         } else {
-          console.warn(`Photo ${p.id} not found in IndexedDB`);
+          console.warn(`⚠️ Photo ${p.id} not found`);
         }
       }
     }
