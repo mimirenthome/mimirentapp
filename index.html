@@ -728,23 +728,120 @@ async function compressImage(dataUrl){
   });
 }
 
+async function uploadPhotoToSupabase(photoId,dataUrl){
+  try{
+    if(!dataUrl||dataUrl.length>3000000){
+      console.warn('❌ Photo too large for upload');
+      return null;
+    }
+
+    // 將 data URL 轉換為 blob
+    const arr=dataUrl.split(',');
+    const mime=arr[0].match(/:(.*?);/)[1];
+    const bstr=atob(arr[1]);
+    const n=bstr.length;
+    const u8arr=new Uint8Array(n);
+    for(let i=0;i<n;i++)u8arr[i]=bstr.charCodeAt(i);
+    const blob=new Blob([u8arr],{type:mime});
+
+    // 生成檔案路徑：{客戶ID}/{時間戳}-{序號}.jpg
+    const timestamp=new Date().getTime();
+    const clientId=photoId.split('-')[0];
+    const filePath=`${clientId}/${timestamp}-${Math.random().toString(36).substr(2,9)}.jpg`;
+
+    // 上傳到 Supabase Storage
+    const uploadRes=await fetch(
+      `${SB_URL}/storage/v1/object/property-images/${filePath}`,
+      {
+        method:'POST',
+        headers:{
+          'apikey':SB_KEY,
+          'Authorization':`Bearer ${SB_KEY}`,
+        },
+        body:blob
+      }
+    );
+
+    if(!uploadRes.ok){
+      throw new Error(`Upload failed: ${uploadRes.status}`);
+    }
+
+    const uploadedFile=await uploadRes.json();
+    const publicUrl=`${SB_URL}/storage/v1/object/public/property-images/${filePath}`;
+    console.log(`✅ Photo ${photoId} uploaded to Supabase: ${filePath}`);
+    return {filePath,publicUrl};
+  }catch(e){
+    console.warn(`⚠️ Supabase upload failed, will use local backup:`,e);
+    return null;
+  }
+}
+
+async function getPhotoFromSupabase(photoId){
+  try{
+    const c=DB.clients.find(client=>client.photos?.some(p=>p.id===photoId));
+    if(!c)return null;
+
+    const photo=c.photos.find(p=>p.id===photoId);
+    if(!photo||!photo.sbPath)return null;
+
+    // 從 Supabase Storage 讀取
+    const url=`${SB_URL}/storage/v1/object/public/property-images/${photo.sbPath}`;
+    const res=await fetch(url);
+    if(!res.ok)throw new Error('Failed to fetch from Supabase');
+
+    const blob=await res.blob();
+    const reader=new FileReader();
+    return new Promise((resolve)=>{
+      reader.onload=(e)=>{
+        console.log(`✅ Photo ${photoId} loaded from Supabase`);
+        resolve(e.target.result);
+      };
+      reader.readAsDataURL(blob);
+    });
+  }catch(e){
+    console.warn(`⚠️ Supabase fetch failed for ${photoId}:`,e);
+    return null;
+  }
+}
+
 async function savePhotoToIDB(photoId,dataUrl){
-  return new Promise((resolve,reject)=>{
+  return new Promise(async(resolve,reject)=>{
     try{
       if(!dataUrl||dataUrl.length>3000000){console.warn('Photo still too large');reject(new Error('Photo too large'));return;}
 
-      // 優先使用 IndexedDB
+      // 步驟1：先上傳到 Supabase Storage
+      let sbResult=null;
+      try{
+        sbResult=await uploadPhotoToSupabase(photoId,dataUrl);
+        if(sbResult){
+          // 更新客戶記錄，儲存 Supabase 路徑
+          const c=DB.clients.find(cl=>cl.photos?.some(p=>p.id===photoId));
+          if(c){
+            const photo=c.photos.find(p=>p.id===photoId);
+            if(photo){
+              photo.sbPath=sbResult.filePath;
+              photo.sbUrl=sbResult.publicUrl;
+            }
+          }
+        }
+      }catch(e){
+        console.warn('Supabase upload skipped');
+      }
+
+      // 步驟2：本地備份（IndexedDB + localStorage）
       if(IDB){
         const tx=IDB.transaction('photos','readwrite');
         const store=tx.objectStore('photos');
-        store.put({id:photoId,dataUrl});
-        tx.oncomplete=()=>{console.log(`✅ Photo ${photoId} saved to IDB`);resolve();};
+        store.put({id:photoId,dataUrl,sbPath:sbResult?.filePath});
+        tx.oncomplete=()=>{
+          console.log(`✅ Photo ${photoId} backed up to IDB`);
+          resolve();
+        };
         tx.onerror=()=>{
           console.warn(`IDB save failed, using localStorage backup`);
-          // 回退到 localStorage
           try{
-            localStorage.setItem(`photo_${photoId}`,dataUrl);
-            console.log(`✅ Photo ${photoId} saved to localStorage backup`);
+            localStorage.setItem(`photo_${photoId}`,JSON.stringify({dataUrl,sbPath:sbResult?.filePath}));
+            console.log(`✅ Photo ${photoId} backed up to localStorage`);
             resolve();
           }catch(e){
             console.error(`All save methods failed:`,e);
@@ -752,10 +849,9 @@ async function savePhotoToIDB(photoId,dataUrl){
           }
         };
       }else{
-        // IDB 未初始化，使用 localStorage
         try{
-          localStorage.setItem(`photo_${photoId}`,dataUrl);
-          console.log(`⚠️ Photo ${photoId} saved to localStorage (IDB not available)`);
+          localStorage.setItem(`photo_${photoId}`,JSON.stringify({dataUrl,sbPath:sbResult?.filePath}));
+          console.log(`⚠️ Photo ${photoId} backed up to localStorage`);
           resolve();
         }catch(e){
           console.error(`Photo save failed:`,e);
@@ -766,17 +862,32 @@ async function savePhotoToIDB(photoId,dataUrl){
   });
 }
 async function getPhotoFromIDB(photoId){
-  return new Promise((resolve)=>{
+  return new Promise(async(resolve)=>{
     try{
-      // 優先從 localStorage 讀取
-      const localStoragePhoto=localStorage.getItem(`photo_${photoId}`);
-      if(localStoragePhoto){
-        console.log(`✅ Photo ${photoId} loaded from localStorage (${(localStoragePhoto.length/1024).toFixed(0)}KB)`);
-        resolve(localStoragePhoto);
+      // 優先從 Supabase 讀取
+      const sbPhoto=await getPhotoFromSupabase(photoId);
+      if(sbPhoto){
+        resolve(sbPhoto);
         return;
       }
 
-      // 然後嘗試從 IndexedDB 讀取
+      // 回退：從 localStorage 讀取
+      const localStoragePhoto=localStorage.getItem(`photo_${photoId}`);
+      if(localStoragePhoto){
+        try{
+          const parsed=JSON.parse(localStoragePhoto);
+          console.log(`✅ Photo ${photoId} loaded from localStorage backup (${(parsed.dataUrl.length/1024).toFixed(0)}KB)`);
+          resolve(parsed.dataUrl);
+          return;
+        }catch(e){
+          // 舊格式直接是 dataUrl
+          console.log(`✅ Photo ${photoId} loaded from localStorage (${(localStoragePhoto.length/1024).toFixed(0)}KB)`);
+          resolve(localStoragePhoto);
+          return;
+        }
+      }
+
+      // 回退：從 IndexedDB 讀取
       if(!IDB){console.warn(`Photo ${photoId} not found anywhere`);resolve(null);return;}
       const tx=IDB.transaction('photos','readonly');
       const store=tx.objectStore('photos');
@@ -784,10 +895,10 @@ async function getPhotoFromIDB(photoId){
       req.onsuccess=()=>{
         const photo=req.result;
         if(photo?.dataUrl){
-          console.log(`✅ Photo ${photoId} loaded from IDB (${(photo.dataUrl.length/1024).toFixed(0)}KB)`);
+          console.log(`✅ Photo ${photoId} loaded from IDB backup (${(photo.dataUrl.length/1024).toFixed(0)}KB)`);
           resolve(photo.dataUrl);
         } else {
-          console.warn(`Photo ${photoId} not found in IDB`);
+          console.warn(`Photo ${photoId} not found in any storage`);
           resolve(null);
         }
       };
@@ -1619,19 +1730,24 @@ function renderCPickList(q){
 
 async function saveClient(){
   const name=document.getElementById('c-name').value.trim();if(!name){showTab('t-basic');alert('請輸入姓名');return;}
-  // ✅ 只存照片的 id 和 label，dataUrl 存在 IndexedDB，不放在 localStorage（防止容量爆滿）
-  const photosList=uploadedPhotos.map(p=>({id:p.id,label:p.label}));
-
-  // ✅ 確保所有照片都被保存到 IndexedDB
+  // ✅ 確保所有照片都被保存到 Supabase Storage + 本地備份
   for(const p of uploadedPhotos){
     if(p.dataUrl){
       try{
         await savePhotoToIDB(p.id,p.dataUrl);
       }catch(err){
-        console.error(`Failed to save photo ${p.id} to IDB:`,err);
+        console.error(`Failed to save photo ${p.id}:`,err);
       }
     }
   }
+
+  // ✅ 保存照片的 id、label 和 Supabase 路徑
+  const photosList=uploadedPhotos.map(p=>({
+    id:p.id,
+    label:p.label,
+    sbPath:p.sbPath,
+    sbUrl:p.sbUrl
+  }));
 
   const viewTimeVal=document.getElementById('s-viewTime').value;const viewTimeStr=viewTimeVal.replace('T',' ');
   const amountStr=document.getElementById('c-amount').value.replace(/,/g,'').trim();const amount=amountStr?parseInt(amountStr):null;
@@ -1670,16 +1786,16 @@ function editClient(id){
   document.querySelectorAll('#label-grid .lopt').forEach(el=>el.classList.toggle('on',el.dataset.label===c.status));
   const s=c.survey||{};document.getElementById('s-budget').value=s.budget||'';document.getElementById('s-area').value=s.area||'';document.getElementById('s-addr').value=s.addr||'';document.getElementById('s-size').value=s.size||'';document.getElementById('s-conds').value=s.conds||'';document.getElementById('s-movein').value=s.movein||'';if(s.viewTime)document.getElementById('s-viewTime').value=s.viewTime.replace(' ','T');document.getElementById('s-raw').value=s.raw||'';
   selectedTypes=[...(s.types||[])];document.querySelectorAll('#type-grid .chip').forEach(el=>el.classList.toggle('on',selectedTypes.includes(el.dataset.type)));
-  // ✅ 從 DB 讀 id 和 label，並嘗試恢復 dataUrl
-  uploadedPhotos=(c.photos||[]).map(p=>({id:p.id,label:p.label}));
+  // ✅ 從 DB 讀 id、label 和 Supabase 路徑，並恢復 dataUrl
+  uploadedPhotos=(c.photos||[]).map(p=>({id:p.id,label:p.label,sbPath:p.sbPath,sbUrl:p.sbUrl}));
 
-  // 異步恢復舊照片的 dataUrl
+  // 異步恢復舊照片的 dataUrl（優先從 Supabase，回退到本地備份）
   for(let i=0;i<uploadedPhotos.length;i++){
     const p=uploadedPhotos[i];
     const dataUrl=await getPhotoFromIDB(p.id);
     if(dataUrl){
       uploadedPhotos[i].dataUrl=dataUrl;
-      console.log(`✅ Restored photo ${p.id} dataUrl from storage`);
+      console.log(`✅ Restored photo ${p.id} from storage (Supabase or local)`);
     }
   }
 
