@@ -651,6 +651,15 @@ input[type="date"].fi,input[type="time"].fi{width:100%;box-sizing:border-box;}
     <input type="file" id="import-csv-input" accept=".csv" style="display:none">
 
     <div style="height:1px;background:var(--border);margin:16px 0 14px"></div>
+
+    <div style="margin-bottom:14px">
+      <div style="font-size:12px;color:var(--text-secondary);margin-bottom:8px">💾 本機備份</div>
+      <button class="btno" id="btn-export-backup" style="width:100%;margin-bottom:8px">⬇️ 導出備份</button>
+      <button class="btno" id="btn-import-backup" style="width:100%">⬆️ 導入備份</button>
+      <input type="file" id="import-backup-input" accept=".json" style="display:none">
+    </div>
+
+    <div style="height:1px;background:var(--border);margin:16px 0 14px"></div>
     <button class="btno" id="btn-close-data-maintenance" onclick="closeModal('modal-data-maintenance')">關閉</button>
   </div>
 </div>
@@ -1008,6 +1017,50 @@ async function saveDB(){
   }else{
     console.log(`✅ [${timestamp}] 本機保存成功 - ${DB.clients.length} 位客戶（未連接 Google Drive）`);
   }
+}
+
+// 💾 導出備份
+function exportBackup(){
+  const backupData={
+    timestamp:new Date().toISOString(),
+    clients:DB.clients,
+    tours:DB.tours,
+    todos:DB.todos
+  };
+  const json=JSON.stringify(backupData,null,2);
+  const blob=new Blob([json],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;
+  a.download=`Mimi Rent 備份_${new Date().toISOString().split('T')[0]}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  toast('✅ 備份已導出');
+}
+
+// 導入備份
+async function importBackup(input){
+  const file=input.files[0];
+  if(!file)return;
+  const reader=new FileReader();
+  reader.onload=async ev=>{
+    try{
+      const backupData=JSON.parse(ev.target.result);
+      DB.clients=backupData.clients||[];
+      DB.tours=backupData.tours||[];
+      DB.todos=backupData.todos||[];
+      saveDB();
+      toast('✅ 備份已導入');
+      renderClients();
+      renderHome();
+    }catch(err){
+      console.error('導入備份失敗:',err);
+      toast('❌ 備份文件格式錯誤');
+    }
+  };
+  reader.readAsText(file);
+  input.value='';
+}
 }
 
 function manualSaveNow(){
@@ -1446,6 +1499,11 @@ function bindEvents(){
   document.getElementById('import-input').addEventListener('change',function(){importData(this);});
   document.getElementById('btn-import-clients').addEventListener('click',function(){document.getElementById('import-csv-input').click();});
   document.getElementById('import-csv-input').addEventListener('change',function(){importClientsFromCSV(this);});
+
+  // 備份功能
+  document.getElementById('btn-export-backup').addEventListener('click',exportBackup);
+  document.getElementById('btn-import-backup').addEventListener('click',function(){document.getElementById('import-backup-input').click();});
+  document.getElementById('import-backup-input').addEventListener('change',function(){importBackup(this);});
   document.getElementById('btn-home-data-maintenance').addEventListener('click',()=>{openModal('modal-data-maintenance');});
   document.getElementById('btn-save-now').addEventListener('click',manualSaveNow);
 
