@@ -2574,82 +2574,52 @@ function renderHome(){
   const allTodos=[...overdue,...todTodos].slice(0,5);
   setIfExistsHTML('home-todos',allTodos.length?`<div class="card${overdue.length?' overdue':''}" style="padding:0 14px">${allTodos.map(t=>`<div class="titem" style="padding:12px 0"><button class="tck${t.done?' done':''}" data-todo-toggle="${t.id}">${t.done?'<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>':''}</button><div class="ttxt${t.done?' done':''}" style="flex:1">${t.text}</div>${!t.done&&t.date<today?'<span style="font-size:11px;color:var(--alert);flex-shrink:0">逾期</span>':''}</div>`).join('')}</div>`:'<div class="card"><div style="color:var(--sub);font-size:14px;text-align:center;padding:14px">今日沒有待辦</div></div>');
 
-  // 來源分析
-  // 獲取所有 2026/6 及以後的月份
+  // 來源分析（只顯示 2026/6 以後）
   const allMonths=new Set();
-  allClients.forEach(c=>{
-    const cDate=c.created_at||'';
-    if(cDate>='2026-06-01'){
-      const month=cDate.substring(0,7);
-      allMonths.add(month);
-    }
-  });
+  allClients.forEach(c=>{const d=c.created_at||'';if(d>='2026-06'){allMonths.add(d.substring(0,7));}});
   const sortedMonths=Array.from(allMonths).sort().reverse();
-
-  // 優先顯示當月，如果當月沒資料則顯示最近的月份
   let selectedMonth=thisMonth;
-  if(!sortedMonths.includes(selectedMonth)){
-    selectedMonth=sortedMonths[0]||thisMonth;
-  }
+  if(!sortedMonths.includes(selectedMonth))selectedMonth=sortedMonths[0]||thisMonth;
 
   const getSourcesByMonth=(month)=>{
-    const monthCts=allClients.filter(c=>{const cDate=c.created_at||'';return cDate.startsWith(month);});
-    const sourceMap={'FB':0,'Threads':0,'591':0,'官網':0,'同事':0,'其他':0};
-    monthCts.forEach(c=>{const s=(c.source||'其他');if(s in sourceMap)sourceMap[s]++;else sourceMap['其他']++;});
-    return Object.entries(sourceMap).filter(e=>e[1]>0).sort((a,b)=>b[1]-a[1]);
-  };
-
-  const renderSourceChart=(entries,colors)=>{
-    if(entries.length===0)return '<div style="color:var(--sub);font-size:14px;text-align:center;padding:14px">暫無資料</div>';
-    const total=entries.reduce((sum,e)=>sum+e[1],0);
-    const size=120;const radius=size/2;let html=`<div style="display:flex;flex-direction:column;align-items:center;gap:16px">`;
-    html+=`<svg viewBox="0 0 ${size} ${size}" style="width:${size}px;height:${size}px">`;
-    let currentAngle=0;
-    entries.forEach((e,i)=>{
-      const pct=e[1]/total;const angle=pct*360;
-      const startRad=currentAngle*Math.PI/180;const endRad=(currentAngle+angle)*Math.PI/180;
-      const x1=radius+radius*0.6*Math.cos(startRad);const y1=radius+radius*0.6*Math.sin(startRad);
-      const x2=radius+radius*0.6*Math.cos(endRad);const y2=radius+radius*0.6*Math.sin(endRad);
-      const largeArc=angle>180?1:0;
-      const path=`M ${radius} ${radius} L ${x1} ${y1} A ${radius*0.6} ${radius*0.6} 0 ${largeArc} 1 ${x2} ${y2} Z`;
-      html+=`<path d="${path}" fill="${colors[i%colors.length]}" stroke="white" stroke-width="2"/>`;
-      currentAngle+=angle;
-    });
-    html+=`</svg><div style="width:100%;display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px">`;
-    entries.forEach((e,i)=>{
-      const pct=(e[1]/total*100).toFixed(1);
-      html+=`<div style="display:flex;align-items:center;gap:6px"><div style="width:12px;height:12px;background:${colors[i%colors.length]};border-radius:2px"></div><span>${e[0]}: ${e[1]}(${pct}%)</span></div>`;
-    });
-    html+=`</div></div>`;
-    return html;
+    const monthCts=allClients.filter(c=>(c.created_at||'').startsWith(month));
+    const map={'FB':0,'Threads':0,'591':0,'官網':0,'同事':0,'其他':0};
+    monthCts.forEach(c=>{const s=c.source||'其他';map[s]=(map[s]||0)+1;});
+    return Object.entries(map).filter(e=>e[1]>0).sort((a,b)=>b[1]-a[1]);
   };
 
   const colors=['#DCC8B4','#C4A98A','#B58A76','#A67A6A'];
-  if(sortedMonths.length===0){
-    setIfExistsHTML('source-analysis','<div style="color:var(--sub);font-size:14px;text-align:center;padding:14px">目前尚無來源分析資料</div>');
-  }else{
-    let html=`<div style="display:flex;flex-direction:column;gap:16px"><div style="display:flex;gap:8px;border-bottom:1px solid var(--border);padding-bottom:8px;overflow-x:auto">`;
-    sortedMonths.forEach(m=>{
-      const isActive=m===selectedMonth;
-      html+=`<button class="source-month-btn" data-month="${m}" style="padding:8px 14px;border:none;border-radius:12px;background:${isActive?'var(--primary)':'var(--bg)'};color:${isActive?'var(--text)':'var(--sub)'};cursor:pointer;font-size:13px;font-weight:600;white-space:nowrap">${m}</button>`;
+  const renderSourceChart=(entries)=>{
+    if(entries.length===0)return '<div style="text-align:center;padding:14px;color:var(--sub)">暫無資料</div>';
+    const total=entries.reduce((s,e)=>s+e[1],0);
+    let html=`<div style="text-align:center;margin:12px 0">`;
+    entries.forEach((e,i)=>{
+      const pct=(e[1]/total*100).toFixed(0);
+      html+=`<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)"><span style="display:flex;align-items:center;gap:8px"><span style="width:12px;height:12px;background:${colors[i%colors.length]};border-radius:2px"></span>${e[0]}</span><span style="font-weight:700;color:var(--primary-dark)">${e[1]} (${pct}%)</span></div>`;
     });
-    html+=`</div><div id="source-chart">${renderSourceChart(getSourcesByMonth(selectedMonth),colors)}</div></div>`;
-    setIfExistsHTML('source-analysis',html);
-  }
+    html+=`</div>`;
+    return html;
+  };
 
-  document.querySelectorAll('[data-month]').forEach(btn=>{
-    btn.addEventListener('click',e=>{
-      const month=e.target.dataset.month;
-      document.querySelectorAll('[data-month]').forEach(b=>{
-        b.style.background='var(--bg)';
-        b.style.color='var(--sub)';
-      });
-      e.target.style.background='var(--primary)';
-      e.target.style.color='var(--text)';
-      const entries=getSourcesByMonth(month);
-      document.getElementById('source-chart').innerHTML=renderSourceChart(entries,colors);
+  if(sortedMonths.length>0){
+    let html=`<div style="display:flex;gap:8px;margin-bottom:16px;overflow-x:auto;padding-bottom:8px">`;
+    sortedMonths.forEach(m=>{
+      html+=`<button data-month="${m}" style="padding:8px 14px;border:none;border-radius:10px;background:${m===selectedMonth?'var(--primary)':'var(--border)'};color:var(--text);cursor:pointer;font-size:13px;font-weight:600;white-space:nowrap">${m}</button>`;
     });
-  });
+    html+=`</div><div id="source-chart">${renderSourceChart(getSourcesByMonth(selectedMonth))}</div>`;
+    setIfExistsHTML('source-analysis',html);
+    setTimeout(()=>{
+      document.querySelectorAll('[data-month]').forEach(btn=>{
+        btn.onclick=()=>{
+          document.querySelectorAll('[data-month]').forEach(b=>b.style.background='var(--border)');
+          btn.style.background='var(--primary)';
+          document.getElementById('source-chart').innerHTML=renderSourceChart(getSourcesByMonth(btn.dataset.month));
+        };
+      });
+    },0);
+  }else{
+    setIfExistsHTML('source-analysis','<div style="text-align:center;padding:14px;color:var(--sub)">目前尚無來源分析資料</div>');
+  }
 }
 
 function renderPhrases(){
