@@ -3315,25 +3315,37 @@ function checkLogin(){
 }
 async function doLogin(){
   const btn=document.getElementById('login-btn');
-  btn.textContent='登入中…'; btn.disabled=true;
+  const errMsg=document.getElementById('login-err');
+
+  btn.textContent='登入中…';
+  btn.disabled=true;
+
   const auth=loadAuth();
   const u=document.getElementById('login-user').value.trim();
   const p=document.getElementById('login-pass').value;
-  btn.textContent='登入'; btn.disabled=false;
+
   if(u===auth.username&&p===auth.password){
     sessionStorage.setItem('mimi_logged','1');
     document.getElementById('login-screen').style.display='none';
-    document.getElementById('login-err').style.display='none';
+    errMsg.style.display='none';
+    console.log('✅ 登入成功');
   } else {
-    document.getElementById('login-err').style.display='block';
+    console.log(`❌ 登入失敗: 輸入(${u},${p}) vs 預期(${auth.username},${auth.password})`);
+    errMsg.style.display='block';
     document.getElementById('login-pass').value='';
+    btn.textContent='登入';
+    btn.disabled=false;
   }
+
   // 背景同步認證資料（不阻止登入）
   setTimeout(async()=>{
     try{
       const remoteAuth=await Promise.race([sbFetch('app_auth?select=*&id=eq.1'),new Promise((_,r)=>setTimeout(()=>r(null),3000))]);
-      if(remoteAuth&&remoteAuth[0]) saveAuth({username:remoteAuth[0].username, password:remoteAuth[0].password});
-    }catch(e){}
+      if(remoteAuth&&remoteAuth[0]){
+        saveAuth({username:remoteAuth[0].username, password:remoteAuth[0].password});
+        console.log('✅ 從 Supabase 同步帳號資料');
+      }
+    }catch(e){console.warn('背景同步失敗',e);}
   },100);
 }
 function doLogout(){
