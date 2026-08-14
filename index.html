@@ -752,24 +752,41 @@ async function savePhotoToIDB(photoId,dataUrl){
 
       // 優先使用 IndexedDB
       if(IDB){
-        const tx=IDB.transaction('photos','readwrite');
-        const store=tx.objectStore('photos');
-        store.put({id:photoId,dataUrl});
-        tx.oncomplete=()=>{
-          console.log(`✅ 照片 ${photoId} 已保存到 IndexedDB (${(dataUrl.length/1024).toFixed(0)}KB)`);
-          resolve();
-        };
-        tx.onerror=()=>{
-          console.warn(`⚠️ IndexedDB 寫入失敗，改用 localStorage`);
+        try{
+          const tx=IDB.transaction('photos','readwrite');
+          const store=tx.objectStore('photos');
+          const putReq=store.put({id:photoId,dataUrl});
+
+          putReq.onsuccess=()=>{
+            console.log(`✅ 照片 ${photoId} 已保存到 IndexedDB (${(dataUrl.length/1024).toFixed(0)}KB)`);
+          };
+
+          tx.oncomplete=()=>{
+            resolve();
+          };
+
+          tx.onerror=()=>{
+            console.warn(`⚠️ IndexedDB 寫入失敗，改用 localStorage`);
+            try{
+              localStorage.setItem(`photo_${photoId}`,dataUrl);
+              console.log(`✅ 照片 ${photoId} 已保存到 localStorage 備份 (${(dataUrl.length/1024).toFixed(0)}KB)`);
+              resolve();
+            }catch(e){
+              console.error(`❌ 保存失敗:`,e);
+              reject(e);
+            }
+          };
+        }catch(e){
+          console.warn(`⚠️ IndexedDB 異常，改用 localStorage:`,e);
           try{
             localStorage.setItem(`photo_${photoId}`,dataUrl);
-            console.log(`✅ 照片 ${photoId} 已保存到 localStorage 備份 (${(dataUrl.length/1024).toFixed(0)}KB)`);
+            console.log(`✅ 照片 ${photoId} 已保存到 localStorage (${(dataUrl.length/1024).toFixed(0)}KB)`);
             resolve();
-          }catch(e){
-            console.error(`❌ 保存失敗:`,e);
-            reject(e);
+          }catch(e2){
+            console.error(`❌ 保存失敗:`,e2);
+            reject(e2);
           }
-        };
+        }
       }else{
         try{
           localStorage.setItem(`photo_${photoId}`,dataUrl);
@@ -3294,27 +3311,32 @@ document.addEventListener('DOMContentLoaded',()=>{
   document.getElementById('login-pass').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
   document.getElementById('login-user').addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('login-pass').focus();});
 
-  // 診斷工具
-  window.debugPhotos=()=>{
-    console.log('📸 ========== 照片診斷 ==========');
-    console.log('📸 localStorage 中的照片：');
-    for(let i=0;i<localStorage.length;i++){
-      const key=localStorage.key(i);
-      if(key.startsWith('photo_')){
-        const val=localStorage.getItem(key);
-        console.log(`  ${key}: ${val.substring(0,100)}...`);
+  // 診斷工具（在 initApp 後定義）
+  setTimeout(()=>{
+    window.debugPhotos=()=>{
+      console.log('📸 ========== 照片診斷 ==========');
+      console.log('📸 localStorage 中的照片：');
+      let photoCount=0;
+      for(let i=0;i<localStorage.length;i++){
+        const key=localStorage.key(i);
+        if(key&&key.startsWith('photo_')){
+          photoCount++;
+          const val=localStorage.getItem(key);
+          console.log(`  ${key}: ${val.substring(0,100)}...`);
+        }
       }
-    }
-    console.log('📸 DB.clients：', DB.clients.length, '個客戶');
-    DB.clients.forEach(c=>{
-      console.log(`  - ${c.name}: ${c.photos?.length||0} 張照片`, c.photos);
-    });
-    console.log('📸 uploadedPhotos：', uploadedPhotos.length, '張');
-    uploadedPhotos.forEach(p=>{
-      console.log(`  - ${p.id}: ${p.label} (有dataUrl: ${!!p.dataUrl})`);
-    });
-  };
-  console.log('💡 輸入 debugPhotos() 查看照片診斷信息');
+      console.log(`📸 共 ${photoCount} 張照片在 localStorage`);
+      console.log('📸 DB.clients：', DB.clients.length, '個客戶');
+      DB.clients.forEach(c=>{
+        console.log(`  - ${c.name}: ${c.photos?.length||0} 張照片`, c.photos);
+      });
+      console.log('📸 uploadedPhotos：', uploadedPhotos.length, '張');
+      uploadedPhotos.forEach(p=>{
+        console.log(`  - ${p.id}: ${p.label} (有dataUrl: ${!!p.dataUrl})`);
+      });
+    };
+    console.log('💡 輸入 debugPhotos() 查看照片診斷信息');
+  }, 1000);
 
   checkLogin();
   initApp();
