@@ -821,6 +821,7 @@ async function savePhotoToIDB(photoId,dataUrl){
             if(photo){
               photo.sbPath=sbResult.filePath;
               photo.sbUrl=sbResult.publicUrl;
+              saveDB();  // ✅ 持久化更新
             }
           }
         }
