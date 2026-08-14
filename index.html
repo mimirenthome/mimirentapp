@@ -1779,7 +1779,7 @@ async function resetClientForm(){
   uploadedPhotos=[];renderPhotoGrid();showTab('t-basic');
   document.getElementById('btn-save-client').textContent='✓ 儲存客戶';
 }
-function editClient(id){
+async function editClient(id){
   const c=DB.clients.find(x=>x.id===id);if(!c)return;editingClientId=id;
   document.getElementById('c-name').value=c.name||'';document.getElementById('c-phone').value=c.phone||'';document.getElementById('c-job').value=c.job||'';document.getElementById('c-note').value=c.note||'';document.getElementById('c-created-at').value=c.created_at||new Date().toISOString().split('T')[0];document.getElementById('c-amount').value=c.amount?c.amount.toLocaleString():'';
   selectedSource=c.source||'';selectedLabel=c.status||'新客戶';
