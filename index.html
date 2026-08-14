@@ -2552,7 +2552,7 @@ function renderHome(){
   const nextTour=todayTours.filter(t=>t.status!=='取消').find(t=>{const tTime=(t.time||'').padStart(5,'0');return tTime>(now.getHours().toString().padStart(2,'0')+':'+now.getMinutes().toString().padStart(2,'0'));});
 
   // 來源分析
-  const allClients=DB.clients;const monthClients=DB.clients.filter(c=>{const cDate=c.created_at||'';return cDate.startsWith(thisMonth);});
+  const allClients=DB.clients.filter(c=>{const cDate=c.created_at||'2026-01-01';return cDate>='2026-06-01';});const monthClients=allClients.filter(c=>{const cDate=c.created_at||'';return cDate.startsWith(thisMonth);});
   const analyzeSource=(list)=>{if(list.length===0)return[];const sources={};list.forEach(c=>{const s=c.source||'其他';sources[s]=(sources[s]||0)+1;});return Object.entries(sources).sort((a,b)=>b[1]-a[1]).map(([src,cnt])=>({src,cnt,pct:(cnt/list.length*100).toFixed(1)}));};
   const allAnalysis=analyzeSource(allClients);const monthAnalysis=monthClients.length>0?analyzeSource(monthClients):allAnalysis;
   const setIfExists=(id,val)=>{const el=document.getElementById(id);if(el)el.textContent=val;};const setIfExistsHTML=(id,html)=>{const el=document.getElementById(id);if(el)el.innerHTML=html;};
