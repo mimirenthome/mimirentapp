@@ -3293,6 +3293,29 @@ document.addEventListener('DOMContentLoaded',()=>{
   document.getElementById('login-btn').addEventListener('click',doLogin);
   document.getElementById('login-pass').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
   document.getElementById('login-user').addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('login-pass').focus();});
+
+  // 診斷工具
+  window.debugPhotos=()=>{
+    console.log('📸 ========== 照片診斷 ==========');
+    console.log('📸 localStorage 中的照片：');
+    for(let i=0;i<localStorage.length;i++){
+      const key=localStorage.key(i);
+      if(key.startsWith('photo_')){
+        const val=localStorage.getItem(key);
+        console.log(`  ${key}: ${val.substring(0,100)}...`);
+      }
+    }
+    console.log('📸 DB.clients：', DB.clients.length, '個客戶');
+    DB.clients.forEach(c=>{
+      console.log(`  - ${c.name}: ${c.photos?.length||0} 張照片`, c.photos);
+    });
+    console.log('📸 uploadedPhotos：', uploadedPhotos.length, '張');
+    uploadedPhotos.forEach(p=>{
+      console.log(`  - ${p.id}: ${p.label} (有dataUrl: ${!!p.dataUrl})`);
+    });
+  };
+  console.log('💡 輸入 debugPhotos() 查看照片診斷信息');
+
   checkLogin();
   initApp();
 
