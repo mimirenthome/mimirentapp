@@ -729,207 +729,115 @@ async function compressImage(dataUrl){
 }
 
 async function uploadPhotoToSupabase(photoId,dataUrl){
-  try{
-    if(!dataUrl||dataUrl.length>3000000){
-      console.warn('❌ Photo too large for upload');
-      return null;
-    }
-
-    console.log(`📤 開始上傳照片 ${photoId} 到 Supabase...`);
-
-    // 將 data URL 轉換為 blob
-    const arr=dataUrl.split(',');
-    const mime=arr[0].match(/:(.*?);/)[1];
-    const bstr=atob(arr[1]);
-    const n=bstr.length;
-    const u8arr=new Uint8Array(n);
-    for(let i=0;i<n;i++)u8arr[i]=bstr.charCodeAt(i);
-    const blob=new Blob([u8arr],{type:mime});
-
-    // 生成檔案路徑：{客戶ID}/{時間戳}-{序號}.jpg
-    const timestamp=new Date().getTime();
-    const clientId=photoId.split('-')[0];
-    const filePath=`${clientId}/${timestamp}-${Math.random().toString(36).substr(2,9)}.jpg`;
-
-    // 上傳到 Supabase Storage
-    console.log(`📍 上傳位置：${filePath}`);
-    const uploadRes=await Promise.race([
-      fetch(`${SB_URL}/storage/v1/object/property-images/${filePath}`,
-        {
-          method:'POST',
-          headers:{
-            'apikey':SB_KEY,
-            'Authorization':`Bearer ${SB_KEY}`,
-          },
-          body:blob
-        }
-      ),
-      new Promise((_,r)=>setTimeout(()=>r(new Error('Supabase upload timeout')),5000))
-    ]);
-
-    if(!uploadRes.ok){
-      console.warn(`⚠️ Supabase 上傳失敗 (${uploadRes.status}): ${await uploadRes.text()}`);
-      return null;
-    }
-
-    const publicUrl=`${SB_URL}/storage/v1/object/public/property-images/${filePath}`;
-    console.log(`✅ 照片 ${photoId} 上傳到 Supabase 成功: ${filePath}`);
-    return {filePath,publicUrl};
-  }catch(e){
-    console.warn(`⚠️ Supabase 上傳失敗（使用本地備份）:`,e.message);
-    return null;
-  }
+  // Supabase bucket 配置有誤，改用本地存儲
+  console.log(`💾 使用本地存儲（已跳過 Supabase）`);
+  return null;
 }
 
 async function getPhotoFromSupabase(photoId){
-  try{
-    const c=DB.clients.find(client=>client.photos?.some(p=>p.id===photoId));
-    if(!c){
-      console.log(`📍 找不到包含照片 ${photoId} 的客戶`);
-      return null;
-    }
-
-    const photo=c.photos.find(p=>p.id===photoId);
-    if(!photo){
-      console.log(`📍 照片 ${photoId} 不在客戶資料中`);
-      return null;
-    }
-
-    if(!photo.sbPath){
-      console.log(`📍 照片 ${photoId} 沒有 Supabase 路徑（未上傳或上傳失敗）`);
-      return null;
-    }
-
-    // 從 Supabase Storage 讀取
-    const url=`${SB_URL}/storage/v1/object/public/property-images/${photo.sbPath}`;
-    console.log(`🌐 嘗試從 Supabase 讀取: ${url}`);
-
-    const res=await Promise.race([
-      fetch(url),
-      new Promise((_,r)=>setTimeout(()=>r(new Error('Supabase read timeout')),3000))
-    ]);
-
-    if(!res.ok){
-      console.warn(`⚠️ Supabase 讀取失敗 (${res.status})`);
-      return null;
-    }
-
-    const blob=await res.blob();
-    const reader=new FileReader();
-    return new Promise((resolve)=>{
-      reader.onload=(e)=>{
-        console.log(`✅ 照片 ${photoId} 從 Supabase 讀取成功`);
-        resolve(e.target.result);
-      };
-      reader.readAsDataURL(blob);
-    });
-  }catch(e){
-    console.warn(`⚠️ Supabase 讀取異常:`,e.message);
-    return null;
-  }
+  // Supabase bucket 未配置，直接使用本地存儲
+  return null;
 }
 
 async function savePhotoToIDB(photoId,dataUrl){
-  return new Promise(async(resolve,reject)=>{
+  return new Promise((resolve,reject)=>{
     try{
-      if(!dataUrl||dataUrl.length>3000000){console.warn('Photo still too large');reject(new Error('Photo too large'));return;}
-
-      // 步驟1：先上傳到 Supabase Storage
-      let sbResult=null;
-      try{
-        sbResult=await uploadPhotoToSupabase(photoId,dataUrl);
-        if(sbResult){
-          // 更新客戶記錄，儲存 Supabase 路徑
-          const c=DB.clients.find(cl=>cl.photos?.some(p=>p.id===photoId));
-          if(c){
-            const photo=c.photos.find(p=>p.id===photoId);
-            if(photo){
-              photo.sbPath=sbResult.filePath;
-              photo.sbUrl=sbResult.publicUrl;
-              saveDB();  // ✅ 持久化更新
-            }
-          }
-        }
-      }catch(e){
-        console.warn('Supabase upload skipped');
+      if(!dataUrl||dataUrl.length>3000000){
+        console.warn('❌ 照片過大');
+        reject(new Error('Photo too large'));
+        return;
       }
 
-      // 步驟2：本地備份（IndexedDB + localStorage）
+      console.log(`💾 保存照片 ${photoId} 到本地存儲...`);
+
+      // 優先使用 IndexedDB
       if(IDB){
         const tx=IDB.transaction('photos','readwrite');
         const store=tx.objectStore('photos');
-        store.put({id:photoId,dataUrl,sbPath:sbResult?.filePath});
+        store.put({id:photoId,dataUrl});
         tx.oncomplete=()=>{
-          console.log(`✅ Photo ${photoId} backed up to IDB`);
+          console.log(`✅ 照片 ${photoId} 已保存到 IndexedDB (${(dataUrl.length/1024).toFixed(0)}KB)`);
           resolve();
         };
         tx.onerror=()=>{
-          console.warn(`IDB save failed, using localStorage backup`);
+          console.warn(`⚠️ IndexedDB 寫入失敗，改用 localStorage`);
           try{
-            localStorage.setItem(`photo_${photoId}`,JSON.stringify({dataUrl,sbPath:sbResult?.filePath}));
-            console.log(`✅ Photo ${photoId} backed up to localStorage`);
+            localStorage.setItem(`photo_${photoId}`,dataUrl);
+            console.log(`✅ 照片 ${photoId} 已保存到 localStorage 備份 (${(dataUrl.length/1024).toFixed(0)}KB)`);
             resolve();
           }catch(e){
-            console.error(`All save methods failed:`,e);
+            console.error(`❌ 保存失敗:`,e);
             reject(e);
           }
         };
       }else{
         try{
-          localStorage.setItem(`photo_${photoId}`,JSON.stringify({dataUrl,sbPath:sbResult?.filePath}));
-          console.log(`⚠️ Photo ${photoId} backed up to localStorage`);
+          localStorage.setItem(`photo_${photoId}`,dataUrl);
+          console.log(`✅ 照片 ${photoId} 已保存到 localStorage (${(dataUrl.length/1024).toFixed(0)}KB)`);
           resolve();
         }catch(e){
-          console.error(`Photo save failed:`,e);
+          console.error(`❌ 保存失敗:`,e);
           reject(e);
         }
       }
-    }catch(e){console.error('Photo save exception:',e);reject(e);}
+    }catch(e){
+      console.error('❌ 保存異常:',e);
+      reject(e);
+    }
   });
 }
 async function getPhotoFromIDB(photoId){
-  return new Promise(async(resolve)=>{
+  return new Promise((resolve)=>{
     try{
-      // 優先從 Supabase 讀取
-      const sbPhoto=await getPhotoFromSupabase(photoId);
-      if(sbPhoto){
-        resolve(sbPhoto);
-        return;
-      }
+      console.log(`🔍 查詢照片 ${photoId}...`);
 
-      // 回退：從 localStorage 讀取
+      // 優先從 localStorage 讀取
       const localStoragePhoto=localStorage.getItem(`photo_${photoId}`);
       if(localStoragePhoto){
         try{
+          // 新格式：JSON（含 sbPath 等）
           const parsed=JSON.parse(localStoragePhoto);
-          console.log(`✅ Photo ${photoId} loaded from localStorage backup (${(parsed.dataUrl.length/1024).toFixed(0)}KB)`);
+          console.log(`✅ 照片 ${photoId} 從 localStorage 讀取成功 (${(parsed.dataUrl.length/1024).toFixed(0)}KB)`);
           resolve(parsed.dataUrl);
           return;
         }catch(e){
-          // 舊格式直接是 dataUrl
-          console.log(`✅ Photo ${photoId} loaded from localStorage (${(localStoragePhoto.length/1024).toFixed(0)}KB)`);
+          // 舊格式：直接是 dataUrl
+          console.log(`✅ 照片 ${photoId} 從 localStorage 讀取成功 (${(localStoragePhoto.length/1024).toFixed(0)}KB)`);
           resolve(localStoragePhoto);
           return;
         }
       }
 
       // 回退：從 IndexedDB 讀取
-      if(!IDB){console.warn(`Photo ${photoId} not found anywhere`);resolve(null);return;}
+      if(!IDB){
+        console.warn(`⚠️ 照片 ${photoId} 未找到（IndexedDB 不可用）`);
+        resolve(null);
+        return;
+      }
+
       const tx=IDB.transaction('photos','readonly');
       const store=tx.objectStore('photos');
       const req=store.get(photoId);
+
       req.onsuccess=()=>{
         const photo=req.result;
         if(photo?.dataUrl){
-          console.log(`✅ Photo ${photoId} loaded from IDB backup (${(photo.dataUrl.length/1024).toFixed(0)}KB)`);
+          console.log(`✅ 照片 ${photoId} 從 IndexedDB 讀取成功 (${(photo.dataUrl.length/1024).toFixed(0)}KB)`);
           resolve(photo.dataUrl);
         } else {
-          console.warn(`Photo ${photoId} not found in any storage`);
+          console.warn(`⚠️ 照片 ${photoId} 未找到（不在任何存儲中）`);
           resolve(null);
         }
       };
-      req.onerror=()=>{console.error(`Photo load error for ${photoId}: ${tx.error}`);resolve(null);};
-    }catch(e){console.error(`Photo load exception for ${photoId}:`,e);resolve(null);}
+
+      req.onerror=()=>{
+        console.error(`❌ 照片 ${photoId} 讀取失敗:`,tx.error);
+        resolve(null);
+      };
+    }catch(e){
+      console.error(`❌ 照片 ${photoId} 查詢異常:`,e);
+      resolve(null);
+    }
   });
 }
 async function deletePhotoFromIDB(photoId){
