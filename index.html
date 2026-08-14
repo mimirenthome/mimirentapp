@@ -735,6 +735,8 @@ async function uploadPhotoToSupabase(photoId,dataUrl){
       return null;
     }
 
+    console.log(`📤 開始上傳照片 ${photoId} 到 Supabase...`);
+
     // 將 data URL 轉換為 blob
     const arr=dataUrl.split(',');
     const mime=arr[0].match(/:(.*?);/)[1];
@@ -750,28 +752,31 @@ async function uploadPhotoToSupabase(photoId,dataUrl){
     const filePath=`${clientId}/${timestamp}-${Math.random().toString(36).substr(2,9)}.jpg`;
 
     // 上傳到 Supabase Storage
-    const uploadRes=await fetch(
-      `${SB_URL}/storage/v1/object/property-images/${filePath}`,
-      {
-        method:'POST',
-        headers:{
-          'apikey':SB_KEY,
-          'Authorization':`Bearer ${SB_KEY}`,
-        },
-        body:blob
-      }
-    );
+    console.log(`📍 上傳位置：${filePath}`);
+    const uploadRes=await Promise.race([
+      fetch(`${SB_URL}/storage/v1/object/property-images/${filePath}`,
+        {
+          method:'POST',
+          headers:{
+            'apikey':SB_KEY,
+            'Authorization':`Bearer ${SB_KEY}`,
+          },
+          body:blob
+        }
+      ),
+      new Promise((_,r)=>setTimeout(()=>r(new Error('Supabase upload timeout')),5000))
+    ]);
 
     if(!uploadRes.ok){
-      throw new Error(`Upload failed: ${uploadRes.status}`);
+      console.warn(`⚠️ Supabase 上傳失敗 (${uploadRes.status}): ${await uploadRes.text()}`);
+      return null;
     }
 
-    const uploadedFile=await uploadRes.json();
     const publicUrl=`${SB_URL}/storage/v1/object/public/property-images/${filePath}`;
-    console.log(`✅ Photo ${photoId} uploaded to Supabase: ${filePath}`);
+    console.log(`✅ 照片 ${photoId} 上傳到 Supabase 成功: ${filePath}`);
     return {filePath,publicUrl};
   }catch(e){
-    console.warn(`⚠️ Supabase upload failed, will use local backup:`,e);
+    console.warn(`⚠️ Supabase 上傳失敗（使用本地備份）:`,e.message);
     return null;
   }
 }
@@ -779,27 +784,47 @@ async function uploadPhotoToSupabase(photoId,dataUrl){
 async function getPhotoFromSupabase(photoId){
   try{
     const c=DB.clients.find(client=>client.photos?.some(p=>p.id===photoId));
-    if(!c)return null;
+    if(!c){
+      console.log(`📍 找不到包含照片 ${photoId} 的客戶`);
+      return null;
+    }
 
     const photo=c.photos.find(p=>p.id===photoId);
-    if(!photo||!photo.sbPath)return null;
+    if(!photo){
+      console.log(`📍 照片 ${photoId} 不在客戶資料中`);
+      return null;
+    }
+
+    if(!photo.sbPath){
+      console.log(`📍 照片 ${photoId} 沒有 Supabase 路徑（未上傳或上傳失敗）`);
+      return null;
+    }
 
     // 從 Supabase Storage 讀取
     const url=`${SB_URL}/storage/v1/object/public/property-images/${photo.sbPath}`;
-    const res=await fetch(url);
-    if(!res.ok)throw new Error('Failed to fetch from Supabase');
+    console.log(`🌐 嘗試從 Supabase 讀取: ${url}`);
+
+    const res=await Promise.race([
+      fetch(url),
+      new Promise((_,r)=>setTimeout(()=>r(new Error('Supabase read timeout')),3000))
+    ]);
+
+    if(!res.ok){
+      console.warn(`⚠️ Supabase 讀取失敗 (${res.status})`);
+      return null;
+    }
 
     const blob=await res.blob();
     const reader=new FileReader();
     return new Promise((resolve)=>{
       reader.onload=(e)=>{
-        console.log(`✅ Photo ${photoId} loaded from Supabase`);
+        console.log(`✅ 照片 ${photoId} 從 Supabase 讀取成功`);
         resolve(e.target.result);
       };
       reader.readAsDataURL(blob);
     });
   }catch(e){
-    console.warn(`⚠️ Supabase fetch failed for ${photoId}:`,e);
+    console.warn(`⚠️ Supabase 讀取異常:`,e.message);
     return null;
   }
 }
