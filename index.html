@@ -2575,18 +2575,33 @@ function renderHome(){
   setIfExistsHTML('home-todos',allTodos.length?`<div class="card${overdue.length?' overdue':''}" style="padding:0 14px">${allTodos.map(t=>`<div class="titem" style="padding:12px 0"><button class="tck${t.done?' done':''}" data-todo-toggle="${t.id}">${t.done?'<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>':''}</button><div class="ttxt${t.done?' done':''}" style="flex:1">${t.text}</div>${!t.done&&t.date<today?'<span style="font-size:11px;color:var(--alert);flex-shrink:0">逾期</span>':''}</div>`).join('')}</div>`:'<div class="card"><div style="color:var(--sub);font-size:14px;text-align:center;padding:14px">今日沒有待辦</div></div>');
 
   // 來源分析
-  // Source analysis
-  const sourceMap={'FB':0,'Threads':0,'591':0,'官網':0,'其他':0};
-  const monthSourceMap={'FB':0,'Threads':0,'591':0,'官網':0,'其他':0};
-  allClients.forEach(c=>{const s=(c.source||'其他');if(s in sourceMap)sourceMap[s]++;else sourceMap['其他']++;});
-  monthClients.forEach(c=>{const s=(c.source||'其他');if(s in monthSourceMap)monthSourceMap[s]++;else monthSourceMap['其他']++;});
-  const sourceEntries=Object.entries(sourceMap).filter(e=>e[1]>0).sort((a,b)=>b[1]-a[1]);
-  const monthSourceEntries=Object.entries(monthSourceMap).filter(e=>e[1]>0).sort((a,b)=>b[1]-a[1]);
-  const total=Object.values(sourceMap).reduce((a,b)=>a+b,0);
-  const monthTotal=Object.values(monthSourceMap).reduce((a,b)=>a+b,0);
+  // 獲取所有 2026/6 及以後的月份
+  const allMonths=new Set();
+  allClients.forEach(c=>{
+    const cDate=c.created_at||'';
+    if(cDate>='2026-06-01'){
+      const month=cDate.substring(0,7);
+      allMonths.add(month);
+    }
+  });
+  const sortedMonths=Array.from(allMonths).sort().reverse();
 
-  const renderSourceChart=(entries,total,colors)=>{
+  // 優先顯示當月，如果當月沒資料則顯示最近的月份
+  let selectedMonth=thisMonth;
+  if(!sortedMonths.includes(selectedMonth)){
+    selectedMonth=sortedMonths[0]||thisMonth;
+  }
+
+  const getSourcesByMonth=(month)=>{
+    const monthCts=allClients.filter(c=>{const cDate=c.created_at||'';return cDate.startsWith(month);});
+    const sourceMap={'FB':0,'Threads':0,'591':0,'官網':0,'同事':0,'其他':0};
+    monthCts.forEach(c=>{const s=(c.source||'其他');if(s in sourceMap)sourceMap[s]++;else sourceMap['其他']++;});
+    return Object.entries(sourceMap).filter(e=>e[1]>0).sort((a,b)=>b[1]-a[1]);
+  };
+
+  const renderSourceChart=(entries,colors)=>{
     if(entries.length===0)return '<div style="color:var(--sub);font-size:14px;text-align:center;padding:14px">暫無資料</div>';
+    const total=entries.reduce((sum,e)=>sum+e[1],0);
     const size=120;const radius=size/2;let html=`<div style="display:flex;flex-direction:column;align-items:center;gap:16px">`;
     html+=`<svg viewBox="0 0 ${size} ${size}" style="width:${size}px;height:${size}px">`;
     let currentAngle=0;
@@ -2610,24 +2625,29 @@ function renderHome(){
   };
 
   const colors=['#DCC8B4','#C4A98A','#B58A76','#A67A6A'];
-  if(sourceEntries.length===0 && monthSourceEntries.length===0){
+  if(sortedMonths.length===0){
     setIfExistsHTML('source-analysis','<div style="color:var(--sub);font-size:14px;text-align:center;padding:14px">目前尚無來源分析資料</div>');
   }else{
-    let html=`<div style="display:flex;flex-direction:column;gap:16px"><div style="display:flex;gap:8px;border-bottom:1px solid var(--border);padding-bottom:8px">`;
-    html+=`<button class="source-view-btn" data-source-view="all" style="flex:1;padding:8px;text-align:center;border-bottom:2px solid var(--primary);color:var(--text);background:none;border:none;cursor:pointer;font-size:13px;font-weight:600">全部來源</button>`;
-    html+=`<button class="source-view-btn" data-source-view="month" style="flex:1;padding:8px;text-align:center;border-bottom:2px solid var(--border);color:var(--sub);background:none;border:none;cursor:pointer;font-size:13px;font-weight:600">當月來源</button>`;
-    html+=`</div><div id="source-chart">${renderSourceChart(sourceEntries,total,colors)}</div></div>`;
+    let html=`<div style="display:flex;flex-direction:column;gap:16px"><div style="display:flex;gap:8px;border-bottom:1px solid var(--border);padding-bottom:8px;overflow-x:auto">`;
+    sortedMonths.forEach(m=>{
+      const isActive=m===selectedMonth;
+      html+=`<button class="source-month-btn" data-month="${m}" style="padding:8px 14px;border:none;border-radius:12px;background:${isActive?'var(--primary)':'var(--bg)'};color:${isActive?'var(--text)':'var(--sub)'};cursor:pointer;font-size:13px;font-weight:600;white-space:nowrap">${m}</button>`;
+    });
+    html+=`</div><div id="source-chart">${renderSourceChart(getSourcesByMonth(selectedMonth),colors)}</div></div>`;
     setIfExistsHTML('source-analysis',html);
   }
 
-  document.querySelectorAll('[data-source-view]').forEach(btn=>{
+  document.querySelectorAll('[data-month]').forEach(btn=>{
     btn.addEventListener('click',e=>{
-      const view=e.target.dataset.sourceView;
-      document.querySelectorAll('[data-source-view]').forEach(b=>b.style.borderBottomColor='var(--border)');
-      e.target.style.borderBottomColor='var(--primary)';
-      document.querySelectorAll('[data-source-view]').forEach(b=>b.style.color=b===e.target?'var(--text)':'var(--sub)');
-      const data=view==='all'?allAnalysis:monthAnalysis;
-      document.getElementById('source-list').innerHTML=data.map(({src,cnt,pct})=>`<div style="display:flex;align-items:center;justify-content:space-between"><div style="font-size:14px;font-weight:600">${src}</div><div style="text-align:right"><div style="font-size:15px;font-weight:700;color:var(--primary-dark)">${cnt}</div><div style="font-size:12px;color:var(--sub)">${pct}%</div></div></div>`).join('');
+      const month=e.target.dataset.month;
+      document.querySelectorAll('[data-month]').forEach(b=>{
+        b.style.background='var(--bg)';
+        b.style.color='var(--sub)';
+      });
+      e.target.style.background='var(--primary)';
+      e.target.style.color='var(--text)';
+      const entries=getSourcesByMonth(month);
+      document.getElementById('source-chart').innerHTML=renderSourceChart(entries,colors);
     });
   });
 }
