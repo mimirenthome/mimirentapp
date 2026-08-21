@@ -1217,6 +1217,26 @@ async function initApp(){
   try{ await loadDBFromIDB(); }catch(e){}
   console.log('✓ 已從 IndexedDB 檢查，現在客戶數:', DB.clients.length);
 
+  // ✅ [iOS PWA 修復] 檢查並修復缺失的照片
+  if(DB.clients.length>0){
+    let missingPhotos=0;
+    for(const c of DB.clients){
+      if(c.photos?.length>0){
+        for(const p of c.photos){
+          const exists=localStorage.getItem(`photo_${p.id}`);
+          if(!exists){
+            missingPhotos++;
+            console.warn(`⚠️ 照片 ${p.id} (${c.name}) 在 localStorage 中缺失`);
+          }
+        }
+      }
+    }
+    if(missingPhotos>0){
+      console.warn(`⚠️ 檢測到 ${missingPhotos} 張缺失的照片，這可能是 iOS PWA 隔離問題`);
+      console.warn(`💡 解決方案：使用「備份→導出→導入」功能重新同步照片`);
+    }
+  }
+
   // ✅ 修復缺失的建立日期（用問卷預約日期填補）
   repairCreatedAt();
 
@@ -3329,7 +3349,41 @@ document.addEventListener('DOMContentLoaded',()=>{
         console.log(`  - ${p.id}: ${p.label} (有dataUrl: ${!!p.dataUrl})`);
       });
     };
+
+    // ✅ iOS PWA 照片修復工具
+    window.fixMissingPhotos=async()=>{
+      console.log('🔧 開始掃描缺失的照片...');
+      let missingList=[];
+
+      for(const c of DB.clients){
+        if(c.photos?.length>0){
+          for(const p of c.photos){
+            const hasPhoto=localStorage.getItem(`photo_${p.id}`);
+            if(!hasPhoto){
+              missingList.push({clientName:c.name, photoId:p.id, photoLabel:p.label});
+            }
+          }
+        }
+      }
+
+      if(missingList.length===0){
+        console.log('✅ 所有照片都已存在，無需修復');
+        return;
+      }
+
+      console.log(`⚠️ 發現 ${missingList.length} 張缺失的照片：`);
+      missingList.forEach(item=>{
+        console.log(`  - ${item.clientName}: ${item.photoLabel} (ID: ${item.photoId})`);
+      });
+
+      console.log('💡 修復建議：');
+      console.log('1️⃣ 在電腦瀏覽器中：資料維護 → 導出備份');
+      console.log('2️⃣ 將備份文件傳到手機');
+      console.log('3️⃣ 在手機上：資料維護 → 導入備份');
+      console.log('4️⃣ 導入完成後，所有照片應該會恢復');
+    };
     console.log('💡 輸入 debugPhotos() 查看照片診斷信息');
+    console.log('💡 輸入 fixMissingPhotos() 檢查並修復缺失的照片');
   }, 1000);
 
   checkLogin();
