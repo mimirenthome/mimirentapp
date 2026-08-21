@@ -1138,15 +1138,33 @@ async function importBackup(input){
       DB.tours=backupData.tours||[];
       DB.todos=backupData.todos||[];
 
-      // ✅ 恢復所有照片數據
+      // ✅ 恢復所有照片數據（容忍失敗）
+      let photoCount=0;
+      let failedPhotos=0;
       if(backupData.photos){
         for(const [key,dataUrl] of Object.entries(backupData.photos)){
-          localStorage.setItem(key,dataUrl);
+          try{
+            localStorage.setItem(key,dataUrl);
+            photoCount++;
+          }catch(photoErr){
+            console.warn(`⚠️ 無法恢復照片 ${key}:`,photoErr.message);
+            failedPhotos++;
+          }
         }
       }
 
       saveDB();
-      toast('✅ 備份已導入（包含所有照片）');
+
+      // 根據照片恢復情況給出相應的提示
+      if(photoCount>0&&failedPhotos===0){
+        toast(`✅ 備份已導入（${photoCount} 張照片）`);
+      } else if(photoCount>0&&failedPhotos>0){
+        toast(`✅ 備份已導入（${photoCount} 張照片，${failedPhotos} 張失敗）`);
+        console.warn(`⚠️ 部分照片無法恢復，原因可能是存儲空間不足`);
+      } else {
+        toast('✅ 備份已導入（無照片）');
+      }
+
       renderClients();
       renderHome();
     }catch(err){
