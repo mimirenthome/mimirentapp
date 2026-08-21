@@ -1669,15 +1669,24 @@ function renderCPickList(q){
 
 async function saveClient(){
   const name=document.getElementById('c-name').value.trim();if(!name){showTab('t-basic');alert('請輸入姓名');return;}
-  // ✅ 確保所有照片都被保存到 Supabase Storage + 本地備份
+  // ✅ 確保所有照片都被保存到本地存儲
+  const failedPhotos=[];
   for(const p of uploadedPhotos){
     if(p.dataUrl){
       try{
         await savePhotoToIDB(p.id,p.dataUrl);
+        console.log(`✅ 照片 ${p.id} 已保存 (${(p.dataUrl.length/1024).toFixed(0)}KB)`);
       }catch(err){
-        console.error(`Failed to save photo ${p.id}:`,err);
+        console.error(`❌ 照片 ${p.id} 保存失敗:`,err);
+        failedPhotos.push(p.label);
       }
     }
+  }
+  // 如果有照片保存失敗，警告用戶
+  if(failedPhotos.length>0){
+    console.warn(`⚠️ ${failedPhotos.length} 張照片無法保存: ${failedPhotos.join(', ')}`);
+    toast(`⚠️ ${failedPhotos.length} 張照片保存失敗，請重試`);
+    return;
   }
 
   // ✅ 保存照片的 id、label 和 Supabase 路徑
