@@ -655,6 +655,14 @@ input[type="date"].fi,input[type="time"].fi{width:100%;box-sizing:border-box;}
     </div>
 
     <div style="height:1px;background:var(--border);margin:16px 0 14px"></div>
+
+    <div style="margin-bottom:14px">
+      <div style="font-size:12px;color:var(--text-secondary);margin-bottom:8px">☁️ Supabase 雲同步</div>
+      <button class="btnp" id="btn-sync-supabase" style="width:100%">☁️ 同步所有資料到 Supabase</button>
+      <div id="sync-status" style="font-size:12px;color:var(--sub);text-align:center;margin-top:8px;min-height:20px"></div>
+    </div>
+
+    <div style="height:1px;background:var(--border);margin:16px 0 14px"></div>
     <button class="btno" id="btn-close-data-maintenance" onclick="closeModal('modal-data-maintenance')">關閉</button>
   </div>
 </div>
@@ -799,6 +807,125 @@ async function getPhotoFromSupabase(photoId,clientId){
   }catch(err){
     console.error(`❌ 獲取 Supabase URL 失敗:`,err);
     return null;
+  }
+}
+
+// ✅ 同步單個客戶到 Supabase
+async function syncClientToSupabase(client){
+  if(!supabase){
+    console.warn('⚠️ Supabase 未初始化');
+    return false;
+  }
+
+  try{
+    const {error}=await supabase
+      .from('clients')
+      .upsert(client,'id');
+
+    if(error){
+      console.error(`❌ 客戶 ${client.name} 同步失敗:`,error);
+      return false;
+    }
+
+    console.log(`✅ 客戶 ${client.name} 已同步到 Supabase`);
+    return true;
+  }catch(err){
+    console.error(`❌ 客戶同步異常:`,err);
+    return false;
+  }
+}
+
+// ✅ 同步單個帶看到 Supabase
+async function syncTourToSupabase(tour){
+  if(!supabase){
+    console.warn('⚠️ Supabase 未初始化');
+    return false;
+  }
+
+  try{
+    const {error}=await supabase
+      .from('tours')
+      .upsert(tour,'id');
+
+    if(error){
+      console.error(`❌ 帶看同步失敗:`,error);
+      return false;
+    }
+
+    console.log(`✅ 帶看已同步到 Supabase`);
+    return true;
+  }catch(err){
+    console.error(`❌ 帶看同步異常:`,err);
+    return false;
+  }
+}
+
+// ✅ 同步單個待辦到 Supabase
+async function syncTodoToSupabase(todo){
+  if(!supabase){
+    console.warn('⚠️ Supabase 未初始化');
+    return false;
+  }
+
+  try{
+    const {error}=await supabase
+      .from('todos')
+      .upsert(todo,'id');
+
+    if(error){
+      console.error(`❌ 待辦同步失敗:`,error);
+      return false;
+    }
+
+    console.log(`✅ 待辦已同步到 Supabase`);
+    return true;
+  }catch(err){
+    console.error(`❌ 待辦同步異常:`,err);
+    return false;
+  }
+}
+
+// ✅ 手動同步所有數據到 Supabase
+async function syncAllToSupabase(){
+  if(!supabase){
+    toast('❌ Supabase 未連接');
+    return;
+  }
+
+  const statusEl=document.getElementById('sync-status');
+  statusEl.textContent='🔄 同步中...';
+
+  try{
+    let syncCount=0;
+
+    // 同步所有客戶
+    console.log(`📤 開始同步 ${DB.clients.length} 個客戶...`);
+    for(const client of DB.clients){
+      const success=await syncClientToSupabase(client);
+      if(success)syncCount++;
+    }
+
+    // 同步所有帶看
+    console.log(`📤 開始同步 ${DB.tours.length} 個帶看...`);
+    for(const tour of DB.tours){
+      const success=await syncTourToSupabase(tour);
+      if(success)syncCount++;
+    }
+
+    // 同步所有待辦
+    console.log(`📤 開始同步 ${DB.todos.length} 個待辦...`);
+    for(const todo of DB.todos){
+      const success=await syncTodoToSupabase(todo);
+      if(success)syncCount++;
+    }
+
+    statusEl.textContent=`✅ 已同步 ${syncCount} 筆資料`;
+    toast(`✅ 所有資料已同步到 Supabase！`);
+    console.log(`✅ 同步完成：${syncCount} 筆資料`);
+  }catch(err){
+    console.error('❌ 同步失敗:',err);
+    statusEl.textContent='❌ 同步失敗';
+    toast('❌ 同步失敗，請重試');
   }
 }
 
@@ -1727,6 +1854,9 @@ function bindEvents(){
   document.getElementById('btn-home-data-maintenance').addEventListener('click',()=>{openModal('modal-data-maintenance');});
   document.getElementById('btn-save-now').addEventListener('click',manualSaveNow);
 
+  // ☁️ Supabase 同步功能
+  document.getElementById('btn-sync-supabase').addEventListener('click',syncAllToSupabase);
+
   // Google Drive 認證按鈕
 
   document.getElementById('page-more').addEventListener('click',e=>{const mi=e.target.closest('[data-action]');if(mi)handleAction(mi.dataset.action,mi.dataset);});
@@ -1856,6 +1986,14 @@ async function saveClient(){
       }
     }
   }
+
+  // ✅ 自動同步到 Supabase
+  setTimeout(async()=>{
+    const synced=await syncClientToSupabase(client);
+    if(synced){
+      console.log(`☁️ 客戶已自動同步到 Supabase`);
+    }
+  },500);
 
   try{ await sbUpsertClient(client); }catch(e){  console.warn('Sync failed'); }
 }
