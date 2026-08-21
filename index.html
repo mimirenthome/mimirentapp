@@ -885,6 +885,106 @@ async function syncTodoToSupabase(todo){
   }
 }
 
+// ✅ 刪除 Supabase 中客戶的照片
+async function deletePhotoFromSupabase(photoId,clientId){
+  if(!supabase||!clientId){
+    return false;
+  }
+
+  try{
+    const filePath=`customer_${clientId}/${photoId}.jpg`;
+    const {error}=await supabase.storage
+      .from(SUPABASE_BUCKET)
+      .remove([filePath]);
+
+    if(error){
+      console.warn(`⚠️ 刪除 Supabase 照片失敗:`,error);
+      return false;
+    }
+
+    console.log(`✅ 照片 ${photoId} 已從 Supabase 刪除`);
+    return true;
+  }catch(err){
+    console.error(`❌ 刪除異常:`,err);
+    return false;
+  }
+}
+
+// ✅ 刪除 Supabase 中的客戶
+async function deleteClientFromSupabase(clientId){
+  if(!supabase){
+    return false;
+  }
+
+  try{
+    const {error}=await supabase
+      .from('clients')
+      .delete()
+      .eq('id',clientId);
+
+    if(error){
+      console.warn(`⚠️ 刪除客戶失敗:`,error);
+      return false;
+    }
+
+    console.log(`✅ 客戶已從 Supabase 刪除`);
+    return true;
+  }catch(err){
+    console.error(`❌ 刪除異常:`,err);
+    return false;
+  }
+}
+
+// ✅ 刪除 Supabase 中的帶看
+async function deleteTourFromSupabase(tourId){
+  if(!supabase){
+    return false;
+  }
+
+  try{
+    const {error}=await supabase
+      .from('tours')
+      .delete()
+      .eq('id',tourId);
+
+    if(error){
+      console.warn(`⚠️ 刪除帶看失敗:`,error);
+      return false;
+    }
+
+    console.log(`✅ 帶看已從 Supabase 刪除`);
+    return true;
+  }catch(err){
+    console.error(`❌ 刪除異常:`,err);
+    return false;
+  }
+}
+
+// ✅ 刪除 Supabase 中的待辦
+async function deleteTodoFromSupabase(todoId){
+  if(!supabase){
+    return false;
+  }
+
+  try{
+    const {error}=await supabase
+      .from('todos')
+      .delete()
+      .eq('id',todoId);
+
+    if(error){
+      console.warn(`⚠️ 刪除待辦失敗:`,error);
+      return false;
+    }
+
+    console.log(`✅ 待辦已從 Supabase 刪除`);
+    return true;
+  }catch(err){
+    console.error(`❌ 刪除異常:`,err);
+    return false;
+  }
+}
+
 // ✅ 手動同步所有數據到 Supabase
 async function syncAllToSupabase(){
   if(!supabase){
@@ -1639,11 +1739,17 @@ function bindEvents(){
   document.getElementById('btn-tour-del').addEventListener('click',async()=>{
     if(!currentTourDetailId)return;
     const id=currentTourDetailId;
-    DB.tours=DB.tours.filter(t=>t.id!==id); saveDB();
+    DB.tours=DB.tours.filter(t=>t.id!==id);
+    saveDB();
     closeModal('modal-tour-detail');
     renderCalendar();renderHome();renderRoute();
     toast('帶看已刪除');
-    try{await sbDeleteTour(id);}catch(e){console.warn('Delete sync failed');}
+
+    // ✅ 自動同步刪除到 Supabase
+    setTimeout(async()=>{
+      const deleted=await deleteTourFromSupabase(id);
+      if(deleted)console.log(`☁️ 帶看已從 Supabase 刪除`);
+    },300);
   });
   document.getElementById('btn-tour-edit').addEventListener('click',()=>{
     if(currentTourDetailId){ closeModal('modal-tour-detail'); editTour(currentTourDetailId); }
@@ -2035,11 +2141,25 @@ async function editClient(id){
 async function deleteClient(id){
   const c=DB.clients.find(x=>x.id===id);
   if(c&&c.photos){
+    // 刪除本地照片
     for(const p of c.photos){
       try{ await deletePhotoFromIDB(p.id); }catch(e){  }
+      // ✅ 也刪除 Supabase 中的照片
+      try{ await deletePhotoFromSupabase(p.id,id); }catch(e){  }
     }
   }
-  DB.clients=DB.clients.filter(c=>c.id!==id);saveDB();document.getElementById('detail-page').classList.remove('show');renderClients();renderHome();toast('客戶已刪除');try{await sbDeleteClient(id);}catch(e){console.warn('Delete sync failed');}
+  DB.clients=DB.clients.filter(c=>c.id!==id);
+  saveDB();
+  document.getElementById('detail-page').classList.remove('show');
+  renderClients();
+  renderHome();
+  toast('客戶已刪除');
+
+  // ✅ 自動同步刪除到 Supabase
+  setTimeout(async()=>{
+    const deleted=await deleteClientFromSupabase(id);
+    if(deleted)console.log(`☁️ 客戶已從 Supabase 刪除`);
+  },300);
 }
 
 function autoFillFromRaw(){
@@ -2454,14 +2574,25 @@ async function saveTour(){
     renderCalendar();renderHome();renderRoute();
     toast('帶看已更新 ✓');
     const id=editingTourId; editingTourId=null;
-    try{ await sbFullUpdateTour({id,...data}); }catch(e){  console.warn('Sync failed'); }
+
+    // ✅ 自動同步到 Supabase
+    setTimeout(async()=>{
+      const tour={id,...data};
+      const synced=await syncTourToSupabase(tour);
+      if(synced)console.log(`☁️ 帶看已自動同步到 Supabase`);
+    },300);
   } else {
     const tour={id:Date.now(),...data};
     DB.tours.push(tour);
     saveDB();
     resetTourForm();
     closeModal('modal-tour');renderCalendar();renderHome();renderRoute();toast('帶看行程已新增 ✓');
-    try{ await sbInsertTour(tour); }catch(e){  console.warn('Sync failed'); }
+
+    // ✅ 自動同步到 Supabase
+    setTimeout(async()=>{
+      const synced=await syncTourToSupabase(tour);
+      if(synced)console.log(`☁️ 帶看已自動同步到 Supabase`);
+    },300);
   }
 }
 function resetTourForm(){
@@ -2582,9 +2713,36 @@ function changeClientStatus(clientId){
 
 function todayStr(){const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;}
 function tomStr(){const d=new Date(Date.now()+86400000);return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;}
-async function addTodo(){const text=document.getElementById('todo-input').value.trim();if(!text)return;const cat=document.getElementById('todo-cat').value;const todo={id:Date.now(),text,done:false,date:cat==='today'?todayStr():tomStr()};DB.todos.push(todo);saveDB();document.getElementById('todo-input').value='';renderTodos();renderHome();try{await sbInsertTodo(todo);}catch(e){console.warn('Sync failed');}}
+async function addTodo(){
+  const text=document.getElementById('todo-input').value.trim();
+  if(!text)return;
+  const cat=document.getElementById('todo-cat').value;
+  const todo={id:Date.now(),text,done:false,date:cat==='today'?todayStr():tomStr()};
+  DB.todos.push(todo);
+  saveDB();
+  document.getElementById('todo-input').value='';
+  renderTodos();
+  renderHome();
+
+  // ✅ 自動同步到 Supabase
+  setTimeout(async()=>{
+    const synced=await syncTodoToSupabase(todo);
+    if(synced)console.log(`☁️ 待辦已自動同步到 Supabase`);
+  },300);
+}
 async function toggleTodo(id){const t=DB.todos.find(x=>x.id===id);if(t){t.done=!t.done;saveDB();renderTodos();renderHome();try{await sbUpdateTodo(id,t.done);}catch(e){}}}
-async function deleteTodo(id){DB.todos=DB.todos.filter(t=>t.id!==id);saveDB();renderTodos();renderHome();try{await sbDeleteTodo(id);}catch(e){console.warn('Delete sync failed');}}
+async function deleteTodo(id){
+  DB.todos=DB.todos.filter(t=>t.id!==id);
+  saveDB();
+  renderTodos();
+  renderHome();
+
+  // ✅ 自動同步刪除到 Supabase
+  setTimeout(async()=>{
+    const deleted=await deleteTodoFromSupabase(id);
+    if(deleted)console.log(`☁️ 待辦已從 Supabase 刪除`);
+  },300);
+}
 function renderTodos(){
   const today=todayStr(),tom=tomStr();
   const overdue=DB.todos.filter(t=>!t.done&&t.date<today);const tod=DB.todos.filter(t=>t.date===today);const tmr=DB.todos.filter(t=>t.date===tom);
