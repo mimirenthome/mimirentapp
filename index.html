@@ -716,13 +716,18 @@ async function compressImage(dataUrl,quality=0.7,scale=0.7){
       ctx.drawImage(img,0,0,canvas.width,canvas.height);
       const compressed=canvas.toDataURL('image/jpeg',quality);
 
-      // ✅ 手機上更激進的壓縮：如果超過 1.5MB，繼續壓縮
-      if(compressed.length>1500000){
-        const nextQuality=Math.max(0.4,quality-0.15);
-        const nextScale=Math.max(0.4,scale-0.2);
-        console.log(`⚙️ 圖片仍然過大 (${(compressed.length/1024).toFixed(0)}KB)，嘗試更強壓縮...`);
+      // ✅ iOS PWA 超級激進壓縮：確保不超過 800KB
+      const MAX_SIZE=800*1024;  // iOS PWA limit
+      const isIOSPWA=window.navigator.standalone===true;
+      const targetSize=isIOSPWA?600*1024:1500000;  // iOS PWA 目標 600KB，其他 1.5MB
+
+      if(compressed.length>targetSize){
+        const nextQuality=Math.max(0.3,quality-0.15);
+        const nextScale=Math.max(0.35,scale-0.2);
+        console.log(`⚙️ 圖片過大 (${(compressed.length/1024).toFixed(0)}KB)，嘗試更強壓縮... (品質:${nextQuality.toFixed(2)},縮放:${(nextScale*100).toFixed(0)}%)`);
         resolve(compressImage(dataUrl,nextQuality,nextScale));
       } else {
+        console.log(`✅ 圖片壓縮完成 (${(compressed.length/1024).toFixed(0)}KB)`);
         resolve(compressed);
       }
     };
@@ -743,25 +748,42 @@ async function getPhotoFromSupabase(photoId){
 }
 
 async function savePhotoToIDB(photoId,dataUrl){
-  if(!dataUrl||dataUrl.length>3000000){
-    console.warn('❌ 照片過大');
-    throw new Error('Photo too large');
+  // ✅ iOS PWA 嚴格限制：單個照片最多 800KB，總容量 5MB
+  const MAX_PHOTO_SIZE=800*1024;  // 800KB per photo
+  const MAX_TOTAL_SIZE=5*1024*1024;  // 5MB total (iOS PWA limit)
+
+  if(!dataUrl){
+    throw new Error('No image data');
+  }
+
+  if(dataUrl.length>MAX_PHOTO_SIZE){
+    console.warn(`❌ 照片 ${(dataUrl.length/1024).toFixed(0)}KB 超過限制 (${MAX_PHOTO_SIZE/1024}KB)`);
+    throw new Error(`Photo too large: ${(dataUrl.length/1024).toFixed(0)}KB > ${MAX_PHOTO_SIZE/1024}KB`);
   }
 
   console.log(`💾 保存照片 ${photoId} (${(dataUrl.length/1024).toFixed(0)}KB)...`);
 
-  // 優先存到 localStorage（最可靠）
-  try{
-    localStorage.setItem(`photo_${photoId}`,dataUrl);
-    console.log(`✅ 照片 ${photoId} 已保存到 localStorage`);
-    return;
-  }catch(e){
-    console.warn(`⚠️ localStorage 滿了或失敗:`,e.message);
+  // ⚠️ iOS PWA：優先使用 IndexedDB（比 localStorage 更可靠）
+  // localStorage 在 iOS PWA 中經常失敗或被清空
+  const isIOSPWA=window.navigator.standalone===true;
+  if(isIOSPWA){
+    console.log('📱 檢測到 iOS PWA，優先使用 IndexedDB');
+  }
+
+  // 嘗試 localStorage（為了相容性）
+  if(!isIOSPWA){
+    try{
+      localStorage.setItem(`photo_${photoId}`,dataUrl);
+      console.log(`✅ 照片 ${photoId} 已保存到 localStorage (${(dataUrl.length/1024).toFixed(0)}KB)`);
+      return;
+    }catch(e){
+      console.warn(`⚠️ localStorage 失敗 (${e.message})，嘗試 IndexedDB...`);
+    }
   }
 
   // 回退：IndexedDB
   if(!IDB){
-    console.error(`❌ 無法保存照片 ${photoId} (localStorage 失敗，IndexedDB 不可用)`);
+    console.error(`❌ 無法保存照片 ${photoId} (IndexedDB 不可用)`);
     throw new Error('Storage unavailable');
   }
 
@@ -791,7 +813,40 @@ async function getPhotoFromIDB(photoId){
     try{
       console.log(`🔍 查詢照片 ${photoId}...`);
 
-      // 優先從 localStorage 讀取
+      // ✅ iOS PWA：優先從 IndexedDB 讀取（localStorage 不可靠）
+      const isIOSPWA=window.navigator.standalone===true;
+
+      // 先嘗試 IndexedDB（如果在 iOS PWA）
+      if(isIOSPWA&&IDB){
+        const tx=IDB.transaction('photos','readonly');
+        const store=tx.objectStore('photos');
+        const req=store.get(photoId);
+
+        req.onsuccess=()=>{
+          const photo=req.result;
+          if(photo?.dataUrl){
+            console.log(`✅ 照片 ${photoId} 從 IndexedDB 讀取成功 (${(photo.dataUrl.length/1024).toFixed(0)}KB)`);
+            resolve(photo.dataUrl);
+            return;
+          }
+          // 如果 IndexedDB 沒有，試試 localStorage
+          const localStoragePhoto=localStorage.getItem(`photo_${photoId}`);
+          if(localStoragePhoto){
+            try{
+              const parsed=JSON.parse(localStoragePhoto);
+              resolve(parsed.dataUrl);
+            }catch(e){
+              resolve(localStoragePhoto);
+            }
+          } else {
+            console.warn(`⚠️ 照片 ${photoId} 未找到（兩個存儲位置都沒有）`);
+            resolve(null);
+          }
+        };
+        return;
+      }
+
+      // 非 iOS PWA：優先從 localStorage 讀取
       const localStoragePhoto=localStorage.getItem(`photo_${photoId}`);
       if(localStoragePhoto){
         try{
