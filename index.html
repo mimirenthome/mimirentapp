@@ -1089,11 +1089,21 @@ async function saveDB(){
 
 // 💾 導出備份
 function exportBackup(){
+  // 收集所有照片數據
+  const photos={};
+  for(let i=0;i<localStorage.length;i++){
+    const key=localStorage.key(i);
+    if(key&&key.startsWith('photo_')){
+      photos[key]=localStorage.getItem(key);
+    }
+  }
+
   const backupData={
     timestamp:new Date().toISOString(),
     clients:DB.clients,
     tours:DB.tours,
-    todos:DB.todos
+    todos:DB.todos,
+    photos:photos  // ✅ 包含所有照片數據
   };
   const json=JSON.stringify(backupData,null,2);
   const blob=new Blob([json],{type:'application/json'});
@@ -1103,7 +1113,7 @@ function exportBackup(){
   a.download=`Mimi Rent 備份_${new Date().toISOString().split('T')[0]}.json`;
   a.click();
   URL.revokeObjectURL(url);
-  toast('✅ 備份已導出');
+  toast('✅ 備份已導出（包含所有照片）');
 }
 
 // 導入備份
@@ -1117,8 +1127,16 @@ async function importBackup(input){
       DB.clients=backupData.clients||[];
       DB.tours=backupData.tours||[];
       DB.todos=backupData.todos||[];
+
+      // ✅ 恢復所有照片數據
+      if(backupData.photos){
+        for(const [key,dataUrl] of Object.entries(backupData.photos)){
+          localStorage.setItem(key,dataUrl);
+        }
+      }
+
       saveDB();
-      toast('✅ 備份已導入');
+      toast('✅ 備份已導入（包含所有照片）');
       renderClients();
       renderHome();
     }catch(err){
