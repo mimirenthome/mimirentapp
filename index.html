@@ -213,8 +213,6 @@ input[type="date"].fi,input[type="time"].fi{width:100%;box-sizing:border-box;}
 .empty p{font-size:14px;font-weight:500;margin-top:12px;}
 .chev{opacity:.4;flex-shrink:0;}
 </style>
-<!-- Supabase SDK -->
-<script async src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
 
@@ -810,20 +808,24 @@ async function getPhotoFromSupabase(photoId,clientId){
   }
 }
 
-// ✅ 同步單個客戶到 Supabase
+// ✅ 同步單個客戶到 Supabase（使用 REST API）
 async function syncClientToSupabase(client){
-  if(!supabase){
-    console.warn('⚠️ Supabase 未初始化');
-    return false;
-  }
-
   try{
-    const {error}=await supabase
-      .from('clients')
-      .upsert(client,'id');
+    const response=await fetch(
+      `${SUPABASE_URL}/rest/v1/clients?id=eq.${client.id}`,
+      {
+        method:'POST',
+        headers:{
+          'Content-Type':'application/json',
+          'Authorization':`Bearer ${SUPABASE_KEY}`,
+          'Prefer':'resolution=merge-duplicates,return=minimal'
+        },
+        body:JSON.stringify(client)
+      }
+    );
 
-    if(error){
-      console.error(`❌ 客戶 ${client.name} 同步失敗:`,error);
+    if(!response.ok){
+      console.error(`❌ 客戶 ${client.name} 同步失敗:`,response.status,response.statusText);
       return false;
     }
 
@@ -835,20 +837,24 @@ async function syncClientToSupabase(client){
   }
 }
 
-// ✅ 同步單個帶看到 Supabase
+// ✅ 同步單個帶看到 Supabase（使用 REST API）
 async function syncTourToSupabase(tour){
-  if(!supabase){
-    console.warn('⚠️ Supabase 未初始化');
-    return false;
-  }
-
   try{
-    const {error}=await supabase
-      .from('tours')
-      .upsert(tour,'id');
+    const response=await fetch(
+      `${SUPABASE_URL}/rest/v1/tours?id=eq.${tour.id}`,
+      {
+        method:'POST',
+        headers:{
+          'Content-Type':'application/json',
+          'Authorization':`Bearer ${SUPABASE_KEY}`,
+          'Prefer':'resolution=merge-duplicates,return=minimal'
+        },
+        body:JSON.stringify(tour)
+      }
+    );
 
-    if(error){
-      console.error(`❌ 帶看同步失敗:`,error);
+    if(!response.ok){
+      console.error(`❌ 帶看同步失敗:`,response.status);
       return false;
     }
 
@@ -860,20 +866,24 @@ async function syncTourToSupabase(tour){
   }
 }
 
-// ✅ 同步單個待辦到 Supabase
+// ✅ 同步單個待辦到 Supabase（使用 REST API）
 async function syncTodoToSupabase(todo){
-  if(!supabase){
-    console.warn('⚠️ Supabase 未初始化');
-    return false;
-  }
-
   try{
-    const {error}=await supabase
-      .from('todos')
-      .upsert(todo,'id');
+    const response=await fetch(
+      `${SUPABASE_URL}/rest/v1/todos?id=eq.${todo.id}`,
+      {
+        method:'POST',
+        headers:{
+          'Content-Type':'application/json',
+          'Authorization':`Bearer ${SUPABASE_KEY}`,
+          'Prefer':'resolution=merge-duplicates,return=minimal'
+        },
+        body:JSON.stringify(todo)
+      }
+    );
 
-    if(error){
-      console.error(`❌ 待辦同步失敗:`,error);
+    if(!response.ok){
+      console.error(`❌ 待辦同步失敗:`,response.status);
       return false;
     }
 
@@ -910,20 +920,22 @@ async function deletePhotoFromSupabase(photoId,clientId){
   }
 }
 
-// ✅ 刪除 Supabase 中的客戶
+// ✅ 刪除 Supabase 中的客戶（使用 REST API）
 async function deleteClientFromSupabase(clientId){
-  if(!supabase){
-    return false;
-  }
-
   try{
-    const {error}=await supabase
-      .from('clients')
-      .delete()
-      .eq('id',clientId);
+    const response=await fetch(
+      `${SUPABASE_URL}/rest/v1/clients?id=eq.${clientId}`,
+      {
+        method:'DELETE',
+        headers:{
+          'Authorization':`Bearer ${SUPABASE_KEY}`,
+          'Prefer':'return=minimal'
+        }
+      }
+    );
 
-    if(error){
-      console.warn(`⚠️ 刪除客戶失敗:`,error);
+    if(!response.ok){
+      console.warn(`⚠️ 刪除客戶失敗:`,response.status);
       return false;
     }
 
@@ -935,20 +947,22 @@ async function deleteClientFromSupabase(clientId){
   }
 }
 
-// ✅ 刪除 Supabase 中的帶看
+// ✅ 刪除 Supabase 中的帶看（使用 REST API）
 async function deleteTourFromSupabase(tourId){
-  if(!supabase){
-    return false;
-  }
-
   try{
-    const {error}=await supabase
-      .from('tours')
-      .delete()
-      .eq('id',tourId);
+    const response=await fetch(
+      `${SUPABASE_URL}/rest/v1/tours?id=eq.${tourId}`,
+      {
+        method:'DELETE',
+        headers:{
+          'Authorization':`Bearer ${SUPABASE_KEY}`,
+          'Prefer':'return=minimal'
+        }
+      }
+    );
 
-    if(error){
-      console.warn(`⚠️ 刪除帶看失敗:`,error);
+    if(!response.ok){
+      console.warn(`⚠️ 刪除帶看失敗:`,response.status);
       return false;
     }
 
@@ -960,20 +974,22 @@ async function deleteTourFromSupabase(tourId){
   }
 }
 
-// ✅ 刪除 Supabase 中的待辦
+// ✅ 刪除 Supabase 中的待辦（使用 REST API）
 async function deleteTodoFromSupabase(todoId){
-  if(!supabase){
-    return false;
-  }
-
   try{
-    const {error}=await supabase
-      .from('todos')
-      .delete()
-      .eq('id',todoId);
+    const response=await fetch(
+      `${SUPABASE_URL}/rest/v1/todos?id=eq.${todoId}`,
+      {
+        method:'DELETE',
+        headers:{
+          'Authorization':`Bearer ${SUPABASE_KEY}`,
+          'Prefer':'return=minimal'
+        }
+      }
+    );
 
-    if(error){
-      console.warn(`⚠️ 刪除待辦失敗:`,error);
+    if(!response.ok){
+      console.warn(`⚠️ 刪除待辦失敗:`,response.status);
       return false;
     }
 
@@ -985,17 +1001,9 @@ async function deleteTodoFromSupabase(todoId){
   }
 }
 
-// ✅ 手動同步所有數據到 Supabase
+// ✅ 手動同步所有數據到 Supabase（使用 REST API）
 async function syncAllToSupabase(){
   const statusEl=document.getElementById('sync-status');
-
-  if(!supabase){
-    statusEl.textContent='❌ Supabase 未連接';
-    toast('❌ Supabase 未連接\n請重新整理頁面');
-    console.error('❌ Supabase 客戶端未初始化');
-    return;
-  }
-
   statusEl.textContent='🔄 同步中...';
 
   try{
@@ -1509,24 +1517,8 @@ function manualSaveNow(){
 async function initApp(){
   const now=new Date();calYear=now.getFullYear();calMonth=now.getMonth()+1;calDay=now.getDate();
 
-  // 🔥 初始化 Supabase（等待 SDK 加載）
-  try{
-    // 等待 Supabase SDK 加載（最多 5 秒）
-    let retries=0;
-    while(!window.supabase&&retries<50){
-      await new Promise(r=>setTimeout(r,100));
-      retries++;
-    }
-
-    if(window.supabase&&window.supabase.createClient){
-      supabase=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
-      console.log('✅ Supabase 初始化成功');
-    }else{
-      console.warn('⚠️ Supabase SDK 未加載，功能受限');
-    }
-  }catch(err){
-    console.error('❌ Supabase 初始化失敗:',err);
-  }
+  // 🔥 Supabase REST API 已準備就緒（不需要 SDK）
+  console.log('✅ Supabase REST API 已初始化');
 
   try{ await initIndexedDB(); }catch(e){ console.error('IndexedDB init failed:', e); }
 
