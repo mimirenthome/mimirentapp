@@ -1030,9 +1030,10 @@ async function syncAllToSupabase(){
       if(success)syncCount++;
     }
 
-    statusEl.textContent=`✅ 已同步 ${syncCount} 筆資料`;
-    toast(`✅ 所有資料已同步到 Supabase！`);
-    console.log(`✅ 同步完成：${syncCount} 筆資料`);
+    const totalCount=DB.clients.length+DB.tours.length+DB.todos.length;
+    statusEl.textContent=`✅ 已同步 ${syncCount}/${totalCount} 筆資料`;
+    toast(`✅ 同步完成：${syncCount}/${totalCount} 筆`);
+    console.log(`✅ 同步完成：${syncCount}/${totalCount} 筆資料（${DB.clients.length} 客戶 + ${DB.tours.length} 帶看 + ${DB.todos.length} 待辦）`);
   }catch(err){
     console.error('❌ 同步失敗:',err);
     statusEl.textContent='❌ 同步失敗';
