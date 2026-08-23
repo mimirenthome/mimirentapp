@@ -987,12 +987,15 @@ async function deleteTodoFromSupabase(todoId){
 
 // ✅ 手動同步所有數據到 Supabase
 async function syncAllToSupabase(){
+  const statusEl=document.getElementById('sync-status');
+
   if(!supabase){
-    toast('❌ Supabase 未連接');
+    statusEl.textContent='❌ Supabase 未連接';
+    toast('❌ Supabase 未連接\n請重新整理頁面');
+    console.error('❌ Supabase 客戶端未初始化');
     return;
   }
 
-  const statusEl=document.getElementById('sync-status');
   statusEl.textContent='🔄 同步中...';
 
   try{
@@ -1506,13 +1509,20 @@ function manualSaveNow(){
 async function initApp(){
   const now=new Date();calYear=now.getFullYear();calMonth=now.getMonth()+1;calDay=now.getDate();
 
-  // 🔥 初始化 Supabase
+  // 🔥 初始化 Supabase（等待 SDK 加載）
   try{
+    // 等待 Supabase SDK 加載（最多 5 秒）
+    let retries=0;
+    while(!window.supabase&&retries<50){
+      await new Promise(r=>setTimeout(r,100));
+      retries++;
+    }
+
     if(window.supabase&&window.supabase.createClient){
       supabase=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
       console.log('✅ Supabase 初始化成功');
     }else{
-      console.warn('⚠️ Supabase SDK 未加載');
+      console.warn('⚠️ Supabase SDK 未加載，功能受限');
     }
   }catch(err){
     console.error('❌ Supabase 初始化失敗:',err);
