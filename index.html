@@ -1515,11 +1515,77 @@ function manualSaveNow(){
   },500);
 }
 
+// ✅ 從 Supabase 自動拉取所有數據
+async function loadDataFromSupabase(){
+  try{
+    // 📥 拉取所有客戶
+    const clientsRes=await fetch(
+      `${SUPABASE_URL}/rest/v1/clients`,
+      {
+        headers:{
+          'Authorization':`Bearer ${SUPABASE_KEY}`,
+          'Accept':'application/json'
+        }
+      }
+    );
+    if(clientsRes.ok){
+      const clients=await clientsRes.json();
+      if(clients&&clients.length>0){
+        DB.clients=clients;
+        console.log(`📥 從 Supabase 拉取 ${clients.length} 個客戶`);
+      }
+    }
+
+    // 📥 拉取所有帶看
+    const toursRes=await fetch(
+      `${SUPABASE_URL}/rest/v1/tours`,
+      {
+        headers:{
+          'Authorization':`Bearer ${SUPABASE_KEY}`,
+          'Accept':'application/json'
+        }
+      }
+    );
+    if(toursRes.ok){
+      const tours=await toursRes.json();
+      if(tours&&tours.length>0){
+        DB.tours=tours;
+        console.log(`📥 從 Supabase 拉取 ${tours.length} 個帶看`);
+      }
+    }
+
+    // 📥 拉取所有待辦
+    const todosRes=await fetch(
+      `${SUPABASE_URL}/rest/v1/todos`,
+      {
+        headers:{
+          'Authorization':`Bearer ${SUPABASE_KEY}`,
+          'Accept':'application/json'
+        }
+      }
+    );
+    if(todosRes.ok){
+      const todos=await todosRes.json();
+      if(todos&&todos.length>0){
+        DB.todos=todos;
+        console.log(`📥 從 Supabase 拉取 ${todos.length} 個待辦`);
+      }
+    }
+
+    console.log('✅ 所有數據已從 Supabase 拉取');
+  }catch(err){
+    console.warn('⚠️ Supabase 拉取失敗（使用本地數據）:',err);
+  }
+}
+
 async function initApp(){
   const now=new Date();calYear=now.getFullYear();calMonth=now.getMonth()+1;calDay=now.getDate();
 
   // 🔥 Supabase REST API 已準備就緒（不需要 SDK）
   console.log('✅ Supabase REST API 已初始化');
+
+  // 📥 自動從 Supabase 拉取最新數據
+  await loadDataFromSupabase();
 
   try{ await initIndexedDB(); }catch(e){ console.error('IndexedDB init failed:', e); }
 
