@@ -348,6 +348,7 @@ input[type="date"].fi,input[type="time"].fi{width:100%;box-sizing:border-box;}
     <div class="msec">
       <div class="mi" id="more-deals"><div class="mico" style="background:#E5F2E5"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#4A8A4A" stroke-width="2"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg></div><div style="flex:1"><div class="mlbl">成交紀錄</div><div class="msub">查看所有成交案件</div></div><svg class="chev" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9A8880" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></div>
       <div class="mi" id="more-source-analysis"><div class="mico" style="background:#FFF4E6"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#D98A3A" stroke-width="2"><circle cx="12" cy="12" r="2"/><path d="M12 1v6m0 6v6"/><path d="M4.22 4.22l4.24 4.24m5.08 5.08l4.24 4.24"/><path d="M1 12h6m6 0h6"/><path d="M4.22 19.78l4.24-4.24m5.08-5.08l4.24-4.24"/></svg></div><div style="flex:1"><div class="mlbl">客戶來源分析</div><div class="msub">查看每月客戶來源統計</div></div><svg class="chev" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9A8880" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></div>
+      <div class="mi" id="more-deal-revenue"><div class="mico" style="background:#E8F5E9"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2E7D32" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div><div style="flex:1"><div class="mlbl">成交費用統計</div><div class="msub">按月份・來源查看收入</div></div><svg class="chev" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9A8880" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></div>
     </div>
     <div class="sect">工具</div>
     <div class="msec">
@@ -428,6 +429,7 @@ input[type="date"].fi,input[type="time"].fi{width:100%;box-sizing:border-box;}
       <div class="fg"><label class="fl">備註</label><textarea class="fta" id="c-note" placeholder="其他補充說明…" style="min-height:70px"></textarea></div>
       <div class="fg"><label class="fl">建立日期</label><input class="fi" id="c-created-at" type="date"></div>
       <div class="fg"><label class="fl">成交金額（元）</label><input class="fi" id="c-amount" placeholder="1,500,000" type="text" inputmode="decimal"></div>
+      <div class="fg"><label class="fl">成交日期</label><input class="fi" id="c-deal-date" type="date"></div>
       <button class="btnp" id="btn-next-survey">下一步：填寫問卷 →</button>
     </div>
     <div id="t-survey" style="display:none">
@@ -662,6 +664,17 @@ input[type="date"].fi,input[type="time"].fi{width:100%;box-sizing:border-box;}
 
     <div style="height:1px;background:var(--border);margin:16px 0 14px"></div>
     <button class="btno" id="btn-close-data-maintenance" onclick="closeModal('modal-data-maintenance')">關閉</button>
+  </div>
+</div>
+
+<!-- MODAL: DEAL REVENUE -->
+<div class="modal-wrap" id="modal-deal-revenue">
+  <div class="modal-box">
+    <div class="mhandle"></div>
+    <div class="mtitle">成交費用統計</div>
+    <div style="display:flex;gap:8px;margin-bottom:16px;overflow-x:auto;padding-bottom:8px" id="revenue-month-selector"></div>
+    <div id="deal-revenue-modal" style="min-height:300px"></div>
+    <button class="btno" id="btn-close-deal-revenue">關閉</button>
   </div>
 </div>
 
@@ -1843,6 +1856,101 @@ function bindEvents(){
   document.getElementById('phrase-list').addEventListener('click',e=>{const editBtn=e.target.closest('[data-phrase-edit]');const copyArea=e.target.closest('[data-phrase-copy]');if(editBtn){editPhrase(Number(editBtn.dataset.phraseEdit));return;}if(copyArea)copyPhrase(Number(copyArea.dataset.phraseCopy));});
   document.getElementById('btn-close-deals').addEventListener('click',()=>closeModal('modal-deals'));
   document.getElementById('btn-close-source-analysis').addEventListener('click',()=>closeModal('modal-source-analysis'));
+  document.getElementById('btn-close-deal-revenue').addEventListener('click',()=>closeModal('modal-deal-revenue'));
+  // Deal revenue modal
+  const showDealRevenueModal=()=>{
+    openModal('modal-deal-revenue');
+    const now=new Date();
+    const past12Months=[];
+    for(let i=11;i>=0;i--){
+      const d=new Date(now.getFullYear(),now.getMonth()-i,1);
+      const year=d.getFullYear();
+      const month=String(d.getMonth()+1).padStart(2,'0');
+      const key=year+'-'+month;
+      past12Months.push(key);
+    }
+
+    let selectedRevenueMonth='all';
+    const revenueSelector=document.getElementById('revenue-month-selector');
+    const renderRevenueMonthButtons=()=>{
+      let html='';
+      html+='<button style="padding:8px 12px;background:'+(selectedRevenueMonth==='all'?'var(--primary)':'var(--bg)')+';color:'+(selectedRevenueMonth==='all'?'white':'var(--text)')+';border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit" data-month="all">總結</button>';
+      past12Months.forEach(m=>{
+        const [y,mo]=m.split('-');
+        html+='<button style="padding:8px 12px;background:'+(selectedRevenueMonth===m?'var(--primary)':'var(--bg)')+';color:'+(selectedRevenueMonth===m?'white':'var(--text)')+';border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit" data-month="'+m+'">'+y+'/'+mo+'</button>';
+      });
+      revenueSelector.innerHTML=html;
+      revenueSelector.querySelectorAll('button').forEach(btn=>{
+        btn.addEventListener('click',()=>{
+          selectedRevenueMonth=btn.dataset.month;
+          renderRevenueMonthButtons();
+          renderRevenueAnalysis();
+        });
+      });
+    };
+
+    const renderRevenueAnalysis=()=>{
+      let sourceRevenue={};
+      const allDeals=[];
+
+      DB.clients.forEach(c=>{
+        if(c.status==='已成交'||c.status==='已下定'){
+          const dealDate=c.deal_date||c.created_at||'';
+          const dealMonth=dealDate.substring(0,7);
+          const isMatch=selectedRevenueMonth==='all'||dealMonth===selectedRevenueMonth;
+          if(!isMatch)return;
+
+          const src=c.source||'其他';
+          if(!sourceRevenue[src])sourceRevenue[src]={deals:0,amount:0};
+          sourceRevenue[src].deals++;
+          if(c.amount){
+            sourceRevenue[src].amount+=c.amount;
+          }
+          allDeals.push({source:src,amount:c.amount||0,date:dealDate,name:c.name});
+        }
+      });
+
+      const revenueEntries=Object.entries(sourceRevenue).sort((a,b)=>b[1].amount-a[1].amount);
+      if(revenueEntries.length===0)return'<div style="color:var(--sub);font-size:14px;text-align:center;padding:20px">暫無成交資料</div>';
+
+      const colors=['#DCC8B4','#C4A98A','#B58A76','#A67A6A'];
+      let html=`<div style="padding:20px;display:flex;flex-direction:column;gap:20px">`;
+
+      const totalRevenue=Object.values(sourceRevenue).reduce((sum,v)=>sum+v.amount,0);
+      const totalDeals=Object.values(sourceRevenue).reduce((sum,v)=>sum+v.deals,0);
+      html+=`<div style="background:linear-gradient(135deg,var(--primary) 0%,var(--primary-dark) 100%);color:white;padding:16px;border-radius:8px;text-align:center">
+        <div style="font-size:12px;opacity:0.9">本期成交</div>
+        <div style="font-size:24px;font-weight:800;margin:4px 0">${totalRevenue.toLocaleString()}</div>
+        <div style="font-size:12px;opacity:0.9">共 ${totalDeals} 件</div>
+      </div>`;
+
+      html+=`<div><div style="font-weight:700;margin-bottom:12px;color:var(--text)">💰 成交費用排行</div>`;
+      revenueEntries.forEach((e,i)=>{
+        const src=e[0];const data=e[1];
+        const pct=(data.amount/totalRevenue*100).toFixed(1);
+        const avgAmount=Math.round(data.amount/data.deals);
+        html+=`<div style="display:flex;align-items:center;justify-content:space-between;padding:12px;background:var(--bg);border-radius:6px;margin-bottom:8px">
+          <div style="display:flex;align-items:center;gap:8px">
+            <div style="width:12px;height:12px;background:${colors[i%colors.length]};border-radius:2px"></div>
+            <div>
+              <div style="font-weight:600;color:var(--text)">${src}</div>
+              <div style="font-size:12px;color:var(--sub)">${data.deals} 件</div>
+            </div>
+          </div>
+          <div style="text-align:right">
+            <div style="font-size:15px;font-weight:700;color:var(--primary-dark)">${data.amount.toLocaleString()}</div>
+            <div style="font-size:11px;color:var(--sub)">${pct}% · 均 ${avgAmount.toLocaleString()}</div>
+          </div>
+        </div>`;
+      });
+      html+=`</div></div>`;
+      document.getElementById('deal-revenue-modal').innerHTML=html;
+    };
+
+    renderRevenueMonthButtons();
+    renderRevenueAnalysis();
+  };
+  document.getElementById('more-deal-revenue').addEventListener('click',showDealRevenueModal);
   // Source analysis modal
   const showSourceAnalysisModal=()=>{
     openModal('modal-source-analysis');
@@ -1898,18 +2006,25 @@ function bindEvents(){
       DB.clients.forEach(c=>{
         const cDate=c.created_at||'';
         const cMonth=cDate.substring(0,7);
-        const isMatch=selectedMonth==='all'||cMonth===selectedMonth;
-        if(!isMatch)return;
+        const newClientMatch=selectedMonth==='all'||cMonth===selectedMonth;
 
         const src=c.source||'其他';
-        if(!sourceNewClients[src])sourceNewClients[src]=0;
-        sourceNewClients[src]++;
+        if(newClientMatch){
+          if(!sourceNewClients[src])sourceNewClients[src]=0;
+          sourceNewClients[src]++;
+        }
+
         if(c.status==='已成交'||c.status==='已下定'){
-          if(!sourceDeals[src])sourceDeals[src]=0;
-          sourceDeals[src]++;
-          if(c.amount){
-            if(!sourceDealAmount[src])sourceDealAmount[src]=0;
-            sourceDealAmount[src]+=c.amount;
+          const dealDate=c.deal_date||c.created_at||'';
+          const dealMonth=dealDate.substring(0,7);
+          const dealMatch=selectedMonth==='all'||dealMonth===selectedMonth;
+          if(dealMatch){
+            if(!sourceDeals[src])sourceDeals[src]=0;
+            sourceDeals[src]++;
+            if(c.amount){
+              if(!sourceDealAmount[src])sourceDealAmount[src]=0;
+              sourceDealAmount[src]+=c.amount;
+            }
           }
         }
       });
@@ -2148,7 +2263,7 @@ async function saveClient(){
 
   const viewTimeVal=document.getElementById('s-viewTime').value;const viewTimeStr=viewTimeVal.replace('T',' ');
   const amountStr=document.getElementById('c-amount').value.replace(/,/g,'').trim();const amount=amountStr?parseInt(amountStr):null;
-  const client={id:editingClientId||Date.now(),name,phone:document.getElementById('c-phone').value,job:document.getElementById('c-job').value,source:selectedSource||'官網',status:selectedLabel,avatar:name[0],note:document.getElementById('c-note').value,created_at:document.getElementById('c-created-at').value||new Date().toISOString().split('T')[0],amount,survey:{budget:document.getElementById('s-budget').value,area:document.getElementById('s-area').value,addr:document.getElementById('s-addr').value,size:document.getElementById('s-size').value,types:[...selectedTypes],conds:document.getElementById('s-conds').value,movein:document.getElementById('s-movein').value,viewTime:viewTimeStr,raw:document.getElementById('s-raw').value},photos:photosList};
+  const client={id:editingClientId||Date.now(),name,phone:document.getElementById('c-phone').value,job:document.getElementById('c-job').value,source:selectedSource||'官網',status:selectedLabel,avatar:name[0],note:document.getElementById('c-note').value,created_at:document.getElementById('c-created-at').value||new Date().toISOString().split('T')[0],amount,deal_date:document.getElementById('c-deal-date').value||null,survey:{budget:document.getElementById('s-budget').value,area:document.getElementById('s-area').value,addr:document.getElementById('s-addr').value,size:document.getElementById('s-size').value,types:[...selectedTypes],conds:document.getElementById('s-conds').value,movein:document.getElementById('s-movein').value,viewTime:viewTimeStr,raw:document.getElementById('s-raw').value},photos:photosList};
   if(editingClientId){const idx=DB.clients.findIndex(c=>c.id===editingClientId);if(idx>=0)DB.clients[idx]=client;}else{DB.clients.unshift(client);}
   saveDB();resetClientForm();closeModal('modal-client');document.getElementById('detail-page').classList.remove('show');renderClients();renderHome();toast(editingClientId?'客戶已更新 ✓':'客戶已新增 ✓');
   editingClientId=null;
@@ -2173,7 +2288,7 @@ async function saveClient(){
   try{ await sbUpsertClient(client); }catch(e){  console.warn('Sync failed'); }
 }
 async function resetClientForm(){
-  ['c-name','c-phone','c-job','c-note','s-budget','s-area','s-addr','s-size','s-conds','s-movein','s-viewTime','s-raw','c-amount'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  ['c-name','c-phone','c-job','c-note','s-budget','s-area','s-addr','s-size','s-conds','s-movein','s-viewTime','s-raw','c-amount','c-deal-date'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   document.getElementById('c-created-at').value=new Date().toISOString().split('T')[0];
   document.querySelectorAll('#src-grid .chip').forEach(c=>c.classList.remove('on'));
   document.querySelectorAll('#label-grid .lopt').forEach(l=>l.classList.remove('on'));
@@ -2185,7 +2300,7 @@ async function resetClientForm(){
 }
 async function editClient(id){
   const c=DB.clients.find(x=>x.id===id);if(!c)return;editingClientId=id;
-  document.getElementById('c-name').value=c.name||'';document.getElementById('c-phone').value=c.phone||'';document.getElementById('c-job').value=c.job||'';document.getElementById('c-note').value=c.note||'';document.getElementById('c-created-at').value=c.created_at||new Date().toISOString().split('T')[0];document.getElementById('c-amount').value=c.amount?c.amount.toLocaleString():'';
+  document.getElementById('c-name').value=c.name||'';document.getElementById('c-phone').value=c.phone||'';document.getElementById('c-job').value=c.job||'';document.getElementById('c-note').value=c.note||'';document.getElementById('c-created-at').value=c.created_at||new Date().toISOString().split('T')[0];document.getElementById('c-amount').value=c.amount?c.amount.toLocaleString():'';document.getElementById('c-deal-date').value=c.deal_date||'';
   selectedSource=c.source||'';selectedLabel=c.status||'新客戶';
   document.querySelectorAll('#src-grid .chip').forEach(el=>el.classList.toggle('on',el.dataset.src===c.source));
   document.querySelectorAll('#label-grid .lopt').forEach(el=>el.classList.toggle('on',el.dataset.label===c.status));
