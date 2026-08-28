@@ -1876,14 +1876,24 @@ function bindEvents(){
       past12Months.push(key);
     }
 
-    let selectedRevenueMonth='all';
+    // 預設選擇最近的有成交的月份（優先7月、6月）
+    let selectedRevenueMonth='2026-07';
     const revenueSelector=document.getElementById('revenue-month-selector');
     const renderRevenueMonthButtons=()=>{
       let html='';
-      html+='<button style="padding:8px 12px;background:'+(selectedRevenueMonth==='all'?'var(--primary)':'var(--bg)')+';color:'+(selectedRevenueMonth==='all'?'white':'var(--text)')+';border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit" data-month="all">總結</button>';
-      past12Months.forEach(m=>{
+      html+='<button style="padding:8px 12px;background:'+(selectedRevenueMonth==='all'?'var(--primary)':'var(--bg)')+';color:'+(selectedRevenueMonth==='all'?'white':'var(--text)')+';border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit" data-month="all">全年</button>';
+      // 突出顯示6月和7月
+      const importantMonths=['2026-07','2026-06'];
+      importantMonths.forEach(m=>{
         const [y,mo]=m.split('-');
-        html+='<button style="padding:8px 12px;background:'+(selectedRevenueMonth===m?'var(--primary)':'var(--bg)')+';color:'+(selectedRevenueMonth===m?'white':'var(--text)')+';border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit" data-month="'+m+'">'+y+'/'+mo+'</button>';
+        html+='<button style="padding:8px 12px;background:'+(selectedRevenueMonth===m?'var(--primary)':'#FFF4E6')+';color:'+(selectedRevenueMonth===m?'white':'var(--primary-dark)')+';border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit" data-month="'+m+'">'+y+'/'+mo+'</button>';
+      });
+      html+='<div style="width:1px;background:var(--border)"></div>';
+      past12Months.forEach(m=>{
+        if(m!=='2026-07'&&m!=='2026-06'){
+          const [y,mo]=m.split('-');
+          html+='<button style="padding:8px 12px;background:'+(selectedRevenueMonth===m?'var(--primary)':'var(--bg)')+';color:'+(selectedRevenueMonth===m?'white':'var(--text)')+';border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit" data-month="'+m+'">'+y+'/'+mo+'</button>';
+        }
       });
       revenueSelector.innerHTML=html;
       revenueSelector.querySelectorAll('button').forEach(btn=>{
