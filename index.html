@@ -2369,6 +2369,15 @@ async function editClient(id){
   const c=DB.clients.find(x=>x.id===id);if(!c)return;editingClientId=id;
   document.getElementById('c-name').value=c.name||'';document.getElementById('c-phone').value=c.phone||'';document.getElementById('c-job').value=c.job||'';document.getElementById('c-note').value=c.note||'';document.getElementById('c-created-at').value=c.created_at||new Date().toISOString().split('T')[0];
   window.currentDeals=c.deals||[];
+  // 📅 從行事曆帶入成交紀錄（查找該客人的成交帶看）
+  const dealTours=DB.tours.filter(t=>t.client===c.name&&(t.status==='已成交'||t.status==='已下定'));
+  dealTours.forEach(tour=>{
+    const existDeals=window.currentDeals.filter(d=>d.date===tour.date);
+    if(existDeals.length===0){
+      // 如果還沒有該日期的成交紀錄，自動加入
+      window.currentDeals.push({date:tour.date,amount:0});
+    }
+  });
   renderDealsList();
   selectedSource=c.source||'';selectedLabel=c.status||'新客戶';
   document.querySelectorAll('#src-grid .chip').forEach(el=>el.classList.toggle('on',el.dataset.src===c.source));
