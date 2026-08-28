@@ -3418,28 +3418,18 @@ if(!window.dealListenerAttached){
       return;
     }
 
-    // 新增成交按鈕點擊
+    // 新增成交按鈕點擊 - 打開編輯視窗
     const addBtn=e.target.closest('.add-deal-btn');
     if(addBtn){
       e.stopPropagation();
       const clientId=addBtn.dataset.clientId;
-      const client=DB.clients.find(c=>c.id==clientId);
-      if(!client)return;
-
-      const amount=prompt(`為 ${client.name} 新增成交金額（元）：`);
-      if(amount===null||amount.trim()==='')return;
-
-      const numAmount=parseInt(amount.replace(/,/g,''));
-      if(isNaN(numAmount)||numAmount<=0){
-        toast('請輸入有效的金額');
-        return;
-      }
-
-      // 累加金額
-      client.amount=(client.amount||0)+numAmount;
-      saveDB();
-      renderDeals();
-      toast(`✓ 已新增 ${numAmount.toLocaleString()} 元`);
+      closeModal('modal-deals');
+      setTimeout(()=>{
+        editClient(clientId);
+        showTab('t-basic');
+        document.querySelector('input[id="c-deal-date-input"]')?.focus();
+      },200);
+      return;
     }
   });
 }
