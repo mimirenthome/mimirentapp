@@ -2469,6 +2469,8 @@ function autoFillFromRaw(){
 function renderClients(search){
   const q=(search||document.getElementById('client-search-input').value||'').trim();
   let list=DB.clients;if(currentFilter!=='all')list=list.filter(c=>c.status===currentFilter);if(q)list=list.filter(c=>c.name.includes(q)||(c.phone||'').includes(q));
+  // 按建立日期排序（新到舊）
+  list=list.sort((a,b)=>{const dateA=new Date(a.created_at||0);const dateB=new Date(b.created_at||0);return dateB-dateA;});
   const el=document.getElementById('client-list');
   if(!list.length){el.innerHTML='<div class="empty"><p>沒有符合的客戶</p></div>';return;}
   if(sortingClients){
