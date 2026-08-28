@@ -3417,13 +3417,13 @@ function renderDeals(){
 if(!window.dealListenerAttached){
   window.dealListenerAttached=true;
   document.getElementById('deal-list').addEventListener('click',e=>{
-    // 客人名字點擊 - 跳轉到編輯客戶資料
+    // 客人名字點擊 - 打開客戶詳細資料頁面
     const nameEl=e.target.closest('[data-edit-deal-client]');
     if(nameEl){
       e.stopPropagation();
-      const clientId=nameEl.dataset.editDealClient;
+      const clientId=Number(nameEl.dataset.editDealClient);
       closeModal('modal-deals');
-      setTimeout(()=>editClient(clientId),200);
+      setTimeout(()=>openClientDetail(clientId),200);
       return;
     }
 
