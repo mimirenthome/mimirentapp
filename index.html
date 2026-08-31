@@ -762,8 +762,8 @@ async function compressImage(dataUrl,quality=0.7,scale=0.7){
 
 // ✅ 上傳照片到 Supabase Storage
 async function uploadPhotoToSupabase(photoId,dataUrl,clientId){
-  if(!supabase||!dataUrl){
-    console.warn('❌ Supabase 未初始化或無照片數據');
+  if(!dataUrl){
+    console.warn('❌ 無照片數據');
     return null;
   }
 
@@ -774,27 +774,28 @@ async function uploadPhotoToSupabase(photoId,dataUrl,clientId){
 
     // 上傳到 Supabase：property-images/customer_[客戶ID]/[photoId].jpg
     const filePath=`customer_${clientId}/${photoId}.jpg`;
-    const {data,error}=await supabase.storage
-      .from(SUPABASE_BUCKET)
-      .upload(filePath,blob,{upsert:true});
 
-    if(error){
-      console.error(`❌ Supabase 上傳失敗:`,error);
+    // 使用 REST API 上傳（相容 iOS PWA）
+    const uploadRes=await fetch(
+      `${SUPABASE_URL}/storage/v1/object/${SUPABASE_BUCKET}/${filePath}`,
+      {
+        method:'POST',
+        headers:{
+          'Authorization':`Bearer ${SUPABASE_KEY}`
+        },
+        body:blob
+      }
+    );
+
+    if(!uploadRes.ok){
+      console.error(`❌ Supabase 上傳失敗:`,uploadRes.status);
       return null;
     }
 
-    // 取得公開 URL
-    const {data:publicData}=supabase.storage
-      .from(SUPABASE_BUCKET)
-      .getPublicUrl(filePath);
-
-    const publicUrl=publicData?.publicUrl;
-    if(publicUrl){
-      console.log(`✅ 照片 ${photoId} 已上傳到 Supabase: ${publicUrl}`);
-      return publicUrl;
-    }
-
-    return null;
+    // 公開 URL 格式
+    const publicUrl=`${SUPABASE_URL}/storage/v1/object/public/${SUPABASE_BUCKET}/${filePath}`;
+    console.log(`✅ 照片 ${photoId} 已上傳到 Supabase: ${publicUrl}`);
+    return publicUrl;
   }catch(err){
     console.error(`❌ Supabase 上傳異常:`,err);
     return null;
