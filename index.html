@@ -1792,7 +1792,7 @@ function bindEvents(){
   document.getElementById('type-grid').addEventListener('click',e=>{const c=e.target.closest('[data-type]');if(!c)return;c.classList.toggle('on');const t=c.dataset.type;if(c.classList.contains('on'))selectedTypes.push(t);else selectedTypes=selectedTypes.filter(x=>x!==t);});
   document.getElementById('photo-label-chips').addEventListener('click',e=>{const c=e.target.closest('[data-plabel]');if(!c)return;document.querySelectorAll('#photo-label-chips .chip').forEach(x=>x.classList.remove('on'));c.classList.add('on');currentPhotoLabel=c.dataset.plabel;});
   document.getElementById('upload-zone').addEventListener('click',()=>document.getElementById('photo-input').click());
-  document.getElementById('photo-input').addEventListener('change',async function(){let loadCount=0;const total=this.files.length;Array.from(this.files).forEach(file=>{const r=new FileReader();r.onload=async ev=>{try{const photoId='p_'+Date.now()+'_'+Math.random().toString(36).slice(2);const compressed=await compressImage(ev.target.result);try{await savePhotoToIDB(photoId,compressed);}catch(idbErr){console.warn('IDB save failed, using dataUrl backup',idbErr);}uploadedPhotos.push({id:photoId,label:currentPhotoLabel,dataUrl:compressed});renderPhotoGrid();}catch(err){console.error('Photo upload error',err);toast('圖片上傳失敗');return;}loadCount++;if(loadCount===total)toast(`已上傳 ${total} 張照片 ✓`);};r.readAsDataURL(file);});this.value='';});
+  document.getElementById('photo-input').addEventListener('change',async function(){let loadCount=0;const total=this.files.length;Array.from(this.files).forEach(file=>{const r=new FileReader();r.onload=async ev=>{try{const photoId='p_'+Date.now()+'_'+Math.random().toString(36).slice(2);const compressed=await compressImage(ev.target.result,0.2,0.3);try{await savePhotoToIDB(photoId,compressed);}catch(idbErr){console.warn('⚠️ 本地保存失敗，但照片已加入',idbErr);}uploadedPhotos.push({id:photoId,label:currentPhotoLabel,dataUrl:compressed});renderPhotoGrid();}catch(err){console.error('❌ 照片壓縮失敗',err);toast('圖片無法處理，請試試其他圖片');return;}loadCount++;if(loadCount===total)toast(`✅ 已上傳 ${total} 張照片`);};r.readAsDataURL(file);});this.value='';});
   document.getElementById('client-filter-row').addEventListener('click',e=>{
     // 快速排序
     const quickSortBtn=e.target.closest('#btn-quick-sort');
@@ -2325,11 +2325,10 @@ async function saveClient(){
     }
   }
 
-  // 如果有照片保存失敗，警告用戶
+  // 如果有照片保存失敗，提示但不阻擋客戶保存
   if(failedPhotos.length>0){
-    console.warn(`⚠️ ${failedPhotos.length} 張照片無法保存: ${failedPhotos.join(', ')}`);
-    toast(`⚠️ ${failedPhotos.length} 張照片保存失敗，請重試`);
-    return;
+    console.warn(`⚠️ ${failedPhotos.length} 張照片無法上傳: ${failedPhotos.join(', ')}`);
+    console.warn(`✅ 但客戶資料已保存，照片可稍後重新上傳`);
   }
 
   // ✅ 保存照片的 id、label 和 Supabase URL
