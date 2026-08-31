@@ -2306,9 +2306,9 @@ async function saveClient(){
   for(const p of uploadedPhotos){
     if(p.dataUrl){
       try{
-        // 1️⃣ 先試上傳到 Supabase
+        // 1️⃣ 上傳到 Supabase（REST API）
         let sbUrl=null;
-        if(supabase){
+        if(SUPABASE_URL&&SUPABASE_KEY){
           sbUrl=await uploadPhotoToSupabase(p.id,p.dataUrl,clientId);
         }
 
