@@ -2439,34 +2439,45 @@ async function deleteClient(id){
 function autoFillFromRaw(){
   const raw=document.getElementById('s-raw').value.trim();
   if(!raw){alert('請先貼上客戶問卷');return;}
-  const extract=(pattern)=>{const match=raw.match(pattern);return match?match[1].trim():'';};
+
+  // 更靈活的提取方法 - 支持各種冒號和空格
+  const extractLine=(label)=>{
+    const patterns=[
+      new RegExp(`${label}[\\s：:]*\\n?(.+?)(?:\\n|$)`,'m'),
+      new RegExp(`${label}[\\s：:]*(.+?)(?:\\n|$)`,'m')
+    ];
+    for(const p of patterns){
+      const m=raw.match(p);
+      if(m&&m[1]&&m[1].trim()&&!m[1].includes('：')&&!m[1].includes(':'))return m[1].trim();
+    }
+    return '';
+  };
 
   // 基本資訊
-  const name=extract(/姓名[：:]\s*(.+?)[\n]/)||extract(/姓名[：:]\s*(.+)$/m);
-  const phone=extract(/電話[：:]\s*(.+?)[\n]/)||extract(/電話[：:]\s*(.+)$/m);
-  const job=extract(/職業[：:]\s*(.+?)[\n]/)||extract(/職業[：:]\s*(.+)$/m)||extract(/工作[：:]\s*(.+?)[\n]/)||extract(/工作[：:]\s*(.+)$/m);
+  const name=extractLine('姓名');
+  const phone=extractLine('電話');
+  const job=extractLine('職業')||extractLine('工作');
 
   // 入住時間
-  const movein=extract(/預計入住日期[：:]\s*(.+?)[\n]/)||extract(/預計入住日期[：:]\s*(.+)$/m)||extract(/預計入住[：:]\s*(.+?)[\n]/)||extract(/預計入住[：:]\s*(.+)$/m);
+  const movein=extractLine('預計入住日期')||extractLine('預計入住');
 
   // 看房時間
-  const timeMatch=raw.match(/方便看房日期時間[：:]\s*(.+?)[\n]/)||raw.match(/方便看房日期時間[：:]\s*(.+)$/m)||raw.match(/看屋時間[：:]\s*(.+?)[\n]/)||raw.match(/看屋時間[：:]\s*(.+)$/m);
-  const timeStr=timeMatch?timeMatch[1].trim():'';
+  const timeStr=extractLine('方便看房日期時間')||extractLine('看屋時間');
 
   // 需求條件（加入租期、吸菸/寵物、備註）
   let conds='';
 
   // 租期
-  const rentalMatch=extract(/租期[：:]\s*(.+?)[\n]/)||extract(/租期[：:]\s*(.+)$/m);
-  if(rentalMatch)conds+=`租期: ${rentalMatch}\n`;
+  const rental=extractLine('租期');
+  if(rental)conds+=`租期: ${rental}\n`;
 
   // 是否吸菸/養寵物
-  const smokePetMatch=extract(/是否吸菸[\s\/]*養寵物[：:]\s*(.+?)[\n]/)||extract(/是否吸菸[\s\/]*養寵物[：:]\s*(.+)$/m);
-  if(smokePetMatch)conds+=`${smokePetMatch}\n`;
+  const smokePet=extractLine('是否吸菸')||extractLine('吸菸')|| extractLine('養寵物')||extractLine('寵物');
+  if(smokePet)conds+=`${smokePet}\n`;
 
   // 備註
-  const remarkMatch=extract(/備註[：:]\s*(.+?)[\n]/)||extract(/備註[：:]\s*(.+)$/m);
-  if(remarkMatch)conds+=`${remarkMatch}\n`;
+  const remark=extractLine('備註');
+  if(remark)conds+=`${remark}\n`;
 
   if(name)document.getElementById('c-name').value=name;
   if(phone)document.getElementById('c-phone').value=phone;
@@ -2481,6 +2492,7 @@ function autoFillFromRaw(){
     toast('✓ 問卷資訊已自動填充');
   }else{
     toast('⚠️ 無法解析問卷，請檢查格式');
+    console.log('原始內容：',raw);
   }
 }
 
