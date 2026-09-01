@@ -2440,47 +2440,44 @@ function autoFillFromRaw(){
   const raw=document.getElementById('s-raw').value.trim();
   if(!raw){alert('請先貼上客戶問卷');return;}
   const extract=(pattern)=>{const match=raw.match(pattern);return match?match[1].trim():'';};
+
+  // 基本資訊
   const name=extract(/姓名[：:]\s*(.+?)[\n]/)||extract(/姓名[：:]\s*(.+)$/m);
   const phone=extract(/電話[：:]\s*(.+?)[\n]/)||extract(/電話[：:]\s*(.+)$/m);
   const job=extract(/職業[：:]\s*(.+?)[\n]/)||extract(/職業[：:]\s*(.+)$/m)||extract(/工作[：:]\s*(.+?)[\n]/)||extract(/工作[：:]\s*(.+)$/m);
-  const addr=extract(/物件[：:]\s*(.+?)[\n]/)||extract(/物件[：:]\s*(.+)$/m);
-  const movein=extract(/預計入住[：:]\s*(.+?)[\n]/)||extract(/預計入住[：:]\s*(.+)$/m);
-  const timeMatch=raw.match(/看屋時間[：:]\s*(.+?)[\n]/)||raw.match(/看屋時間[：:]\s*(.+)$/m);
+
+  // 入住時間
+  const movein=extract(/預計入住日期[：:]\s*(.+?)[\n]/)||extract(/預計入住日期[：:]\s*(.+)$/m)||extract(/預計入住[：:]\s*(.+?)[\n]/)||extract(/預計入住[：:]\s*(.+)$/m);
+
+  // 看房時間
+  const timeMatch=raw.match(/方便看房日期時間[：:]\s*(.+?)[\n]/)||raw.match(/方便看房日期時間[：:]\s*(.+)$/m)||raw.match(/看屋時間[：:]\s*(.+?)[\n]/)||raw.match(/看屋時間[：:]\s*(.+)$/m);
   const timeStr=timeMatch?timeMatch[1].trim():'';
-  let details='';
-  // 寵物信息 - 只有「是」才加入
-  const petMatch=raw.match(/是否養寵物[：:]\s*(.+?)[\n]/)||raw.match(/是否養寵物[：:]\s*(.+)$/m);
-  if(petMatch){
-    const petAnswer=petMatch[1].trim().toLowerCase();
-    if(petAnswer.includes('是')||petAnswer.includes('有')){
-      let petEmoji='🐾';
-      if(petAnswer.includes('貓')||petAnswer.includes('cat'))petEmoji='🐱';
-      else if(petAnswer.includes('狗')||petAnswer.includes('dog'))petEmoji='🐶';
-      else if(petAnswer.includes('兔'))petEmoji='🐰';
-      else if(petAnswer.includes('鼠')||petAnswer.includes('鼠寶'))petEmoji='🐭';
-      details+=petEmoji+' 寵物\n';
-    }
-  }
-  // 租補 - 只有「是」才加入
-  const rentMatch=raw.match(/租金補助[：:]\s*(.+?)[\n]/)||raw.match(/租金補助[：:]\s*(.+)$/m)||raw.match(/租補[：:]\s*(.+?)[\n]/)||raw.match(/租補[：:]\s*(.+)$/m);
-  if(rentMatch){
-    const rentAnswer=rentMatch[1].trim().toLowerCase();
-    if(rentAnswer.includes('是')||rentAnswer.includes('有'))details+='💰 租補\n';
-  }
-  // 戶籍 - 只有「是」才加入
-  const hukoMatch=raw.match(/戶籍[：:]\s*(.+?)[\n]/)||raw.match(/戶籍[：:]\s*(.+)$/m);
-  if(hukoMatch){
-    const hukoAnswer=hukoMatch[1].trim().toLowerCase();
-    if(hukoAnswer.includes('是')||hukoAnswer.includes('有'))details+='🏠 戶籍\n';
-  }
+
+  // 需求條件（加入租期、吸菸/寵物、備註）
+  let conds='';
+
+  // 租期
+  const rentalMatch=extract(/租期[：:]\s*(.+?)[\n]/)||extract(/租期[：:]\s*(.+)$/m);
+  if(rentalMatch)conds+=`租期: ${rentalMatch}\n`;
+
+  // 是否吸菸/養寵物
+  const smokePetMatch=extract(/是否吸菸[\s\/]*養寵物[：:]\s*(.+?)[\n]/)||extract(/是否吸菸[\s\/]*養寵物[：:]\s*(.+)$/m);
+  if(smokePetMatch)conds+=`${smokePetMatch}\n`;
+
+  // 備註
+  const remarkMatch=extract(/備註[：:]\s*(.+?)[\n]/)||extract(/備註[：:]\s*(.+)$/m);
+  if(remarkMatch)conds+=`${remarkMatch}\n`;
+
   if(name)document.getElementById('c-name').value=name;
   if(phone)document.getElementById('c-phone').value=phone;
   if(job)document.getElementById('c-job').value=job;
-  if(addr)document.getElementById('s-addr').value=addr;
   if(movein)document.getElementById('s-movein').value=movein;
   if(timeStr){const parsed=parseViewTime(timeStr);if(parsed.date&&parsed.time)document.getElementById('s-viewTime').value=`${parsed.date}T${parsed.time}`;else if(parsed.time)document.getElementById('s-viewTime').value=parsed.time;}
-  if(details)document.getElementById('s-conds').value=details+'\n'+document.getElementById('s-conds').value;
-  if(name||phone||job||addr||movein||timeStr||details){
+  if(conds){
+    const existing=document.getElementById('s-conds').value;
+    document.getElementById('s-conds').value=conds+(existing?'\n'+existing:'');
+  }
+  if(name||phone||job||movein||timeStr||conds){
     toast('✓ 問卷資訊已自動填充');
   }else{
     toast('⚠️ 無法解析問卷，請檢查格式');
