@@ -432,11 +432,7 @@ input[type="date"].fi,input[type="time"].fi{width:100%;box-sizing:border-box;}
       <button class="btnp" id="btn-next-survey">下一步：填寫問卷 →</button>
     </div>
     <div id="t-survey" style="display:none">
-      <div class="fg"><label class="fl">租金預算（元/月）</label><input class="fi" id="s-budget" placeholder="15,000 ~ 20,000" type="text"></div>
-      <div class="fg"><label class="fl">希望地區</label><input class="fi" id="s-area" placeholder="西屯、北屯、南屯" type="text"></div>
       <div class="fg"><label class="fl">物件地址</label><input class="fi" id="s-addr" placeholder="台中市西屯區○○街○號" type="text"></div>
-      <div class="fg"><label class="fl">坪數需求</label><input class="fi" id="s-size" placeholder="20~30坪" type="text"></div>
-      <div class="fg"><label class="fl">房型需求</label><div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:4px" id="type-grid"><div class="chip" data-type="套房">套房</div><div class="chip" data-type="1房">1房</div><div class="chip" data-type="2房">2房</div><div class="chip" data-type="3房">3房</div><div class="chip" data-type="4房+">4房+</div></div></div>
       <div class="fg"><label class="fl">需求條件</label><textarea class="fta" id="s-conds" placeholder="需要電梯、停車位、寵物可…" style="min-height:80px"></textarea></div>
       <div class="fg"><label class="fl">入住時間</label><input class="fi" id="s-movein" placeholder="7月初、越快越好" type="text"></div>
       <div class="fg"><label class="fl">預約看房時間</label><input class="fi" id="s-viewTime" type="datetime-local"></div>
@@ -1789,7 +1785,6 @@ function bindEvents(){
   document.querySelector('#modal-client .tabs').addEventListener('click',e=>{const tab=e.target.closest('.tab');if(tab)showTab(tab.dataset.tab);});
   document.getElementById('src-grid').addEventListener('click',e=>{const c=e.target.closest('[data-src]');if(!c)return;document.querySelectorAll('#src-grid .chip').forEach(x=>x.classList.remove('on'));c.classList.add('on');selectedSource=c.dataset.src;});
   document.getElementById('label-grid').addEventListener('click',e=>{const o=e.target.closest('[data-label]');if(!o)return;document.querySelectorAll('#label-grid .lopt').forEach(x=>x.classList.remove('on'));o.classList.add('on');selectedLabel=o.dataset.label;});
-  document.getElementById('type-grid').addEventListener('click',e=>{const c=e.target.closest('[data-type]');if(!c)return;c.classList.toggle('on');const t=c.dataset.type;if(c.classList.contains('on'))selectedTypes.push(t);else selectedTypes=selectedTypes.filter(x=>x!==t);});
   document.getElementById('photo-label-chips').addEventListener('click',e=>{const c=e.target.closest('[data-plabel]');if(!c)return;document.querySelectorAll('#photo-label-chips .chip').forEach(x=>x.classList.remove('on'));c.classList.add('on');currentPhotoLabel=c.dataset.plabel;});
   document.getElementById('upload-zone').addEventListener('click',()=>document.getElementById('photo-input').click());
   document.getElementById('photo-input').addEventListener('change',async function(){let loadCount=0;const total=this.files.length;Array.from(this.files).forEach(file=>{const r=new FileReader();r.onload=async ev=>{try{const photoId='p_'+Date.now()+'_'+Math.random().toString(36).slice(2);const compressed=await compressImage(ev.target.result,0.2,0.3);try{await savePhotoToIDB(photoId,compressed);}catch(idbErr){console.warn('⚠️ 本地保存失敗，但照片已加入',idbErr);}uploadedPhotos.push({id:photoId,label:currentPhotoLabel,dataUrl:compressed});renderPhotoGrid();}catch(err){console.error('❌ 照片壓縮失敗',err);toast('圖片無法處理，請試試其他圖片');return;}loadCount++;if(loadCount===total)toast(`✅ 已上傳 ${total} 張照片`);};r.readAsDataURL(file);});this.value='';});
@@ -2340,7 +2335,7 @@ async function saveClient(){
 
   const viewTimeVal=document.getElementById('s-viewTime').value;const viewTimeStr=viewTimeVal.replace('T',' ');
   const deals=window.currentDeals||[];
-  const client={id:editingClientId||Date.now(),name,phone:document.getElementById('c-phone').value,job:document.getElementById('c-job').value,source:selectedSource||'官網',status:selectedLabel,avatar:name[0],note:document.getElementById('c-note').value,created_at:document.getElementById('c-created-at').value||new Date().toISOString().split('T')[0],deals,survey:{budget:document.getElementById('s-budget').value,area:document.getElementById('s-area').value,addr:document.getElementById('s-addr').value,size:document.getElementById('s-size').value,types:[...selectedTypes],conds:document.getElementById('s-conds').value,movein:document.getElementById('s-movein').value,viewTime:viewTimeStr,raw:document.getElementById('s-raw').value},photos:photosList};
+  const client={id:editingClientId||Date.now(),name,phone:document.getElementById('c-phone').value,job:document.getElementById('c-job').value,source:selectedSource||'官網',status:selectedLabel,avatar:name[0],note:document.getElementById('c-note').value,created_at:document.getElementById('c-created-at').value||new Date().toISOString().split('T')[0],deals,survey:{addr:document.getElementById('s-addr').value,conds:document.getElementById('s-conds').value,movein:document.getElementById('s-movein').value,viewTime:viewTimeStr,raw:document.getElementById('s-raw').value},photos:photosList};
   if(editingClientId){const idx=DB.clients.findIndex(c=>c.id===editingClientId);if(idx>=0)DB.clients[idx]=client;}else{DB.clients.unshift(client);}
   saveDB();resetClientForm();closeModal('modal-client');document.getElementById('detail-page').classList.remove('show');renderClients();renderHome();toast(editingClientId?'客戶已更新 ✓':'客戶已新增 ✓');
   editingClientId=null;
@@ -2365,7 +2360,7 @@ async function saveClient(){
   try{ await sbUpsertClient(client); }catch(e){  console.warn('Sync failed'); }
 }
 async function resetClientForm(){
-  ['c-name','c-phone','c-job','c-note','s-budget','s-area','s-addr','s-size','s-conds','s-movein','s-viewTime','s-raw','c-deal-date-input','c-deal-amount-input'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  ['c-name','c-phone','c-job','c-note','s-addr','s-conds','s-movein','s-viewTime','s-raw','c-deal-date-input','c-deal-amount-input'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   window.currentDeals=[];
   document.getElementById('c-deals-list').innerHTML='';
   document.getElementById('c-created-at').value=new Date().toISOString().split('T')[0];
@@ -2394,8 +2389,7 @@ async function editClient(id){
   selectedSource=c.source||'';selectedLabel=c.status||'新客戶';
   document.querySelectorAll('#src-grid .chip').forEach(el=>el.classList.toggle('on',el.dataset.src===c.source));
   document.querySelectorAll('#label-grid .lopt').forEach(el=>el.classList.toggle('on',el.dataset.label===c.status));
-  const s=c.survey||{};document.getElementById('s-budget').value=s.budget||'';document.getElementById('s-area').value=s.area||'';document.getElementById('s-addr').value=s.addr||'';document.getElementById('s-size').value=s.size||'';document.getElementById('s-conds').value=s.conds||'';document.getElementById('s-movein').value=s.movein||'';if(s.viewTime)document.getElementById('s-viewTime').value=s.viewTime.replace(' ','T');document.getElementById('s-raw').value=s.raw||'';
-  selectedTypes=[...(s.types||[])];document.querySelectorAll('#type-grid .chip').forEach(el=>el.classList.toggle('on',selectedTypes.includes(el.dataset.type)));
+  const s=c.survey||{};document.getElementById('s-addr').value=s.addr||'';document.getElementById('s-conds').value=s.conds||'';document.getElementById('s-movein').value=s.movein||'';if(s.viewTime)document.getElementById('s-viewTime').value=s.viewTime.replace(' ','T');document.getElementById('s-raw').value=s.raw||'';
   // ✅ 從 DB 讀 id、label 和 Supabase 路徑，並恢復 dataUrl
   uploadedPhotos=(c.photos||[]).map(p=>({id:p.id,label:p.label,sbPath:p.sbPath,sbUrl:p.sbUrl}));
 
