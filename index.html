@@ -3260,6 +3260,23 @@ function parseViewTime(timeStr){
     const timeStr=`${h.toString().padStart(2,'0')}:${min}`;
     return {date:dateStr,time:timeStr};
   }
+  // 嘗試解析「9/2 下午三點」或「9/2 下午3點」格式
+  const chineseTimeMatch=timeStr.match(/(\d{1,2})[\/-](\d{1,2})\s*(上午|下午|晚上)?[\s]*([零一二三四五六七八九]|[0-9]|十)+[\s]*點/);
+  if(chineseTimeMatch){
+    const [,month,day,meridiem,hourStr]=chineseTimeMatch;
+    let hour=0;
+    if(/^[零一二三四五六七八九]/.test(hourStr)||/^10$/.test(hourStr)){
+      const hourMap={'零':0,'一':1,'二':2,'三':3,'四':4,'五':5,'六':6,'七':7,'八':8,'九':9,'十':10};
+      hour=hourMap[hourStr[0]]||parseInt(hourStr);
+    }else{
+      hour=parseInt(hourStr);
+    }
+    if(meridiem&&(meridiem.includes('下午')||meridiem.includes('晚')))hour+=12;
+    const now=new Date();
+    const dateStr=`${now.getFullYear()}-${month.padStart(2,'0')}-${day.padStart(2,'0')}`;
+    const timeStr=`${hour.toString().padStart(2,'0')}:00`;
+    return {date:dateStr,time:timeStr};
+  }
   // 嘗試解析「6/4 15:00」或「6月4日 15:00」格式
   const simpleMatch=timeStr.match(/(\d{1,2})[\/-月](\d{1,2})[日]?\s*(\d{1,2}):(\d{2})/);
   if(simpleMatch){
