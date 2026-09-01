@@ -2442,17 +2442,19 @@ function autoFillFromRaw(){
 
   // 更靈活的提取方法 - 支持各種冒號和空格，以及下一行內容
   const extractLine=(label)=>{
+    // 將特殊字符轉義
+    const escapedLabel=label.replace(/[/\\^$*+?.()|[\]{}]/g,'\\$&');
     // 先試著從同一行提取
     const patterns=[
-      new RegExp(`${label}[\\s：:]*\\n?(.+?)(?:\\n|$)`,'m'),
-      new RegExp(`${label}[\\s：:]*(.+?)(?:\\n|$)`,'m')
+      new RegExp(`${escapedLabel}[\\s：:]*\\n?(.+?)(?:\\n|$)`,'m'),
+      new RegExp(`${escapedLabel}[\\s：:]*(.+?)(?:\\n|$)`,'m')
     ];
     for(const p of patterns){
       const m=raw.match(p);
       if(m&&m[1]&&m[1].trim()&&!m[1].includes('：')&&!m[1].includes(':'))return m[1].trim();
     }
-    // 如果同一行沒有，則試著從下一行提取
-    const nextLinePattern=new RegExp(`${label}[\\s：:]*\\n([^\\n：:]+?)(?:\\n|$)`,'m');
+    // 如果同一行沒有，則試著從下一行提取（跳過空行）
+    const nextLinePattern=new RegExp(`${escapedLabel}[\\s：:]*\\n\\s*([^\\n：:]+?)(?:\\n|$)`,'m');
     const m=raw.match(nextLinePattern);
     if(m&&m[1]&&m[1].trim())return m[1].trim();
     return '';
@@ -2476,8 +2478,9 @@ function autoFillFromRaw(){
   const rental=extractLine('租期');
   if(rental)conds+=`租期: ${rental}\n`;
 
-  // 是否吸菸/養寵物
-  const smokePet=extractLine('是否吸菸')||extractLine('吸菸')|| extractLine('養寵物')||extractLine('寵物');
+  // 是否吸菸/養寵物 - 試多個欄位名稱
+  let smokePet=extractLine('是否吸菸\\s*[\\/]*\\s*養寵物')||extractLine('是否吸菸')||extractLine('吸菸')||extractLine('養寵物')||extractLine('寵物');
+  console.log('🔍 吸菸/寵物提取結果：', smokePet);
   if(smokePet)conds+=`${smokePet}\n`;
 
   // 備註
