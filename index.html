@@ -2440,8 +2440,9 @@ function autoFillFromRaw(){
   const raw=document.getElementById('s-raw').value.trim();
   if(!raw){alert('請先貼上客戶問卷');return;}
 
-  // 更靈活的提取方法 - 支持各種冒號和空格
+  // 更靈活的提取方法 - 支持各種冒號和空格，以及下一行內容
   const extractLine=(label)=>{
+    // 先試著從同一行提取
     const patterns=[
       new RegExp(`${label}[\\s：:]*\\n?(.+?)(?:\\n|$)`,'m'),
       new RegExp(`${label}[\\s：:]*(.+?)(?:\\n|$)`,'m')
@@ -2450,6 +2451,10 @@ function autoFillFromRaw(){
       const m=raw.match(p);
       if(m&&m[1]&&m[1].trim()&&!m[1].includes('：')&&!m[1].includes(':'))return m[1].trim();
     }
+    // 如果同一行沒有，則試著從下一行提取
+    const nextLinePattern=new RegExp(`${label}[\\s：:]*\\n([^\\n：:]+?)(?:\\n|$)`,'m');
+    const m=raw.match(nextLinePattern);
+    if(m&&m[1]&&m[1].trim())return m[1].trim();
     return '';
   };
 
