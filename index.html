@@ -2299,24 +2299,38 @@ async function saveClient(){
   const successPhotos=[];
 
   for(const p of uploadedPhotos){
-    if(p.dataUrl){
+    // 確保有 dataUrl（若沒有，嘗試從 IDB 讀取）
+    let dataUrl=p.dataUrl;
+    if(!dataUrl){
+      try{
+        dataUrl=await getPhotoFromIDB(p.id);
+        console.log(`💾 從 IDB 恢復照片 ${p.id} 的 dataUrl`);
+      }catch(e){
+        console.warn(`⚠️ 無法恢復照片 ${p.id}`,e);
+      }
+    }
+
+    if(dataUrl){
       try{
         // 1️⃣ 上傳到 Supabase（REST API）
         let sbUrl=null;
         if(SUPABASE_URL&&SUPABASE_KEY){
-          sbUrl=await uploadPhotoToSupabase(p.id,p.dataUrl,clientId);
+          sbUrl=await uploadPhotoToSupabase(p.id,dataUrl,clientId);
         }
 
         // 2️⃣ 同時保存到本地（備份）
-        await savePhotoToIDB(p.id,p.dataUrl);
+        await savePhotoToIDB(p.id,dataUrl);
 
         p.sbUrl=sbUrl;  // 保存 Supabase URL
+        p.dataUrl=dataUrl;  // 確保 dataUrl 被保存
         successPhotos.push({...p,sbUrl});
         console.log(`✅ 照片 ${p.id} 已上傳 (Supabase: ${sbUrl?'✅':'⏭️'}, 本地: ✅)`);
       }catch(err){
         console.error(`❌ 照片 ${p.id} 保存失敗:`,err);
         failedPhotos.push(p.label);
       }
+    }else{
+      console.warn(`⚠️ 照片 ${p.id} (${p.label}) 無法保存 - 沒有 dataUrl`);
     }
   }
 
