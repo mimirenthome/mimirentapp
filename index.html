@@ -1524,64 +1524,77 @@ function manualSaveNow(){
   },500);
 }
 
-// ✅ 從 Supabase 自動拉取所有數據
+// ✅ 從 Supabase 自動拉取所有數據（只在本地為空時）
 async function loadDataFromSupabase(){
   try{
+    // 🔒 只在本地為空時才拉取，避免覆蓋新數據
     // 📥 拉取所有客戶
-    const clientsRes=await fetch(
-      `${SUPABASE_URL}/rest/v1/clients`,
-      {
-        headers:{
-          'Authorization':`Bearer ${SUPABASE_KEY}`,
-          'Accept':'application/json'
+    if(!DB.clients||DB.clients.length===0){
+      const clientsRes=await fetch(
+        `${SUPABASE_URL}/rest/v1/clients`,
+        {
+          headers:{
+            'Authorization':`Bearer ${SUPABASE_KEY}`,
+            'Accept':'application/json'
+          }
+        }
+      );
+      if(clientsRes.ok){
+        const clients=await clientsRes.json();
+        if(clients&&clients.length>0){
+          DB.clients=clients;
+          console.log(`📥 從 Supabase 拉取 ${clients.length} 個客戶`);
         }
       }
-    );
-    if(clientsRes.ok){
-      const clients=await clientsRes.json();
-      if(clients&&clients.length>0){
-        DB.clients=clients;
-        console.log(`📥 從 Supabase 拉取 ${clients.length} 個客戶`);
-      }
+    }else{
+      console.log(`✅ 本地已有 ${DB.clients.length} 個客戶，跳過 Supabase 拉取`);
     }
 
     // 📥 拉取所有帶看
-    const toursRes=await fetch(
-      `${SUPABASE_URL}/rest/v1/tours`,
-      {
-        headers:{
-          'Authorization':`Bearer ${SUPABASE_KEY}`,
-          'Accept':'application/json'
+    if(!DB.tours||DB.tours.length===0){
+      const toursRes=await fetch(
+        `${SUPABASE_URL}/rest/v1/tours`,
+        {
+          headers:{
+            'Authorization':`Bearer ${SUPABASE_KEY}`,
+            'Accept':'application/json'
+          }
+        }
+      );
+      if(toursRes.ok){
+        const tours=await toursRes.json();
+        if(tours&&tours.length>0){
+          DB.tours=tours;
+          console.log(`📥 從 Supabase 拉取 ${tours.length} 個帶看`);
         }
       }
-    );
-    if(toursRes.ok){
-      const tours=await toursRes.json();
-      if(tours&&tours.length>0){
-        DB.tours=tours;
-        console.log(`📥 從 Supabase 拉取 ${tours.length} 個帶看`);
-      }
+    }else{
+      console.log(`✅ 本地已有 ${DB.tours.length} 個帶看，跳過 Supabase 拉取`);
     }
 
     // 📥 拉取所有待辦
-    const todosRes=await fetch(
-      `${SUPABASE_URL}/rest/v1/todos`,
-      {
-        headers:{
-          'Authorization':`Bearer ${SUPABASE_KEY}`,
-          'Accept':'application/json'
+    if(!DB.todos||DB.todos.length===0){
+      const todosRes=await fetch(
+        `${SUPABASE_URL}/rest/v1/todos`,
+        {
+          headers:{
+            'Authorization':`Bearer ${SUPABASE_KEY}`,
+            'Accept':'application/json'
+          }
+        }
+      );
+      if(todosRes.ok){
+        const todos=await todosRes.json();
+        if(todos&&todos.length>0){
+          DB.todos=todos;
+          console.log(`📥 從 Supabase 拉取 ${todos.length} 個待辦`);
         }
       }
-    );
-    if(todosRes.ok){
-      const todos=await todosRes.json();
-      if(todos&&todos.length>0){
-        DB.todos=todos;
-        console.log(`📥 從 Supabase 拉取 ${todos.length} 個待辦`);
-      }
+    }else{
+      console.log(`✅ 本地已有 ${DB.todos.length} 個待辦，跳過 Supabase 拉取`);
     }
 
-    console.log('✅ 所有數據已從 Supabase 拉取');
+    console.log('✅ 數據載入完成');
   }catch(err){
     console.warn('⚠️ Supabase 拉取失敗（使用本地數據）:',err);
   }
