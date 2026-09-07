@@ -955,6 +955,7 @@ async function syncClientToSupabase(client){
         method:'POST',
         headers:{
           'Content-Type':'application/json',
+          'apikey':SUPABASE_KEY,
           'Authorization':`Bearer ${SUPABASE_KEY}`,
           'Prefer':'resolution=merge-duplicates,return=minimal'
         },
@@ -991,6 +992,7 @@ async function syncTourToSupabase(tour){
         method:'POST',
         headers:{
           'Content-Type':'application/json',
+          'apikey':SUPABASE_KEY,
           'Authorization':`Bearer ${SUPABASE_KEY}`,
           'Prefer':'resolution=merge-duplicates,return=minimal'
         },
@@ -1024,6 +1026,7 @@ async function syncTodoToSupabase(todo){
         method:'POST',
         headers:{
           'Content-Type':'application/json',
+          'apikey':SUPABASE_KEY,
           'Authorization':`Bearer ${SUPABASE_KEY}`,
           'Prefer':'resolution=merge-duplicates,return=minimal'
         },
