@@ -1123,11 +1123,18 @@ async function syncAllToSupabase(){
   const statusEl=document.getElementById('sync-status');
   statusEl.textContent='🔄 同步中...';
 
+  console.log('\n' + '='.repeat(50));
+  console.log('🔄 開始全量同步...');
+  console.log(`   客戶: ${DB.clients.length}, 帶看: ${DB.tours.length}, 待辦: ${DB.todos.length}`);
+  console.log(`   Supabase URL: ${SUPABASE_URL}`);
+  console.log(`   有 KEY: ${!!SUPABASE_KEY}`);
+  console.log('='.repeat(50));
+
   try{
     let syncCount=0;
 
     // 同步所有客戶
-    console.log(`📤 開始同步 ${DB.clients.length} 個客戶...`);
+    console.log(`\n📤 開始同步 ${DB.clients.length} 個客戶...`);
     for(const client of DB.clients){
       const success=await syncClientToSupabase(client);
       if(success)syncCount++;
@@ -1150,9 +1157,18 @@ async function syncAllToSupabase(){
     const totalCount=DB.clients.length+DB.tours.length+DB.todos.length;
     statusEl.textContent=`✅ 已同步 ${syncCount}/${totalCount} 筆資料`;
     toast(`✅ 同步完成：${syncCount}/${totalCount} 筆`);
-    console.log(`✅ 同步完成：${syncCount}/${totalCount} 筆資料（${DB.clients.length} 客戶 + ${DB.tours.length} 帶看 + ${DB.todos.length} 待辦）`);
+    console.log(`\n✅ 同步完成：${syncCount}/${totalCount} 筆資料`);
+    console.log(`   成功: ${syncCount}, 失敗: ${totalCount-syncCount}`);
+    if(syncCount===0){
+      console.warn(`⚠️ 警告：沒有任何資料被同步成功`);
+      console.warn(`💡 可能原因：`);
+      console.warn(`   1. Supabase 連接失敗（401 Unauthorized）`);
+      console.warn(`   2. 網絡問題`);
+      console.warn(`   3. 查看日誌了解詳細錯誤`);
+    }
   }catch(err){
-    console.error('❌ 同步失敗:',err);
+    console.error('❌ 同步異常:',err.message);
+    console.error('   完整錯誤:',err);
     statusEl.textContent='❌ 同步失敗';
     toast('❌ 同步失敗，請重試');
   }
