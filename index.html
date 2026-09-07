@@ -1679,6 +1679,20 @@ async function importBackup(input){
       DB.tours=backupData.tours||[];
       DB.todos=backupData.todos||[];
 
+      // ✅ 立即清理所有客戶的過時欄位（導入時）
+      const knownFields=['id','name','phone','job','source','status','note','created_at','deals','survey','photos'];
+      let cleanedCount=0;
+      for(const client of DB.clients){
+        const keys=Object.keys(client);
+        for(const key of keys){
+          if(!knownFields.includes(key)){
+            delete client[key];
+            cleanedCount++;
+          }
+        }
+      }
+      console.log(`🧹 導入時清理了 ${cleanedCount} 個過時欄位`);
+
       // ✅ 恢復所有照片數據（容忍失敗）
       let photoCount=0;
       let failedPhotos=0;
