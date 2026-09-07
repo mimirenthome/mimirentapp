@@ -658,6 +658,12 @@ input[type="date"].fi,input[type="time"].fi{width:100%;box-sizing:border-box;}
     </div>
 
     <div style="height:1px;background:var(--border);margin:16px 0 14px"></div>
+
+    <div style="font-size:12px;color:var(--text-secondary);margin-bottom:8px">📝 錯誤診斷</div>
+    <button class="btno" style="width:100%;margin-bottom:8px" onclick="viewLogs()">📋 查看日誌 (所有訊息)</button>
+    <button class="btno" style="width:100%;" onclick="exportLogs()">💾 導出日誌文件</button>
+
+    <div style="height:1px;background:var(--border);margin:16px 0 14px"></div>
     <button class="btno" id="btn-close-data-maintenance" onclick="closeModal('modal-data-maintenance')">關閉</button>
   </div>
 </div>
@@ -688,6 +694,60 @@ input[type="date"].fi,input[type="time"].fi{width:100%;box-sizing:border-box;}
 <script src="https://apis.google.com/js/api.js"></script>
 <script src="https://accounts.google.com/gsi/client"></script>
 <script>
+// ═══════════════════════════════════════════════════════════
+// 📝 全局日誌系統 - 自動記錄所有 console 訊息
+// ═══════════════════════════════════════════════════════════
+const AppLogs=[];
+const MAX_LOGS=1000;
+
+// 攔截 console.log
+const originalLog=console.log;
+console.log=function(...args){
+  originalLog.apply(console,args);
+  const msg=args.map(a=>typeof a==='object'?JSON.stringify(a):String(a)).join(' ');
+  AppLogs.push({time:new Date().toLocaleTimeString('zh-TW'),type:'log',msg});
+  if(AppLogs.length>MAX_LOGS)AppLogs.shift();
+};
+
+// 攔截 console.error
+const originalError=console.error;
+console.error=function(...args){
+  originalError.apply(console,args);
+  const msg=args.map(a=>typeof a==='object'?JSON.stringify(a):String(a)).join(' ');
+  AppLogs.push({time:new Date().toLocaleTimeString('zh-TW'),type:'error',msg});
+  if(AppLogs.length>MAX_LOGS)AppLogs.shift();
+};
+
+// 攔截 console.warn
+const originalWarn=console.warn;
+console.warn=function(...args){
+  originalWarn.apply(console,args);
+  const msg=args.map(a=>typeof a==='object'?JSON.stringify(a):String(a)).join(' ');
+  AppLogs.push({time:new Date().toLocaleTimeString('zh-TW'),type:'warn',msg});
+  if(AppLogs.length>MAX_LOGS)AppLogs.shift();
+};
+
+// 導出日誌函數
+function exportLogs(){
+  const text=AppLogs.map(log=>`[${log.time}] ${log.type.toUpperCase()}: ${log.msg}`).join('\n');
+  const blob=new Blob([text],{type:'text/plain;charset=utf-8'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;
+  a.download=`mimi-logs-${new Date().toISOString().slice(0,10)}.txt`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// 查看日誌函數
+function viewLogs(){
+  const html=`<div style="max-height:400px;overflow-y:auto;font-family:monospace;font-size:12px;line-height:1.4;padding:12px;background:#f5f5f5;border-radius:8px;white-space:pre-wrap;word-break:break-all">${AppLogs.map(log=>`<span style="color:${log.type==='error'?'red':(log.type==='warn'?'orange':'#333')}">[${log.time}] ${log.type.toUpperCase()}: ${log.msg}</span>`).join('<br>')}</div>`;
+  const modal=document.createElement('div');
+  modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px';
+  modal.innerHTML=`<div style="background:white;border-radius:12px;padding:20px;max-width:90%;width:400px;max-height:80vh;display:flex;flex-direction:column;gap:12px">${html}<div style="display:flex;gap:8px"><button onclick="this.closest('div').parentElement.remove()" style="flex:1;padding:10px;background:#ccc;border:none;border-radius:6px;cursor:pointer">關閉</button><button onclick="const text=document.body.textContent;navigator.clipboard.writeText(AppLogs.map(l=>'['+l.time+'] '+l.type.toUpperCase()+': '+l.msg).join('\\n'));alert('已複製');this.closest('div').parentElement.remove()" style="flex:1;padding:10px;background:#4A3F38;color:white;border:none;border-radius:6px;cursor:pointer">複製日誌</button></div></div>`;
+  document.body.appendChild(modal);
+}
+
 let DB={clients:[],tours:[],todos:[]};
 let PHRASES=[];
 let editingClientId=null,editingPhraseId=null,currentFilter='all';
