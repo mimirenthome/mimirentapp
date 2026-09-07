@@ -949,19 +949,15 @@ async function syncClientToSupabase(client){
     console.log(`   URL: ${SUPABASE_URL}/rest/v1/clients`);
     console.log(`   已有 KEY: ${!!SUPABASE_KEY}`);
 
-    // ✅ 只保留 Supabase 實際有的欄位
+    // ✅ 只同步 Supabase 確實存在的基本欄位
     const clientToSync={
       id:client.id,
       name:client.name,
-      phone:client.phone,
-      job:client.job,
-      source:client.source,
-      status:client.status,
-      note:client.note,
-      created_at:client.created_at,
-      deals:client.deals,
-      survey:client.survey,
-      photos:client.photos
+      phone:client.phone||'',
+      source:client.source||'',
+      status:client.status||'新客戶',
+      note:client.note||'',
+      created_at:client.created_at||new Date().toISOString().split('T')[0]
     };
 
     const response=await fetch(
