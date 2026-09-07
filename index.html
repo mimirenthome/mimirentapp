@@ -1174,7 +1174,7 @@ async function deleteTodoFromSupabase(todoId){
 // ✅ 手動同步所有數據到 Supabase（使用 REST API）
 async function syncAllToSupabase(){
   const statusEl=document.getElementById('sync-status');
-  statusEl.textContent='🔄 同步中...';
+  statusEl.textContent='🔄 清理過時欄位中...';
 
   console.log('\n' + '='.repeat(50));
   console.log('🔄 開始全量同步...');
@@ -1182,6 +1182,25 @@ async function syncAllToSupabase(){
   console.log(`   Supabase URL: ${SUPABASE_URL}`);
   console.log(`   有 KEY: ${!!SUPABASE_KEY}`);
   console.log('='.repeat(50));
+
+  // ✅ 清理所有客戶的過時欄位
+  console.log(`\n🧹 正在清理過時欄位...`);
+  const knownFields=['id','name','phone','job','source','status','note','created_at','deals','survey','photos','avatar'];
+  let cleanedCount=0;
+  for(const client of DB.clients){
+    const beforeKeys=Object.keys(client);
+    for(const key of beforeKeys){
+      if(!knownFields.includes(key)){
+        console.log(`   刪除: ${client.name} 中的 ${key}`);
+        delete client[key];
+        cleanedCount++;
+      }
+    }
+  }
+  if(cleanedCount>0){
+    console.log(`✅ 已清理 ${cleanedCount} 個過時欄位`);
+    saveDB();
+  }
 
   try{
     let syncCount=0;
