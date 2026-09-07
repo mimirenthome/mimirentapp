@@ -1747,6 +1747,41 @@ async function initApp(){
   setInterval(updateNextTourCountdown,60000);
 
   // ✅ 自動保存（每30秒保存一次到 Google Drive + 本機）
+  // ✅ 啟動時檢查本地數據是否需要同步到 Supabase
+  console.log(`\n🔄 啟動時同步檢查...\n   本地客戶數: ${DB.clients.length}`);
+  if(DB.clients.length>0){
+    // 定時嘗試同步所有本地客戶到 Supabase
+    let syncAttempts=0;
+    const autoSync=async()=>{
+      if(syncAttempts>0)return; // 只在啟動時執行一次
+      syncAttempts++;
+
+      console.log(`⏳ 正在同步 ${DB.clients.length} 個客戶到 Supabase...`);
+      let successCount=0;
+      let failCount=0;
+
+      for(const client of DB.clients){
+        try{
+          const synced=await syncClientToSupabase(client);
+          if(synced)successCount++;
+          else failCount++;
+        }catch(err){
+          console.error(`❌ 同步客戶「${client.name}」失敗:`,err);
+          failCount++;
+        }
+      }
+
+      console.log(`✅ 同步完成: ${successCount} 成功, ${failCount} 失敗`);
+      if(failCount>0){
+        console.warn(`⚠️ 有 ${failCount} 個客戶未同步，請確保網絡連接良好`);
+        toast(`⚠️ ${failCount} 個客戶未同步`,'warning');
+      }
+    };
+
+    // 延遲 1 秒後執行（讓頁面先加載）
+    setTimeout(autoSync, 1000);
+  }
+
   setInterval(()=>{
     saveDB();
   },30000);
@@ -2413,15 +2448,35 @@ async function saveClient(){
     }
   }
 
-  // ✅ 自動同步到 Supabase
+  // ✅ 自動同步到 Supabase（帶重試機制）
   setTimeout(async()=>{
-    const synced=await syncClientToSupabase(client);
-    if(synced){
-      console.log(`☁️ 客戶已自動同步到 Supabase`);
-    }
-  },500);
+    console.log(`⏳ 開始同步客戶「${client.name}」到 Supabase...`);
+    let retries=0;
+    let synced=false;
 
-  try{ await sbUpsertClient(client); }catch(e){  console.warn('Sync failed'); }
+    while(retries<3&&!synced){
+      try{
+        synced=await syncClientToSupabase(client);
+        if(synced){
+          console.log(`✅ 客戶「${client.name}」已成功同步到 Supabase`);
+          toast(`☁️ 客戶已同步`);
+          return;
+        }
+      }catch(err){
+        console.error(`❌ 同步嘗試 ${retries+1} 失敗:`,err);
+      }
+      retries++;
+      if(retries<3){
+        console.log(`⏳ 2秒後重試... (${retries}/3)`);
+        await new Promise(r=>setTimeout(r,2000));
+      }
+    }
+
+    if(!synced){
+      console.error(`❌ 客戶「${client.name}」同步失敗 3 次，數據已保存本地但未上傳 Supabase`);
+      toast(`⚠️ 同步失敗，數據已保存本地`,'warning');
+    }
+  },300);
 }
 async function resetClientForm(){
   ['c-name','c-phone','c-job','c-note','s-addr','s-conds','s-movein','s-viewTime','s-raw','c-deal-date-input','c-deal-amount-input'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
@@ -3647,7 +3702,7 @@ DB.clients.push(client);imported++;}catch(e){console.warn('Skip row',i,e);}}
 if(imported>0){saveDB();renderClients();renderHome();toast(`✓ 已匯入 ${imported} 位客戶`);}else{toast('⚠️ 未找到有效的客戶資料（請檢查「客戶名稱」欄位）');}
 }catch(err){console.error('匯入錯誤:',err);toast('⚠️ 匯入失敗：'+err.message);}};reader.readAsText(file,'UTF-8');input.value='';}
 
-function toast(msg){const t=document.createElement('div');t.style.cssText='position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:#4A3F38;color:#fff;padding:12px 20px;border-radius:20px;font-size:14px;font-weight:600;z-index:9999;box-shadow:0 4px 16px rgba(0,0,0,.2);white-space:nowrap;pointer-events:none';t.textContent=msg;document.body.appendChild(t);setTimeout(()=>t.remove(),2200);}
+function toast(msg,type='default'){const t=document.createElement('div');const bgColor=type==='warning'?'#D97706':(type==='error'?'#DC2626':'#4A3F38');t.style.cssText=`position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:${bgColor};color:#fff;padding:12px 20px;border-radius:20px;font-size:14px;font-weight:600;z-index:9999;box-shadow:0 4px 16px rgba(0,0,0,.2);white-space:nowrap;pointer-events:none`;t.textContent=msg;document.body.appendChild(t);setTimeout(()=>t.remove(),2200);}
 
 // ── SETTINGS PERSIST ───────────────────────────────────
 function loadSettings(){
