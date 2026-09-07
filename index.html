@@ -741,23 +741,58 @@ function exportLogs(){
 
 // 查看日誌函數
 function viewLogs(){
-  const logContent=AppLogs.length>0
-    ?AppLogs.map(log=>`[${log.time}] ${log.type.toUpperCase()}: ${log.msg}`).join('\n')
-    :'【沒有日誌記錄】\n可能原因：\n1. 剛打開應用，還沒有操作\n2. 刷新頁面\n3. 試著新增客戶並同步\n\n日誌條數: '+AppLogs.length;
+  if(AppLogs.length===0){
+    alert('還沒有日誌\n\n可能原因：\n1. 應用剛打開\n2. 試試重新整理頁面\n3. 試著執行一個操作（新增客戶、同步等）\n\n日誌系統工作中，數據會逐漸增加');
+    return;
+  }
 
-  const html=`<div style="max-height:400px;overflow-y:auto;font-family:monospace;font-size:12px;line-height:1.5;padding:12px;background:#f5f5f5;border-radius:8px;white-space:pre-wrap;word-break:break-word;color:#333">${logContent.replace(/</g,'&lt;').replace(/>/g,'&gt;').split('\n').map((line,i)=>`<div style="color:${line.includes('ERROR')?'red':(line.includes('WARN')?'orange':'#333')}">${line}</div>`).join('')}</div>`;
+  let logText='';
+  for(let i=0;i<AppLogs.length;i++){
+    const log=AppLogs[i];
+    logText+=`[${log.time}] ${log.type.toUpperCase()}: ${log.msg}\n`;
+  }
 
-  const modal=document.createElement('div');
-  modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px';
-  modal.innerHTML=`<div style="background:white;border-radius:12px;padding:20px;max-width:90%;width:400px;max-height:80vh;display:flex;flex-direction:column;gap:12px">
-    <div style="font-weight:bold;font-size:14px">📝 系統日誌 (${AppLogs.length} 條)</div>
-    ${html}
-    <div style="display:flex;gap:8px">
-      <button onclick="this.closest('div').parentElement.remove()" style="flex:1;padding:10px;background:#ccc;border:none;border-radius:6px;cursor:pointer">關閉</button>
-      <button onclick="navigator.clipboard.writeText('${logContent.replace(/'/g,'\\'')}');alert('已複製');this.closest('div').parentElement.remove()" style="flex:1;padding:10px;background:#4A3F38;color:white;border:none;border-radius:6px;cursor:pointer">複製日誌</button>
-    </div>
-  </div>`;
-  document.body.appendChild(modal);
+  const div=document.createElement('div');
+  div.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px';
+
+  const content=document.createElement('div');
+  content.style.cssText='background:white;border-radius:12px;padding:20px;max-width:90vw;width:500px;max-height:70vh;display:flex;flex-direction:column';
+
+  const title=document.createElement('div');
+  title.textContent='📝 系統日誌 ('+AppLogs.length+' 條)';
+  title.style.cssText='font-weight:bold;font-size:14px;margin-bottom:12px';
+  content.appendChild(title);
+
+  const logBox=document.createElement('textarea');
+  logBox.value=logText;
+  logBox.style.cssText='flex:1;font-family:monospace;font-size:11px;padding:10px;background:#f5f5f5;border:1px solid #ddd;border-radius:6px;resize:none';
+  logBox.readOnly=true;
+  content.appendChild(logBox);
+
+  const btnBox=document.createElement('div');
+  btnBox.style.cssText='display:flex;gap:8px;margin-top:12px';
+
+  const closeBtn=document.createElement('button');
+  closeBtn.textContent='關閉';
+  closeBtn.style.cssText='flex:1;padding:10px;background:#ccc;border:none;border-radius:6px;cursor:pointer';
+  closeBtn.onclick=()=>div.remove();
+  btnBox.appendChild(closeBtn);
+
+  const copyBtn=document.createElement('button');
+  copyBtn.textContent='複製日誌';
+  copyBtn.style.cssText='flex:1;padding:10px;background:#4A3F38;color:white;border:none;border-radius:6px;cursor:pointer';
+  copyBtn.onclick=()=>{
+    logBox.select();
+    document.execCommand('copy');
+    alert('已複製日誌');
+    div.remove();
+  };
+  btnBox.appendChild(copyBtn);
+  content.appendChild(btnBox);
+
+  div.appendChild(content);
+  div.onclick=(e)=>{if(e.target===div)div.remove();};
+  document.body.appendChild(div);
 }
 
 console.log('✅ 日誌系統已初始化');
