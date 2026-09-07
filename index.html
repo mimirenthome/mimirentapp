@@ -949,6 +949,12 @@ async function syncClientToSupabase(client){
     console.log(`   URL: ${SUPABASE_URL}/rest/v1/clients`);
     console.log(`   已有 KEY: ${!!SUPABASE_KEY}`);
 
+    // ✅ 清理不必要欄位（Supabase 表不認識的）
+    const clientToSync={...client};
+    delete clientToSync.avatar;  // 本地計算欄
+    delete clientToSync.amount;  // 舊欄位
+    // 保留 deals 陣列
+
     const response=await fetch(
       `${SUPABASE_URL}/rest/v1/clients?id=eq.${client.id}`,
       {
@@ -959,7 +965,7 @@ async function syncClientToSupabase(client){
           'Authorization':`Bearer ${SUPABASE_KEY}`,
           'Prefer':'resolution=merge-duplicates,return=minimal'
         },
-        body:JSON.stringify(client)
+        body:JSON.stringify(clientToSync)
       }
     );
 
