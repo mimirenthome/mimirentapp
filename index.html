@@ -1696,14 +1696,29 @@ async function importBackup(input){
 
       saveDB();
 
+      // ✅ 導入完成後自動同步到 Supabase
+      console.log(`\n🔄 備份導入完成，自動同步 ${DB.clients.length} 個客戶到 Supabase...`);
+      setTimeout(async()=>{
+        let syncCount=0;
+        for(const client of DB.clients){
+          try{
+            const synced=await syncClientToSupabase(client);
+            if(synced)syncCount++;
+          }catch(err){
+            console.error(`❌ 同步失敗:`,err);
+          }
+        }
+        console.log(`✅ 備份導入後同步完成: ${syncCount}/${DB.clients.length}`);
+      },1000);
+
       // 根據照片恢復情況給出相應的提示
       if(photoCount>0&&failedPhotos===0){
-        toast(`✅ 備份已導入（${photoCount} 張照片）`);
+        toast(`✅ 備份已導入（${photoCount} 張照片，已開始同步）`);
       } else if(photoCount>0&&failedPhotos>0){
-        toast(`✅ 備份已導入（${photoCount} 張照片，${failedPhotos} 張失敗）`);
+        toast(`✅ 備份已導入（${photoCount} 張照片，${failedPhotos} 張失敗，已開始同步）`);
         console.warn(`⚠️ 部分照片無法恢復，原因可能是存儲空間不足`);
       } else {
-        toast('✅ 備份已導入（無照片）');
+        toast('✅ 備份已導入（無照片，已開始同步）');
       }
 
       renderClients();
