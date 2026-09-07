@@ -836,6 +836,10 @@ async function getPhotoFromSupabase(photoId,clientId){
 // ✅ 同步單個客戶到 Supabase（使用 REST API）
 async function syncClientToSupabase(client){
   try{
+    console.log(`\n📤 同步客戶: ${client.name} (ID: ${client.id})`);
+    console.log(`   URL: ${SUPABASE_URL}/rest/v1/clients`);
+    console.log(`   已有 KEY: ${!!SUPABASE_KEY}`);
+
     const response=await fetch(
       `${SUPABASE_URL}/rest/v1/clients?id=eq.${client.id}`,
       {
@@ -849,15 +853,21 @@ async function syncClientToSupabase(client){
       }
     );
 
+    console.log(`   回應狀態: ${response.status} ${response.statusText}`);
+
     if(!response.ok){
-      console.error(`❌ 客戶 ${client.name} 同步失敗:`,response.status,response.statusText);
+      const errText=await response.text();
+      console.error(`❌ 客戶 ${client.name} 同步失敗:`);
+      console.error(`   狀態: ${response.status} ${response.statusText}`);
+      console.error(`   回應: ${errText}`);
       return false;
     }
 
     console.log(`✅ 客戶 ${client.name} 已同步到 Supabase`);
     return true;
   }catch(err){
-    console.error(`❌ 客戶同步異常:`,err);
+    console.error(`❌ 客戶同步異常:`,err.message);
+    console.error(`   完整錯誤:`,err);
     return false;
   }
 }
@@ -865,6 +875,7 @@ async function syncClientToSupabase(client){
 // ✅ 同步單個帶看到 Supabase（使用 REST API）
 async function syncTourToSupabase(tour){
   try{
+    console.log(`\n📤 同步帶看: ${tour.client} - ${tour.date} (ID: ${tour.id})`);
     const response=await fetch(
       `${SUPABASE_URL}/rest/v1/tours?id=eq.${tour.id}`,
       {
@@ -878,15 +889,18 @@ async function syncTourToSupabase(tour){
       }
     );
 
+    console.log(`   回應狀態: ${response.status} ${response.statusText}`);
+
     if(!response.ok){
-      console.error(`❌ 帶看同步失敗:`,response.status);
+      const errText=await response.text();
+      console.error(`❌ 帶看同步失敗 (${response.status}): ${errText}`);
       return false;
     }
 
     console.log(`✅ 帶看已同步到 Supabase`);
     return true;
   }catch(err){
-    console.error(`❌ 帶看同步異常:`,err);
+    console.error(`❌ 帶看同步異常:`,err.message);
     return false;
   }
 }
@@ -894,6 +908,7 @@ async function syncTourToSupabase(tour){
 // ✅ 同步單個待辦到 Supabase（使用 REST API）
 async function syncTodoToSupabase(todo){
   try{
+    console.log(`\n📤 同步待辦: ${todo.title} (ID: ${todo.id})`);
     const response=await fetch(
       `${SUPABASE_URL}/rest/v1/todos?id=eq.${todo.id}`,
       {
@@ -907,15 +922,18 @@ async function syncTodoToSupabase(todo){
       }
     );
 
+    console.log(`   回應狀態: ${response.status} ${response.statusText}`);
+
     if(!response.ok){
-      console.error(`❌ 待辦同步失敗:`,response.status);
+      const errText=await response.text();
+      console.error(`❌ 待辦同步失敗 (${response.status}): ${errText}`);
       return false;
     }
 
     console.log(`✅ 待辦已同步到 Supabase`);
     return true;
   }catch(err){
-    console.error(`❌ 待辦同步異常:`,err);
+    console.error(`❌ 待辦同步異常:`,err.message);
     return false;
   }
 }
