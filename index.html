@@ -2753,29 +2753,10 @@ async function deleteClient(id){
   },300);
 }
 
-// ✅ 年齡自動帶入備註
+// ✅ 年齡欄位改變時（暫時不做自動帶入）
 function updateNoteWithAge(){
-  const age=document.getElementById('s-age').value.trim();
-  const note=document.getElementById('c-note');
-
-  if(!age){
-    return;
-  }
-
-  let noteText=note.value.trim();
-
-  // 移除舊的年齡標記（以防重複）
-  noteText=noteText.replace(/\n?年齡：\d+/g,'').trim();
-
-  // 添加新的年齡標記
-  if(noteText){
-    noteText+='\n年齡：'+age;
-  }else{
-    noteText='年齡：'+age;
-  }
-
-  note.value=noteText;
-  console.log(`✅ 已將年齡 ${age} 帶入備註`);
+  // 保留此函數但不做任何操作
+  // 年齡在自動填充時會被提取到年齡欄位
 }
 
 function autoFillFromRaw(){
@@ -2806,6 +2787,7 @@ function autoFillFromRaw(){
   const name=extractLine('姓名');
   const phone=extractLine('電話');
   const job=extractLine('職業')||extractLine('工作');
+  const age=extractLine('年齡')||extractLine('年紀')||extractLine('歲數');
 
   // 入住時間
   const movein=extractLine('預計入住日期')||extractLine('預計入住');
@@ -2832,13 +2814,14 @@ function autoFillFromRaw(){
   if(name)document.getElementById('c-name').value=name;
   if(phone)document.getElementById('c-phone').value=phone;
   if(job)document.getElementById('c-job').value=job;
+  if(age)document.getElementById('s-age').value=age;
   if(movein)document.getElementById('s-movein').value=movein;
   if(timeStr){const parsed=parseViewTime(timeStr);if(parsed.date&&parsed.time)document.getElementById('s-viewTime').value=`${parsed.date}T${parsed.time}`;else if(parsed.time)document.getElementById('s-viewTime').value=parsed.time;}
   if(conds){
     const existing=document.getElementById('s-conds').value;
     document.getElementById('s-conds').value=conds+(existing?'\n'+existing:'');
   }
-  if(name||phone||job||movein||timeStr||conds){
+  if(name||phone||job||age||movein||timeStr||conds){
     toast('✓ 問卷資訊已自動填充');
   }else{
     toast('⚠️ 無法解析問卷，請檢查格式');
