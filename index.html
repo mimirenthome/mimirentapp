@@ -435,6 +435,7 @@ input[type="date"].fi,input[type="time"].fi{width:100%;box-sizing:border-box;}
       <div class="fg"><label class="fl">物件地址</label><input class="fi" id="s-addr" placeholder="台中市西屯區○○街○號" type="text"></div>
       <div class="fg"><label class="fl">需求條件</label><textarea class="fta" id="s-conds" placeholder="需要電梯、停車位、寵物可…" style="min-height:80px"></textarea></div>
       <div class="fg"><label class="fl">入住時間</label><input class="fi" id="s-movein" placeholder="7月初、越快越好" type="text"></div>
+      <div class="fg"><label class="fl">年齡</label><input class="fi" id="s-age" placeholder="例：35" type="text" oninput="updateNoteWithAge()"></div>
       <div class="fg"><label class="fl">預約看房時間</label><input class="fi" id="s-viewTime" type="datetime-local"></div>
       <div class="fg"><label class="fl">自由填寫（貼上原始問卷）</label><textarea class="fta" id="s-raw" style="min-height:140px;font-size:13px;line-height:1.9" placeholder="直接貼上客戶傳來的問卷文字…"></textarea><button class="btno" id="btn-auto-fill" style="margin-top:8px;width:100%">🤖 自動填充問卷資訊</button></div>
       <button class="btnp" id="btn-next-photos">下一步：上傳截圖 →</button>
@@ -2680,7 +2681,7 @@ async function saveClient(){
   },300);
 }
 async function resetClientForm(){
-  ['c-name','c-phone','c-job','c-note','s-addr','s-conds','s-movein','s-viewTime','s-raw','c-deal-date-input','c-deal-amount-input'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  ['c-name','c-phone','c-job','c-note','s-addr','s-conds','s-movein','s-viewTime','s-raw','s-age','c-deal-date-input','c-deal-amount-input'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   window.currentDeals=[];
   document.getElementById('c-deals-list').innerHTML='';
   document.getElementById('c-created-at').value=new Date().toISOString().split('T')[0];
@@ -2710,6 +2711,8 @@ async function editClient(id){
   document.querySelectorAll('#src-grid .chip').forEach(el=>el.classList.toggle('on',el.dataset.src===c.source));
   document.querySelectorAll('#label-grid .lopt').forEach(el=>el.classList.toggle('on',el.dataset.label===c.status));
   const s=c.survey||{};document.getElementById('s-addr').value=s.addr||'';document.getElementById('s-conds').value=s.conds||'';document.getElementById('s-movein').value=s.movein||'';if(s.viewTime)document.getElementById('s-viewTime').value=s.viewTime.replace(' ','T');document.getElementById('s-raw').value=s.raw||'';
+  // ✅ 從備註中提取年齡
+  const noteText=c.note||'';const ageMatch=noteText.match(/年齡：(\d+)/);if(ageMatch){document.getElementById('s-age').value=ageMatch[1];}else{document.getElementById('s-age').value='';};
   // ✅ 從 DB 讀 id、label 和 Supabase 路徑，並恢復 dataUrl
   uploadedPhotos=(c.photos||[]).map(p=>({id:p.id,label:p.label,sbPath:p.sbPath,sbUrl:p.sbUrl}));
 
@@ -2748,6 +2751,31 @@ async function deleteClient(id){
     const deleted=await deleteClientFromSupabase(id);
     if(deleted)console.log(`☁️ 客戶已從 Supabase 刪除`);
   },300);
+}
+
+// ✅ 年齡自動帶入備註
+function updateNoteWithAge(){
+  const age=document.getElementById('s-age').value.trim();
+  const note=document.getElementById('c-note');
+
+  if(!age){
+    return;
+  }
+
+  let noteText=note.value.trim();
+
+  // 移除舊的年齡標記（以防重複）
+  noteText=noteText.replace(/\n?年齡：\d+/g,'').trim();
+
+  // 添加新的年齡標記
+  if(noteText){
+    noteText+='\n年齡：'+age;
+  }else{
+    noteText='年齡：'+age;
+  }
+
+  note.value=noteText;
+  console.log(`✅ 已將年齡 ${age} 帶入備註`);
 }
 
 function autoFillFromRaw(){
