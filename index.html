@@ -952,7 +952,7 @@ async function syncClientToSupabase(client){
 
     // ✅ 只同步 Supabase 表確實有的最基本欄位
     const clientToSync={
-      id:client.id,
+      id:Math.floor(Number(client.id)),
       name:client.name,
       phone:client.phone||null
     };
@@ -994,8 +994,9 @@ async function syncClientToSupabase(client){
 async function syncTourToSupabase(tour){
   try{
     console.log(`\n📤 同步帶看: ${tour.client} - ${tour.date} (ID: ${tour.id})`);
+    const tourToSync={...tour,id:Math.floor(Number(tour.id))};
     const response=await fetch(
-      `${SUPABASE_URL}/rest/v1/tours?id=eq.${tour.id}`,
+      `${SUPABASE_URL}/rest/v1/tours?id=eq.${Math.floor(Number(tour.id))}`,
       {
         method:'POST',
         headers:{
@@ -1004,7 +1005,7 @@ async function syncTourToSupabase(tour){
           'Authorization':`Bearer ${SUPABASE_KEY}`,
           'Prefer':'resolution=merge-duplicates,return=minimal'
         },
-        body:JSON.stringify(tour)
+        body:JSON.stringify(tourToSync)
       }
     );
 
@@ -1028,8 +1029,9 @@ async function syncTourToSupabase(tour){
 async function syncTodoToSupabase(todo){
   try{
     console.log(`\n📤 同步待辦: ${todo.title} (ID: ${todo.id})`);
+    const todoToSync={...todo,id:Math.floor(Number(todo.id))};
     const response=await fetch(
-      `${SUPABASE_URL}/rest/v1/todos?id=eq.${todo.id}`,
+      `${SUPABASE_URL}/rest/v1/todos?id=eq.${Math.floor(Number(todo.id))}`,
       {
         method:'POST',
         headers:{
@@ -1038,7 +1040,7 @@ async function syncTodoToSupabase(todo){
           'Authorization':`Bearer ${SUPABASE_KEY}`,
           'Prefer':'resolution=merge-duplicates,return=minimal'
         },
-        body:JSON.stringify(todo)
+        body:JSON.stringify(todoToSync)
       }
     );
 
