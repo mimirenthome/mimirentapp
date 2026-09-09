@@ -1774,6 +1774,7 @@ async function loadDataFromSupabase(){
         `${SUPABASE_URL}/rest/v1/clients`,
         {
           headers:{
+            'apikey':SUPABASE_KEY,
             'Authorization':`Bearer ${SUPABASE_KEY}`,
             'Accept':'application/json'
           }
@@ -1796,6 +1797,7 @@ async function loadDataFromSupabase(){
         `${SUPABASE_URL}/rest/v1/tours`,
         {
           headers:{
+            'apikey':SUPABASE_KEY,
             'Authorization':`Bearer ${SUPABASE_KEY}`,
             'Accept':'application/json'
           }
@@ -1818,6 +1820,7 @@ async function loadDataFromSupabase(){
         `${SUPABASE_URL}/rest/v1/todos`,
         {
           headers:{
+            'apikey':SUPABASE_KEY,
             'Authorization':`Bearer ${SUPABASE_KEY}`,
             'Accept':'application/json'
           }
