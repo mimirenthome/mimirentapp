@@ -1770,6 +1770,7 @@ async function loadDataFromSupabase(){
     // 🔒 只在本地為空時才拉取，避免覆蓋新數據
     // 📥 拉取所有客戶
     if(!DB.clients||DB.clients.length===0){
+      console.log(`🔄 開始從 Supabase 拉取客戶...`);
       const clientsRes=await fetch(
         `${SUPABASE_URL}/rest/v1/clients`,
         {
@@ -1780,12 +1781,17 @@ async function loadDataFromSupabase(){
           }
         }
       );
+      console.log(`📡 API 回應狀態: ${clientsRes.status}`);
       if(clientsRes.ok){
         const clients=await clientsRes.json();
+        console.log(`📥 Supabase 返回 ${clients.length} 個客戶`);
         if(clients&&clients.length>0){
           DB.clients=clients;
-          console.log(`📥 從 Supabase 拉取 ${clients.length} 個客戶`);
+          console.log(`✅ 已載入 ${clients.length} 個客戶到本地`);
         }
+      }else{
+        const errText=await clientsRes.text();
+        console.error(`❌ API 錯誤 (${clientsRes.status}): ${errText}`);
       }
     }else{
       console.log(`✅ 本地已有 ${DB.clients.length} 個客戶，跳過 Supabase 拉取`);
