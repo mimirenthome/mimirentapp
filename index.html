@@ -314,7 +314,10 @@ input[type="date"].fi,input[type="time"].fi{width:100%;box-sizing:border-box;}
       </div>
       <div class="calgrid" id="cal-grid"></div>
     </div>
-    <div class="sect" id="cal-day-label">今日帶看</div>
+    <div class="sect" style="display:flex;justify-content:space-between;align-items:center">
+      <span id="cal-day-label">今日帶看</span>
+      <button class="actbtn" id="btn-view-map-day" style="font-size:12px;padding:6px 12px;background:var(--primary);border-color:var(--primary);text-decoration:none">查看地圖</button>
+    </div>
     <div class="card" id="cal-day-tours" style="padding:0 2px"></div>
     <div style="margin-top:10px"><button class="btnp" id="btn-add-tour-sched" style="border-radius:14px">+ 新增帶看</button></div>
   </div>
@@ -2145,6 +2148,7 @@ function bindEvents(){
   document.getElementById('cal-prev').addEventListener('click',()=>{calMonth--;if(calMonth<1){calMonth=12;calYear--;}renderCalendar();});
   document.getElementById('cal-next').addEventListener('click',()=>{calMonth++;if(calMonth>12){calMonth=1;calYear++;}renderCalendar();});
   document.getElementById('btn-add-tour-sched').addEventListener('click',()=>{editingTourId=null;resetTourForm();openModal('modal-tour');});
+  document.getElementById('btn-view-map-day').addEventListener('click',()=>{showTab('t-map');});
   document.getElementById('btn-add-todo').addEventListener('click',addTodo);
   document.getElementById('btn-close-todo').addEventListener('click',()=>closeModal('modal-todo'));
   document.getElementById('todo-input').addEventListener('keydown',e=>{if(e.key==='Enter')addTodo();});
