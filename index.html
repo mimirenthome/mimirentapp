@@ -2661,8 +2661,11 @@ async function saveClient(){
 
   const viewTimeVal=document.getElementById('s-viewTime').value;const viewTimeStr=viewTimeVal.replace('T',' ');
   const deals=window.currentDeals||[];
-  const client={id:editingClientId||Date.now(),name,phone:document.getElementById('c-phone').value,job:document.getElementById('c-job').value,source:selectedSource||'官網',status:selectedLabel,avatar:name[0],note:document.getElementById('c-note').value,created_at:document.getElementById('c-created-at').value||new Date().toISOString().split('T')[0],deals,survey:{addr:document.getElementById('s-addr').value,conds:document.getElementById('s-conds').value,movein:document.getElementById('s-movein').value,viewTime:viewTimeStr,raw:document.getElementById('s-raw').value},photos:photosList};
-  if(editingClientId){const idx=DB.clients.findIndex(c=>c.id===editingClientId);if(idx>=0)DB.clients[idx]=client;}else{DB.clients.unshift(client);}
+  let createdAtVal=document.getElementById('c-created-at').value;
+  if(!createdAtVal){createdAtVal=new Date().toISOString();}else if(createdAtVal.length===10){createdAtVal=createdAtVal+'T00:00:00Z';}
+  const client={id:editingClientId||Date.now(),name,phone:document.getElementById('c-phone').value,job:document.getElementById('c-job').value,source:selectedSource||'官網',status:selectedLabel,avatar:name[0],note:document.getElementById('c-note').value,created_at:createdAtVal,deals,survey:{addr:document.getElementById('s-addr').value,conds:document.getElementById('s-conds').value,movein:document.getElementById('s-movein').value,viewTime:viewTimeStr,raw:document.getElementById('s-raw').value},photos:photosList};
+  if(editingClientId){const idx=DB.clients.findIndex(c=>c.id===editingClientId);if(idx>=0)DB.clients[idx]=client;}else{DB.clients.push(client);}
+  DB.clients.sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
   saveDB();resetClientForm();closeModal('modal-client');document.getElementById('detail-page').classList.remove('show');renderClients();renderHome();toast(editingClientId?'客戶已更新 ✓':'客戶已新增 ✓');
   editingClientId=null;
 
