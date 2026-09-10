@@ -806,7 +806,7 @@ let PHRASES=[];
 let editingClientId=null,editingPhraseId=null,currentFilter='all';
 let selectedLabel='新客戶',selectedSource='',selectedTypes=[];
 let currentPhotoLabel='LINE截圖',uploadedPhotos=[];
-let calYear,calMonth,calDay,currentTourDetailId=null,editingTourId=null;
+let calYear,calMonth,calDay,currentTourDetailId=null,editingTourId=null,mapViewDate=null;
 let cpickOpen=false;
 let sortingClients=false,draggedClientId=null;
 
@@ -2177,7 +2177,7 @@ function bindEvents(){
   document.getElementById('cal-prev').addEventListener('click',()=>{calMonth--;if(calMonth<1){calMonth=12;calYear--;}renderCalendar();});
   document.getElementById('cal-next').addEventListener('click',()=>{calMonth++;if(calMonth>12){calMonth=1;calYear++;}renderCalendar();});
   document.getElementById('btn-add-tour-sched').addEventListener('click',()=>{editingTourId=null;resetTourForm();openModal('modal-tour');});
-  document.getElementById('btn-view-map-day').addEventListener('click',()=>{switchPage('map');});
+  document.getElementById('btn-view-map-day').addEventListener('click',()=>{mapViewDate=`${calYear}-${String(calMonth).padStart(2,'0')}-${String(calDay).padStart(2,'0')}`;switchPage('map');renderRoute();});
   document.getElementById('btn-add-todo').addEventListener('click',addTodo);
   document.getElementById('btn-close-todo').addEventListener('click',()=>closeModal('modal-todo'));
   document.getElementById('todo-input').addEventListener('keydown',e=>{if(e.key==='Enter')addTodo();});
@@ -3488,10 +3488,14 @@ function renderDayTours(){
 }
 
 function renderRoute(){
-  const today=todayStr();
-  const list=DB.tours.filter(t=>t.date===today&&t.status!=='取消').sort((a,b)=>(a.time||'').localeCompare(b.time||''));
+  const viewDate=mapViewDate||todayStr();
+  const dateObj=new Date(viewDate+'T00:00:00');
+  const dateLabel=viewDate===todayStr()?'今日':dateObj.toLocaleDateString('zh-TW',{month:'numeric',day:'numeric'});
+  document.querySelectorAll('[id^="page-map"] .sect')[0].textContent=`${dateLabel}帶看地圖`;
+  document.querySelectorAll('[id^="page-map"] .sect')[1].textContent=`${dateLabel}帶看順序`;
+  const list=DB.tours.filter(t=>t.date===viewDate&&t.status!=='取消').sort((a,b)=>(a.time||'').localeCompare(b.time||''));
   const el=document.getElementById('route-list');
-  if(!list.length){el.innerHTML='<div class="empty"><p>今日沒有帶看行程</p></div>';document.getElementById('map-dist').textContent='—';document.getElementById('map-time').textContent='—';clearMap();return;}
+  if(!list.length){el.innerHTML=`<div class="empty"><p>${dateLabel}沒有帶看行程</p></div>`;document.getElementById('map-dist').textContent='—';document.getElementById('map-time').textContent='—';clearMap();return;}
   const totalDist=list.reduce((sum,t)=>(sum+(t.distance||0)),0);
   document.getElementById('map-dist').textContent=(totalDist/1000).toFixed(1);
   document.getElementById('map-time').textContent=list.length*15;
