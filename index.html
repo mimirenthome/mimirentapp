@@ -1567,6 +1567,9 @@ function loadDB(){
   try{const saved=localStorage.getItem('mimi_db');if(saved){DB=JSON.parse(saved);}}catch(e){}
   try{const saved=localStorage.getItem('mimi_phrases');if(saved){PHRASES=JSON.parse(saved);}}catch(e){}
   if(!DB.clients)DB.clients=[];if(!DB.tours)DB.tours=[];if(!DB.todos)DB.todos=[];
+  if(DB.clients.length>0){
+    DB.clients.sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
+  }
 }
 async function loadDBFromIDB(){
   if(!IDB)return;
@@ -4365,6 +4368,7 @@ async function doLogin(){
     DB.tours=[];
     DB.todos=[];
     await loadDataFromSupabase();
+    saveDB();
     renderClients();
     renderHome();
   } else {
