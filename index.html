@@ -1783,11 +1783,13 @@ async function loadDataFromSupabase(){
       );
       console.log(`📡 API 回應狀態: ${clientsRes.status}`);
       if(clientsRes.ok){
-        const clients=await clientsRes.json();
+        let clients=await clientsRes.json();
         console.log(`📥 Supabase 返回 ${clients.length} 個客戶`);
         if(clients&&clients.length>0){
+          // 按 created_at 從新到舊排列
+          clients.sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
           DB.clients=clients;
-          console.log(`✅ 已載入 ${clients.length} 個客戶到本地`);
+          console.log(`✅ 已載入 ${clients.length} 個客戶到本地（已排序）`);
         }
       }else{
         const errText=await clientsRes.text();
