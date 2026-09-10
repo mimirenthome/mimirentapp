@@ -2148,7 +2148,7 @@ function bindEvents(){
   document.getElementById('cal-prev').addEventListener('click',()=>{calMonth--;if(calMonth<1){calMonth=12;calYear--;}renderCalendar();});
   document.getElementById('cal-next').addEventListener('click',()=>{calMonth++;if(calMonth>12){calMonth=1;calYear++;}renderCalendar();});
   document.getElementById('btn-add-tour-sched').addEventListener('click',()=>{editingTourId=null;resetTourForm();openModal('modal-tour');});
-  document.getElementById('btn-view-map-day').addEventListener('click',()=>{showTab('t-map');});
+  document.getElementById('btn-view-map-day').addEventListener('click',()=>{switchPage('map');});
   document.getElementById('btn-add-todo').addEventListener('click',addTodo);
   document.getElementById('btn-close-todo').addEventListener('click',()=>closeModal('modal-todo'));
   document.getElementById('todo-input').addEventListener('keydown',e=>{if(e.key==='Enter')addTodo();});
