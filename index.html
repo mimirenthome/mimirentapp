@@ -2014,14 +2014,29 @@ async function initApp(){
     setTimeout(autoSync, 1000);
   }
 
+  // 🔄 自動保存：每 10 秒檢查一次是否有未保存的改動
+  let lastSaveStr='';
   setInterval(()=>{
-    saveDB();
-  },30000);
+    const currentStr=JSON.stringify(DB);
+    if(currentStr!==lastSaveStr){
+      saveDB();
+      lastSaveStr=currentStr;
+      console.log('✓ 自動保存檢測到改動');
+    }
+  },10000);
 
   // ✅ 頁面關閉時強制保存（確保不丟資料）
   window.addEventListener('beforeunload',()=>{
     saveDB();
     console.log('✓ 頁面關閉前已保存資料');
+  });
+
+  // ✅ 頁面可見性變更時保存（標籤頁切換）
+  document.addEventListener('visibilitychange',()=>{
+    if(document.hidden){
+      saveDB();
+      console.log('✓ 頁面隱藏時已保存資料');
+    }
   });
 }
 
