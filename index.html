@@ -4397,7 +4397,22 @@ async function doLogin(){
     document.getElementById('login-screen').style.display='none';
     errMsg.style.display='none';
     console.log('✅ 登入成功');
-    loadDB();
+
+    // 優先級：localStorage > Supabase
+    const localData=JSON.parse(localStorage.getItem('mimi_db')||'{}');
+    if(localData.clients&&localData.clients.length>0){
+      console.log('✅ 使用本地數據');
+      loadDB();
+    } else {
+      console.log('📥 本地無數據，從 Supabase 拉取...');
+      await loadDataFromSupabase();
+      loadDB();
+      if(DB.clients.length===0){
+        console.warn('⚠️ Supabase 也無數據，請導入備份');
+        alert('首次登入，請導入備份文件');
+      }
+    }
+
     renderClients();
     renderHome();
   } else {
