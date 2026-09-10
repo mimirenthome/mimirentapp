@@ -1716,29 +1716,32 @@ async function importBackup(input){
 
       saveDB();
 
-      // ✅ 導入完成後自動同步到 Supabase
-      console.log(`\n🔄 備份導入完成，自動同步 ${DB.clients.length} 個客戶到 Supabase...`);
-      setTimeout(async()=>{
-        let syncCount=0;
-        for(const client of DB.clients){
-          try{
-            const synced=await syncClientToSupabase(client);
-            if(synced)syncCount++;
-          }catch(err){
-            console.error(`❌ 同步失敗:`,err);
-          }
+      // ✅ 導入完成後立即同步到 Supabase（不用等待）
+      console.log(`\n🔄 開始同步 ${DB.clients.length} 個客戶到 Supabase...`);
+      let syncCount=0;
+      let syncFailed=0;
+      for(const client of DB.clients){
+        try{
+          const synced=await syncClientToSupabase(client);
+          if(synced)syncCount++;
+          else syncFailed++;
+        }catch(err){
+          console.error(`❌ 同步失敗:`,err);
+          syncFailed++;
         }
-        console.log(`✅ 備份導入後同步完成: ${syncCount}/${DB.clients.length}`);
-      },1000);
+      }
+      console.log(`✅ 備份導入完成，同步結果: ${syncCount}/${DB.clients.length}`);
 
-      // 根據照片恢復情況給出相應的提示
-      if(photoCount>0&&failedPhotos===0){
-        toast(`✅ 備份已導入（${photoCount} 張照片，已開始同步）`);
-      } else if(photoCount>0&&failedPhotos>0){
-        toast(`✅ 備份已導入（${photoCount} 張照片，${failedPhotos} 張失敗，已開始同步）`);
-        console.warn(`⚠️ 部分照片無法恢復，原因可能是存儲空間不足`);
+      // 根據結果給出明確的提示
+      if(syncCount===DB.clients.length){
+        toast(`✅ 備份已導入並同步完成！(${photoCount} 張照片)`);
+      } else if(syncCount>0){
+        toast(`✅ 備份已導入，${syncCount}/${DB.clients.length} 個客戶已同步`);
       } else {
-        toast('✅ 備份已導入（無照片，已開始同步）');
+        toast(`⚠️ 備份已導入但同步失敗，請查看日誌`);
+      }
+      if(failedPhotos>0){
+        console.warn(`⚠️ ${failedPhotos} 張照片無法恢復`);
       }
 
       renderClients();
