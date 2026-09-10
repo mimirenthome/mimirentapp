@@ -1709,6 +1709,11 @@ async function importBackup(input){
         }
       }
 
+      // ✅ 導入後排序客戶（按 created_at 從新到舊）
+      if(DB.clients.length>0){
+        DB.clients.sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
+      }
+
       saveDB();
 
       // ✅ 導入完成後自動同步到 Supabase
