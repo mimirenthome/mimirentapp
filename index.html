@@ -3181,6 +3181,7 @@ async function openClientDetail(id){
       <div class="drow"><div class="dlbl">電話</div><div class="dval">${c.phone||'—'}</div></div>
       <div class="drow"><div class="dlbl">來源</div><div class="dval">${c.source||'—'}</div></div>
       <div class="drow"><div class="dlbl">建立日期</div><div class="dval">${c.created_at||'—'}</div></div>
+      ${s.addr?`<div class="drow"><div class="dlbl">帶看地址</div><div class="dval">📍 ${s.addr}</div></div>`:''}
       ${c.note?`<div class="drow"><div class="dlbl">備註</div><div class="dval">${c.note}</div></div>`:''}
     </div>
     ${(s.budget||s.area||s.size||s.types?.length||s.conds||s.movein||s.raw)?`<div class="dsec"><div class="dsect">需求問卷</div>
