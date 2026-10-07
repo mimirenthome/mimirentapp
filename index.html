@@ -531,6 +531,7 @@ input[type="date"].fi,input[type="time"].fi{width:100%;box-sizing:border-box;}
     <div class="mtitle" id="tour-detail-title">帶看詳細</div>
     <div id="tour-detail-body"></div>
     <div class="actrow" id="tour-action-row"></div>
+    <button class="btnp" id="btn-tour-add-cal" style="width:100%;margin-bottom:8px">📅 添加到日曆</button>
     <div class="abtnrow">
       <button class="btnd" id="btn-tour-del">刪除</button>
       <button class="btno" id="btn-tour-edit" style="flex:1;margin-top:0;border-color:var(--primary-dark)">編輯</button>
@@ -2175,6 +2176,14 @@ function bindEvents(){
   document.getElementById('btn-tour-edit').addEventListener('click',()=>{
     if(currentTourDetailId){ closeModal('modal-tour-detail'); editTour(currentTourDetailId); }
   });
+  document.getElementById('btn-tour-add-cal').addEventListener('click',()=>{
+    if(!currentTourDetailId)return;
+    const tour=DB.tours.find(t=>t.id===currentTourDetailId);
+    if(tour){
+      addTourToiOSCalendar(tour);
+      closeModal('modal-tour-detail');
+    }
+  });
   document.getElementById('btn-save-tour').addEventListener('click',saveTour);
   document.getElementById('btn-close-tour').addEventListener('click',()=>{resetTourForm();editingTourId=null;closeModal('modal-tour');});
   document.getElementById('cpick-btn').addEventListener('click',e=>{e.stopPropagation();toggleCPick();});
@@ -3311,6 +3320,11 @@ async function saveTour(){
     resetTourForm();
     closeModal('modal-tour');renderCalendar();renderHome();renderRoute();toast('帶看行程已新增 ✓');
 
+    // ✅ 自動同步到 iOS 日曆
+    setTimeout(()=>{
+      addTourToiOSCalendar(tour);
+    },500);
+
     // ✅ 自動同步到 Supabase
     setTimeout(async()=>{
       const synced=await syncTourToSupabase(tour);
@@ -3318,6 +3332,66 @@ async function saveTour(){
     },300);
   }
 }
+// 📅 生成 iCalendar 事件（用於 iOS 日曆同步）
+function generateICalendarEvent(tour){
+  const startDate=new Date(`${tour.date}T${tour.time||'00:00'}`);
+  const endDate=new Date(startDate.getTime()+60*60*1000); // 1小時
+  const formatDate=(d)=>d.toISOString().replace(/[-:]/g,'').replace(/\.\d{3}/,'Z');
+  const formatDateOnly=(dateStr)=>dateStr.replace(/-/g,'');
+
+  const eventDate=formatDateOnly(tour.date);
+  const startDateTime=`${eventDate}T${(tour.time||'00:00').replace(/:/g,'')}00`;
+  const endDateTime=`${eventDate}T${String(parseInt((tour.time||'00:00').split(':')[0])+1).padStart(2,'0')}0000`;
+
+  // 前一天提醒（假設前一天下午3點）
+  const reminderDay1=`BEGIN:VALARM
+TRIGGER:-P1D
+ACTION:DISPLAY
+DESCRIPTION:${tour.client} 明天要帶看 📍 ${tour.addr}
+END:VALARM`;
+
+  // 前1小時提醒
+  const reminderHour=`BEGIN:VALARM
+TRIGGER:-PT1H
+ACTION:DISPLAY
+DESCRIPTION:${tour.client} 帶看即將開始 (${tour.time})
+END:VALARM`;
+
+  const ics=`BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Mimi Rent//NONSGML v1.0//EN
+CALSCALE:GREGORIAN
+METHOD:PUBLISH
+BEGIN:VEVENT
+UID:${tour.id}@mimirent.app
+DTSTAMP:${formatDate(new Date())}
+DTSTART:${startDateTime}
+DTEND:${endDateTime}
+SUMMARY:🏠 帶看 - ${tour.client}
+DESCRIPTION:客戶: ${tour.client}\\n電話: ${tour.phone}\\n地址: ${tour.addr}\\n狀態: ${tour.status}\\n備註: ${tour.note||'無'}
+LOCATION:${tour.addr}
+${reminderDay1}
+${reminderHour}
+END:VEVENT
+END:VCALENDAR`;
+  return ics;
+}
+
+// 📱 添加到 iOS 日曆（創建可下載的 .ics 文件）
+function addTourToiOSCalendar(tour){
+  const icsContent=generateICalendarEvent(tour);
+  const blob=new Blob([icsContent],{type:'text/calendar'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;
+  a.download=`${tour.client}-帶看-${tour.date}.ics`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  toast('📅 已生成日曆事件，請在日曆應用中添加');
+}
+
 function resetTourForm(){
   ['t-client-manual','t-phone-manual','t-addr','t-note'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   document.getElementById('t-client-val').value='';document.getElementById('t-phone-val').value='';
