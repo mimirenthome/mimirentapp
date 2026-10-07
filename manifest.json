@@ -1,0 +1,56 @@
+{
+  "name": "Mimi Rent - 房屋租賃仲介管理系統",
+  "short_name": "Mimi Rent",
+  "description": "房屋租賃仲介管理系統 - 客戶、帶看、待辦、路線規劃",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "theme_color": "#DCC8B4",
+  "background_color": "#F8F4EF",
+  "icons": [
+    {
+      "src": "logo.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "logo.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "logo.png",
+      "sizes": "540x720",
+      "type": "image/png",
+      "form_factor": "narrow"
+    }
+  ],
+  "categories": ["productivity", "business"],
+  "shortcuts": [
+    {
+      "name": "新增客戶",
+      "short_name": "新增客戶",
+      "description": "快速新增客戶",
+      "url": "/?action=add-client",
+      "icons": [{ "src": "logo.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "新增帶看",
+      "short_name": "新增帶看",
+      "description": "快速新增帶看行程",
+      "url": "/?action=add-tour",
+      "icons": [{ "src": "logo.png", "sizes": "192x192" }]
+    }
+  ]
+}
