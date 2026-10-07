@@ -2,14 +2,13 @@
   "name": "Mimi Rent",
   "short_name": "Mimi Rent",
   "description": "房屋租賃仲介管理系統",
-  "start_url": "./",
-  "scope": "./",
+  "start_url": "/",
   "display": "standalone",
   "theme_color": "#DCC8B4",
   "background_color": "#F8F4EF",
   "icons": [
     {
-      "src": "logo.png",
+      "src": "/logo.png",
       "sizes": "180x180",
       "type": "image/png"
     }
