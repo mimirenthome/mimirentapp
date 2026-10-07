@@ -2750,7 +2750,7 @@ async function resetClientForm(){
 }
 async function editClient(id){
   const c=DB.clients.find(x=>x.id===id);if(!c)return;editingClientId=id;
-  document.getElementById('c-name').value=c.name||'';document.getElementById('c-phone').value=c.phone||'';document.getElementById('c-job').value=c.job||'';document.getElementById('c-note').value=c.note||'';document.getElementById('c-created-at').value=c.created_at||new Date().toISOString().split('T')[0];
+  document.getElementById('c-name').value=c.name||'';document.getElementById('c-phone').value=c.phone||'';document.getElementById('c-job').value=c.job||'';document.getElementById('c-note').value=c.note||'';document.getElementById('c-created-at').value=c.created_at?c.created_at.split('T')[0]:new Date().toISOString().split('T')[0];
   window.currentDeals=c.deals||[];
   // 📅 從行事曆帶入成交紀錄（查找該客人的成交帶看）
   const dealTours=DB.tours.filter(t=>t.client===c.name&&(t.status==='已成交'||t.status==='已下定'));
