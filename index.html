@@ -2785,7 +2785,7 @@ function autoFillFromRaw(){
   const age=extractLine('年齡')||extractLine('年紀')||extractLine('歲數');
 
   // 入住時間
-  const movein=extractLine('預計入住日期')||extractLine('預計入住');
+  const movein=extractLine('起租日期')||extractLine('預計入住日期')||extractLine('預計入住');
 
   // 看房時間
   const timeStr=extractLine('方便看房日期時間')||extractLine('看屋時間');
@@ -2793,18 +2793,22 @@ function autoFillFromRaw(){
   // 需求條件（加入租期、吸菸/寵物、備註）
   let conds='';
 
-  // 租期
-  const rental=extractLine('租期');
-  if(rental)conds+=`租期: ${rental}\n`;
-
-  // 是否吸菸/養寵物 - 試多個欄位名稱
-  let smokePet=extractLine('是否吸菸\\s*[\\/]*\\s*養寵物')||extractLine('是否吸菸')||extractLine('吸菸')||extractLine('養寵物')||extractLine('寵物');
-  console.log('🔍 吸菸/寵物提取結果：', smokePet);
+  const fieldLine=(keyword)=>{
+    const line=raw.split('\n').find(l=>l.includes(keyword));
+    if(!line)return '';
+    const i=line.search(/[：:]/);
+    const value=i>=0?line.slice(i+1).trim():'';
+    return value?`${line.slice(0,i).trim()}：${value}`:'';
+  };
+  const smokePet=fieldLine('吸菸')||fieldLine('吸煙')||fieldLine('養寵物');
   if(smokePet)conds+=`${smokePet}\n`;
 
+  const rentSubsidy=fieldLine('租補');
+  if(rentSubsidy)conds+=`${rentSubsidy}\n`;
+
   // 備註
-  const remark=extractLine('備註');
-  if(remark)conds+=`${remark}\n`;
+  const remark=fieldLine('備註');
+  if(remark)conds+=`${remark.slice(remark.indexOf('：')+1)}\n`;
 
   if(name)document.getElementById('c-name').value=name;
   if(phone)document.getElementById('c-phone').value=phone;
