@@ -2801,7 +2801,7 @@ function autoFillFromRaw(){
     return value?`${line.slice(0,i).trim()}：${value}`:'';
   };
   const smokePet=fieldLine('吸菸')||fieldLine('吸煙')||fieldLine('養寵物');
-  if(smokePet)conds+=`${smokePet}\n`;
+  if(smokePet){const smokePetValue=smokePet.slice(smokePet.indexOf('：')+1);conds+=`${smokePetValue==='無'?'無吸煙無養寵':smokePet}\n`;}
 
   const rentSubsidy=fieldLine('租補');
   if(rentSubsidy)conds+=`${rentSubsidy}\n`;
