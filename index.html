@@ -3542,6 +3542,24 @@ function locateUser(callback){
   });
 }
 
+function geocodeCached(geo,opts,cb){
+  let cache={};
+  try{cache=JSON.parse(localStorage.getItem('mimi_geocache')||'{}');}catch(e){}
+  const hit=cache[opts.address];
+  if(hit){cb([{geometry:{location:hit}}],'OK');return;}
+  geo.geocode(opts,(res,status)=>{
+    if(status==='OK'&&res&&res[0]){
+      const loc=res[0].geometry.location;
+      try{
+        const latest=JSON.parse(localStorage.getItem('mimi_geocache')||'{}');
+        latest[opts.address]={lat:loc.lat(),lng:loc.lng()};
+        localStorage.setItem('mimi_geocache',JSON.stringify(latest));
+      }catch(e){}
+    }
+    cb(res,status);
+  });
+}
+
 function initMap(tours){
   if(typeof google==='undefined'||!google.maps){setTimeout(()=>initMap(tours),500);return;}
   document.getElementById('map-loading').style.display='none';
@@ -3576,7 +3594,7 @@ function initMap(tours){
     let fullAddr = t.addr.trim();
     if(!fullAddr.includes('台灣')&&!fullAddr.includes('台中')&&!fullAddr.includes('臺中')) fullAddr = '台中市'+fullAddr;
     if(!fullAddr.includes('台灣')) fullAddr = fullAddr+', 台灣';
-    geo.geocode({address:fullAddr,region:'tw',componentRestrictions:{country:'TW'}},(res,status)=>{
+    geocodeCached(geo,{address:fullAddr,region:'tw',componentRestrictions:{country:'TW'}},(res,status)=>{
       if(status==='OK'&&res&&res[0]){
         const pos=res[0].geometry.location;
         positions[i]={pos,t};
@@ -3605,7 +3623,7 @@ function initMap(tours){
           const settings=loadSettings();
           const baseAddr=settings.base||'';
           if(baseAddr){
-            geo.geocode({address:baseAddr,region:'tw',componentRestrictions:{country:'TW'}},(res,status)=>{
+            geocodeCached(geo,{address:baseAddr,region:'tw',componentRestrictions:{country:'TW'}},(res,status)=>{
               if(status==='OK'&&res&&res[0]){
                 const baseLoc=res[0].geometry.location;
                 bounds.extend(baseLoc);
