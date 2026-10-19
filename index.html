@@ -166,7 +166,7 @@ input[type="date"].fi,input[type="time"].fi{width:100%;box-sizing:border-box;}
 .cti{display:flex;align-items:center;gap:12px;padding:13px 14px;border-bottom:1px solid var(--border);cursor:pointer;}
 .cti:last-child{border-bottom:none;}
 
-#map-container{border-radius:var(--radius);overflow:hidden;height:280px;box-shadow:var(--shadow);margin-bottom:12px;position:relative;z-index:1;}
+
 .mpin{width:44px;height:44px;background:var(--primary-dark);border-radius:50%;display:flex;align-items:center;justify-content:center;}
 
 .msec{background:var(--card);border-radius:var(--radius);padding:0 16px;box-shadow:var(--shadow);margin-bottom:12px;}
@@ -264,14 +264,6 @@ input[type="date"].fi,input[type="time"].fi{width:100%;box-sizing:border-box;}
     <div id="next-tour"></div>
     <div class="sect">今日帶看</div>
     <div class="card" id="home-tours" style="padding:0 2px"></div>
-    <div class="sect">今日路線摘要</div>
-    <div class="card" style="display:flex;gap:16px">
-      <div style="flex:1;text-align:center"><div style="font-size:22px;font-weight:800;color:var(--primary-dark)" id="h-dist">—</div><div style="font-size:12px;color:var(--sub);margin-top:2px">公里</div></div>
-      <div style="width:1px;background:var(--border)"></div>
-      <div style="flex:1;text-align:center"><div style="font-size:22px;font-weight:800" id="h-time">—</div><div style="font-size:12px;color:var(--sub);margin-top:2px">分鐘</div></div>
-      <div style="width:1px;background:var(--border)"></div>
-      <div style="flex:1;text-align:center"><div style="font-size:22px;font-weight:800;color:var(--success)" id="h-stops">0</div><div style="font-size:12px;color:var(--sub);margin-top:2px">站點</div></div>
-    </div>
     <div class="sect">今日待辦</div>
     <div id="home-todos"></div>
     <div class="sect">客戶來源分析</div>
@@ -323,20 +315,6 @@ input[type="date"].fi,input[type="time"].fi{width:100%;box-sizing:border-box;}
 
   <div id="page-map" class="page">
     <div class="sect">今日帶看地圖</div>
-    <div id="map-container">
-      <div id="gmap" style="width:100%;height:100%"></div>
-      <div id="map-loading" style="position:absolute;inset:0;background:linear-gradient(135deg,#e8e0d8,#d4c8bb);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;color:var(--sub)">
-        <div style="width:44px;height:44px;background:var(--primary-dark);border-radius:50%;display:flex;align-items:center;justify-content:center"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg></div>
-        <div style="font-size:13px;font-weight:600">地圖載入中…</div>
-      </div>
-    </div>
-    <div class="card" style="margin-bottom:10px">
-      <div style="display:flex;gap:16px;justify-content:center;padding:4px 0">
-        <div style="text-align:center"><div style="font-size:20px;font-weight:800;color:var(--primary-dark)" id="map-dist">—</div><div style="font-size:11px;color:var(--sub)">總距離 km</div></div>
-        <div style="width:1px;background:var(--border)"></div>
-        <div style="text-align:center"><div style="font-size:20px;font-weight:800" id="map-time">—</div><div style="font-size:11px;color:var(--sub)">總車程 min</div></div>
-      </div>
-    </div>
     <div class="sect">今日帶看順序</div>
     <div id="route-list" style="position:relative;z-index:2"></div>
   </div>
@@ -2504,11 +2482,7 @@ function switchPage(page){
   if(page==='home')renderHome();
 }
 
-window.initGoogleMaps=function(){
-  const today=todayStr();
-  const list=DB.tours.filter(t=>t.date===today);
-  if(document.getElementById('page-map').classList.contains('active'))initMap(list);
-};
+
 
 function openModal(id){const m=document.getElementById(id);if(m){m.classList.add('show');m.style.display='';}const o=document.querySelector('.overlay');if(o)o.classList.add('show');}
 function closeModal(id){const m=document.getElementById(id);if(m){m.classList.remove('show');m.style.display='';}const o=document.querySelector('.overlay');if(o)o.classList.remove('show');}
@@ -3504,187 +3478,11 @@ function renderRoute(){
   const viewDate=mapViewDate||todayStr();
   const dateObj=new Date(viewDate+'T00:00:00');
   const dateLabel=viewDate===todayStr()?'今日':dateObj.toLocaleDateString('zh-TW',{month:'numeric',day:'numeric'});
-  document.querySelectorAll('[id^="page-map"] .sect')[0].textContent=`${dateLabel}帶看地圖`;
-  document.querySelectorAll('[id^="page-map"] .sect')[1].textContent=`${dateLabel}帶看順序`;
+  document.querySelector('[id^="page-map"] .sect').textContent=`${dateLabel}帶看順序`;
   const list=DB.tours.filter(t=>t.date===viewDate&&t.status!=='取消').sort((a,b)=>(a.time||'').localeCompare(b.time||''));
   const el=document.getElementById('route-list');
-  if(!list.length){el.innerHTML=`<div class="empty"><p>${dateLabel}沒有帶看行程</p></div>`;document.getElementById('map-dist').textContent='—';document.getElementById('map-time').textContent='—';clearMap();return;}
-  const totalDist=list.reduce((sum,t)=>(sum+(t.distance||0)),0);
-  document.getElementById('map-dist').textContent=(totalDist/1000).toFixed(1);
-  document.getElementById('map-time').textContent=list.length*15;
+  if(!list.length){el.innerHTML=`<div class="empty"><p>${dateLabel}沒有帶看行程</p></div>`;return;}
   el.innerHTML=list.map((t,i)=>`<div class="card" style="margin-bottom:8px;position:relative" data-tour-id="${t.id}"><div style="display:flex;align-items:flex-start;gap:12px"><div style="width:28px;height:28px;border-radius:50%;background:${i===0?'var(--text)':'var(--primary)'};display:flex;align-items:center;justify-content:center;flex-shrink:0;color:${i===0?'#fff':'var(--text)'};font-size:13px;font-weight:700;cursor:pointer" data-open-tour="${t.id}">${i+1}</div><div style="flex:1;cursor:pointer;min-width:0" data-open-tour="${t.id}"><div style="display:flex;justify-content:space-between;align-items:center"><div style="font-size:15px;font-weight:700">${t.client}</div><span style="font-size:12px;color:var(--primary-dark);font-weight:600">${t.time||'—'}</span></div><div style="font-size:12px;color:var(--sub);margin:3px 0">${t.addr}</div><span class="tag ${tsCls(t.status)}" data-quick-status="${t.id}" style="margin-top:4px;display:inline-block;cursor:pointer">${t.status}</span></div><a href="https://maps.google.com/?q=${encodeURIComponent(t.addr)}" target="_blank" rel="noopener" class="actbtn" style="flex-shrink:0;background:var(--primary);border-color:var(--primary);text-decoration:none;display:inline-flex;align-items:center;justify-content:center">導航</a></div></div>`).join('');
-  initMap(list);
-}
-
-let gmap=null,markers=[],directionsRenderer=null;
-function clearMap(){if(gmap){markers.forEach(m=>m.setMap(null));markers=[];if(directionsRenderer)directionsRenderer.setMap(null);}}
-
-function geocodeCached(geo,opts,cb){
-  let cache={};
-  try{cache=JSON.parse(localStorage.getItem('mimi_geocache')||'{}');}catch(e){}
-  const hit=cache[opts.address];
-  if(hit){cb([{geometry:{location:hit}}],'OK');return;}
-  geo.geocode(opts,(res,status)=>{
-    if(status==='OK'&&res&&res[0]){
-      const loc=res[0].geometry.location;
-      try{
-        const latest=JSON.parse(localStorage.getItem('mimi_geocache')||'{}');
-        latest[opts.address]={lat:loc.lat(),lng:loc.lng()};
-        localStorage.setItem('mimi_geocache',JSON.stringify(latest));
-      }catch(e){}
-    }
-    cb(res,status);
-  });
-}
-
-function initMap(tours){
-  if(typeof google==='undefined'||!google.maps){setTimeout(()=>initMap(tours),500);return;}
-  document.getElementById('map-loading').style.display='none';
-  if(!gmap){
-    gmap=new google.maps.Map(document.getElementById('gmap'),{
-      zoom:13,center:{lat:24.1477,lng:120.6736},
-      mapTypeControl:false,fullscreenControl:false,streetViewControl:false,zoomControl:false,
-      styles:[
-        {elementType:'geometry',stylers:[{color:'#F8F4EF'}]},
-        {elementType:'labels.text.fill',stylers:[{color:'#9A8880'}]},
-        {elementType:'labels.text.stroke',stylers:[{color:'#F8F4EF'}]},
-        {featureType:'administrative',elementType:'geometry',stylers:[{visibility:'off'}]},
-        {featureType:'poi',stylers:[{visibility:'off'}]},
-        {featureType:'transit',stylers:[{visibility:'off'}]},
-        {featureType:'road',elementType:'geometry',stylers:[{color:'#FFFFFF'}]},
-        {featureType:'road',elementType:'geometry.stroke',stylers:[{color:'#EDE5DC'}]},
-        {featureType:'road.highway',elementType:'geometry',stylers:[{color:'#DCC8B4'}]},
-        {featureType:'road.highway',elementType:'geometry.stroke',stylers:[{color:'#C4A98A'}]},
-        {featureType:'water',elementType:'geometry',stylers:[{color:'#E5DDD2'}]},
-        {featureType:'landscape',elementType:'geometry',stylers:[{color:'#F8F4EF'}]},
-      ]
-    });
-  }
-  clearMap();
-  if(!tours||!tours.length)return;
-  const geo=new google.maps.Geocoder();
-  const bounds=new google.maps.LatLngBounds();
-  let resolved=0;
-  const positions=new Array(tours.length);
-  tours.forEach((t,i)=>{
-    let fullAddr = t.addr.trim();
-    if(!fullAddr.includes('台灣')&&!fullAddr.includes('台中')&&!fullAddr.includes('臺中')) fullAddr = '台中市'+fullAddr;
-    if(!fullAddr.includes('台灣')) fullAddr = fullAddr+', 台灣';
-    geocodeCached(geo,{address:fullAddr,region:'tw',componentRestrictions:{country:'TW'}},(res,status)=>{
-      if(status==='OK'&&res&&res[0]){
-        const pos=res[0].geometry.location;
-        positions[i]={pos,t};
-        const marker=new google.maps.Marker({
-          position:pos,map:gmap,
-          label:{text:String(i+1),color:'#fff',fontWeight:'700',fontSize:'13px'},
-          icon:{path:google.maps.SymbolPath.CIRCLE,scale:15,fillColor:i===0?'#4A3F38':'#C4A98A',fillOpacity:1,strokeColor:'#fff',strokeWeight:2}
-        });
-        const info=new google.maps.InfoWindow({content:`<div style="font-size:13px;font-weight:700;padding:4px 6px">${t.client}<br><span style="font-weight:400;color:#666">${t.time||''}</span></div>`});
-        marker.addListener('click',()=>info.open(gmap,marker));
-        markers.push(marker);
-        bounds.extend(pos);
-      } else {
-        console.error('Geocode failed for address:', fullAddr, 'status:', status, 'full response:', res);
-        if(status==='REQUEST_DENIED'){
-          toast('Geocoding API 未啟用，請至 Google Cloud Console 啟用');
-        }
-      }
-      resolved++;
-      if(resolved===tours.length){
-        const valid=positions.filter(Boolean);
-        if(valid.length){
-          gmap.fitBounds(bounds);
-          if(valid.length===1) gmap.setZoom(15);
-          // calculate round-trip distance for each tour (company → location → company)
-          const settings=loadSettings();
-          const baseAddr=settings.base||'';
-          if(baseAddr){
-            geocodeCached(geo,{address:baseAddr,region:'tw',componentRestrictions:{country:'TW'}},(res,status)=>{
-              if(status==='OK'&&res&&res[0]){
-                const baseLoc=res[0].geometry.location;
-                bounds.extend(baseLoc);
-                gmap.fitBounds(bounds);
-                calcRoundTripDistances(valid, baseLoc);
-              } else {
-                calcRoundTripDistances(valid);
-              }
-            });
-          } else {
-            calcRoundTripDistances(valid);
-          }
-        } else {
-          toast('地址無法定位，請確認地址格式（例如：台中市西屯區○○路○號）');
-        }
-      }
-    });
-  });
-}
-
-function calcRoundTripDistances(positions, baseLoc){
-  const svc=new google.maps.DistanceMatrixService();
-  let completed=0;
-  let totalDist=0;
-
-  positions.forEach((p,idx)=>{
-    const origin=baseLoc||p.pos;
-    const destination=p.pos;
-
-    svc.getDistanceMatrix({
-      origins:[origin],
-      destinations:[destination],
-      travelMode:google.maps.TravelMode.DRIVING
-    },(res,status)=>{
-      if(status==='OK'&&res.rows[0].elements[0].status==='OK'){
-        const dist=res.rows[0].elements[0].distance.value*2;
-        if(p.t){
-          p.t.distance=dist;
-          totalDist+=dist;
-        }
-      }
-      completed++;
-      if(completed===positions.length){
-        saveDB();renderHome();
-        document.getElementById('map-dist').textContent=(totalDist/1000).toFixed(1);
-        gmap.fitBounds(new google.maps.LatLngBounds(...positions.map(p=>p.pos)));
-      }
-    });
-  });
-}
-
-function calcRoute(positions, startLoc){
-  if(positions.length<1)return;
-  if(!directionsRenderer){directionsRenderer=new google.maps.DirectionsRenderer({suppressMarkers:true,polylineOptions:{strokeColor:'#C4A98A',strokeWeight:4,strokeOpacity:.8}});}
-  directionsRenderer.setMap(gmap);
-  const svc=new google.maps.DirectionsService();
-  let origin, destination, waypoints;
-  if(startLoc){
-    origin=startLoc;
-    destination=positions[positions.length-1].pos;
-    waypoints=positions.slice(0,-1).map(p=>({location:p.pos,stopover:true}));
-  } else {
-    if(positions.length<2)return;
-    origin=positions[0].pos;
-    destination=positions[positions.length-1].pos;
-    waypoints=positions.slice(1,-1).map(p=>({location:p.pos,stopover:true}));
-  }
-  svc.route({origin,destination,waypoints,travelMode:google.maps.TravelMode.DRIVING,optimizeWaypoints:!startLoc},
-    (res,status)=>{
-      if(status==='OK'){
-        directionsRenderer.setDirections(res);
-        let totalDist=0,totalTime=0;
-        res.routes[0].legs.forEach((leg,idx)=>{
-          totalDist+=leg.distance.value;
-          totalTime+=leg.duration.value;
-          if(tours[idx]){tours[idx].distance=leg.distance.value;}
-        });
-        saveDB();renderHome();
-        document.getElementById('map-dist').textContent=(totalDist/1000).toFixed(1);
-        document.getElementById('map-time').textContent=Math.round(totalTime/60);
-      } else {
-        console.error('Directions request failed:', status);
-      }
-    }
-  );
 }
 
 function parseViewTime(timeStr){
@@ -3765,7 +3563,6 @@ function renderHome(){
   setIfExists('h-distance',monthTours.length>0?(monthDist/1000).toFixed(1):'—');
   setIfExists('h-avg-tours',avgTours.toFixed(1));
   setIfExists('h-overdue',overdue.length);
-  if(todayActiveTours.length){const todayDist=todayActiveTours.reduce((sum,t)=>(sum+(t.distance||0)),0);setIfExists('h-dist',(todayDist/1000).toFixed(1));setIfExists('h-time',todayActiveTours.length*15);setIfExists('h-stops',todayActiveTours.length);}else{setIfExists('h-dist','—');setIfExists('h-time','—');setIfExists('h-stops','0');}
   if(nextTour){
     const tourTime=(nextTour.time||'').padStart(5,'0');const [th,tm]=tourTime.split(':').map(Number);const tourMs=th*3600000+tm*60000;const nowMs=now.getHours()*3600000+now.getMinutes()*60000;const diffMs=tourMs-nowMs;const diffMins=Math.floor(diffMs/60000);const diffHours=Math.floor(diffMins/60);const mins=diffMins%60;
     setIfExistsHTML('next-tour',`<div class="card" style="cursor:pointer;padding:14px;border-left:4px solid var(--primary)" data-open-tour2="${nextTour.id}"><div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px"><div><div style="font-size:13px;color:var(--primary-dark);font-weight:600">下一場帶看</div><div style="font-size:15px;font-weight:700;margin-top:2px">${tourTime} | ${nextTour.client}</div></div></div><div style="display:flex;align-items:center;gap:16px"><div><div style="font-size:12px;color:var(--sub);margin-bottom:2px">⏰ 還有</div><div style="font-size:14px;font-weight:700">${diffHours} 小時 ${mins} 分</div></div></div><div style="font-size:12px;color:var(--sub);margin-top:8px">📍 ${nextTour.addr}</div></div>`);
@@ -4569,6 +4366,5 @@ document.addEventListener('DOMContentLoaded',()=>{
 });
 </script>
 
-<script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCy8gcFcOc8oUWEjk3ZyRZtXUzugw79DIw&callback=initGoogleMaps&libraries=places"></script>
 </body>
 </html>
