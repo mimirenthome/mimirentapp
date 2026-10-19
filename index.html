@@ -316,6 +316,7 @@ input[type="date"].fi,input[type="time"].fi{width:100%;box-sizing:border-box;}
   <div id="page-map" class="page">
     <div class="sect">今日帶看地圖</div>
     <div class="sect">今日帶看順序</div>
+    <a id="btn-nav-all" class="btnp" target="_blank" rel="noopener" style="display:none;text-decoration:none;text-align:center;margin-bottom:10px">用 Google 地圖導航全部</a>
     <div id="route-list" style="position:relative;z-index:2"></div>
   </div>
 
@@ -3474,6 +3475,19 @@ function renderDayTours(){
   el.innerHTML=list.map(t=>`<div class="cti" data-open-tour2="${t.id}" style="cursor:pointer"><div style="font-size:13px;font-weight:700;color:var(--primary-dark);width:44px;flex-shrink:0">${t.time||'—'}</div><div style="flex:1"><div style="font-size:14px;font-weight:600">${t.client}</div><div style="font-size:12px;color:var(--sub);margin-top:1px">${t.addr}</div></div><span class="tag ${tsCls(t.status)}" data-quick-status="${t.id}" style="cursor:pointer">${t.status}</span></div>`).join('');
 }
 
+function buildNavUrl(tours){
+  const stops=tours.map(t=>t.addr.trim()).filter(Boolean);
+  const base=(loadSettings().base||'').trim();
+  const points=base?[base,...stops]:stops;
+  if(!points.length)return '#';
+  const params=new URLSearchParams({api:'1',travelmode:'driving'});
+  if(points.length>1)params.set('origin',points[0]);
+  params.set('destination',points[points.length-1]);
+  const waypoints=points.slice(1,-1);
+  if(waypoints.length)params.set('waypoints',waypoints.join('|'));
+  return 'https://www.google.com/maps/dir/?'+params.toString();
+}
+
 function renderRoute(){
   const viewDate=mapViewDate||todayStr();
   const dateObj=new Date(viewDate+'T00:00:00');
@@ -3481,7 +3495,9 @@ function renderRoute(){
   document.querySelector('[id^="page-map"] .sect').textContent=`${dateLabel}帶看順序`;
   const list=DB.tours.filter(t=>t.date===viewDate&&t.status!=='取消').sort((a,b)=>(a.time||'').localeCompare(b.time||''));
   const el=document.getElementById('route-list');
-  if(!list.length){el.innerHTML=`<div class="empty"><p>${dateLabel}沒有帶看行程</p></div>`;return;}
+  const navAll=document.getElementById('btn-nav-all');
+  if(!list.length){el.innerHTML=`<div class="empty"><p>${dateLabel}沒有帶看行程</p></div>`;navAll.style.display='none';return;}
+  navAll.href=buildNavUrl(list);navAll.style.display='';
   el.innerHTML=list.map((t,i)=>`<div class="card" style="margin-bottom:8px;position:relative" data-tour-id="${t.id}"><div style="display:flex;align-items:flex-start;gap:12px"><div style="width:28px;height:28px;border-radius:50%;background:${i===0?'var(--text)':'var(--primary)'};display:flex;align-items:center;justify-content:center;flex-shrink:0;color:${i===0?'#fff':'var(--text)'};font-size:13px;font-weight:700;cursor:pointer" data-open-tour="${t.id}">${i+1}</div><div style="flex:1;cursor:pointer;min-width:0" data-open-tour="${t.id}"><div style="display:flex;justify-content:space-between;align-items:center"><div style="font-size:15px;font-weight:700">${t.client}</div><span style="font-size:12px;color:var(--primary-dark);font-weight:600">${t.time||'—'}</span></div><div style="font-size:12px;color:var(--sub);margin:3px 0">${t.addr}</div><span class="tag ${tsCls(t.status)}" data-quick-status="${t.id}" style="margin-top:4px;display:inline-block;cursor:pointer">${t.status}</span></div><a href="https://maps.google.com/?q=${encodeURIComponent(t.addr)}" target="_blank" rel="noopener" class="actbtn" style="flex-shrink:0;background:var(--primary);border-color:var(--primary);text-decoration:none;display:inline-flex;align-items:center;justify-content:center">導航</a></div></div>`).join('');
 }
 
