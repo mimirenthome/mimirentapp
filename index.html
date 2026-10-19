@@ -317,7 +317,6 @@ input[type="date"].fi,input[type="time"].fi{width:100%;box-sizing:border-box;}
     <div class="sect">今日帶看地圖</div>
     <div class="sect">今日帶看順序</div>
     <a id="btn-nav-all" class="btnp" target="_blank" rel="noopener" style="display:none;text-decoration:none;text-align:center;margin-bottom:10px"></a>
-    <a id="btn-nav-all2" class="btnp" target="_blank" rel="noopener" style="display:none;text-decoration:none;text-align:center;margin-bottom:10px">從第二出發地導航全部</a>
     <div id="route-list" style="position:relative;z-index:2"></div>
   </div>
 
@@ -555,7 +554,6 @@ input[type="date"].fi,input[type="time"].fi{width:100%;box-sizing:border-box;}
     <div class="fg"><label class="fl">仲介姓名</label><input class="fi" id="setting-name" placeholder="米米" type="text"></div>
     <div class="fg"><label class="fl">公司名稱</label><input class="fi" id="setting-company" placeholder="Mimi Rent" type="text"></div>
     <div class="fg"><label class="fl">預設出發地</label><input class="fi" id="setting-base" placeholder="台中市西屯區辦公室" type="text"></div>
-    <div class="fg"><label class="fl">第二出發地</label><input class="fi" id="setting-base2" placeholder="例：家裡地址" type="text"></div>
     <div style="height:1px;background:var(--border);margin:8px 0 16px"></div>
     <div style="font-size:13px;font-weight:700;color:var(--sub);letter-spacing:.5px;margin-bottom:14px">變更登入資訊</div>
     <div class="fg"><label class="fl">帳號</label><input class="fi" id="setting-username" type="text" placeholder="mimi"></div>
@@ -3497,13 +3495,11 @@ function renderRoute(){
   const list=DB.tours.filter(t=>t.date===viewDate&&t.status!=='取消').sort((a,b)=>(a.time||'').localeCompare(b.time||''));
   const el=document.getElementById('route-list');
   const navAll=document.getElementById('btn-nav-all');
-  const navAll2=document.getElementById('btn-nav-all2');
   const settings=loadSettings();
-  const base1=(settings.base||'').trim(), base2=(settings.base2||'').trim();
-  if(!list.length){el.innerHTML=`<div class="empty"><p>${dateLabel}沒有帶看行程</p></div>`;navAll.style.display='none';navAll2.style.display='none';return;}
-  navAll.textContent=base1?'從預設出發地導航全部':'導航全部（從第一站出發）';
+  const base1=(settings.base||'').trim();
+  if(!list.length){el.innerHTML=`<div class="empty"><p>${dateLabel}沒有帶看行程</p></div>`;navAll.style.display='none';return;}
+  navAll.textContent=base1?'從公司出發導航全部':'導航全部（從第一站出發）';
   navAll.href=buildNavUrl(list,base1);navAll.style.display='';
-  navAll2.href=buildNavUrl(list,base2);navAll2.style.display=base2?'':'none';
   el.innerHTML=list.map((t,i)=>`<div class="card" style="margin-bottom:8px;position:relative" data-tour-id="${t.id}"><div style="display:flex;align-items:flex-start;gap:12px"><div style="width:28px;height:28px;border-radius:50%;background:${i===0?'var(--text)':'var(--primary)'};display:flex;align-items:center;justify-content:center;flex-shrink:0;color:${i===0?'#fff':'var(--text)'};font-size:13px;font-weight:700;cursor:pointer" data-open-tour="${t.id}">${i+1}</div><div style="flex:1;cursor:pointer;min-width:0" data-open-tour="${t.id}"><div style="display:flex;justify-content:space-between;align-items:center"><div style="font-size:15px;font-weight:700">${t.client}</div><span style="font-size:12px;color:var(--primary-dark);font-weight:600">${t.time||'—'}</span></div><div style="font-size:12px;color:var(--sub);margin:3px 0">${t.addr}</div><span class="tag ${tsCls(t.status)}" data-quick-status="${t.id}" style="margin-top:4px;display:inline-block;cursor:pointer">${t.status}</span></div><a href="https://maps.google.com/?q=${encodeURIComponent(t.addr)}" target="_blank" rel="noopener" class="actbtn" style="flex-shrink:0;background:var(--primary);border-color:var(--primary);text-decoration:none;display:inline-flex;align-items:center;justify-content:center">導航</a></div></div>`).join('');
 }
 
@@ -3800,7 +3796,7 @@ function toast(msg,type='default'){const t=document.createElement('div');const b
 
 // ── SETTINGS PERSIST ───────────────────────────────────
 function loadSettings(){
-  const defaults={name:'',company:'',base:'',base2:'',email:'',notifToday:true,notifTour:true,notifHour:true,notifOverdue:false,todayTime:'08:00',tourTime:'08:30',hourMins:60,ejsService:'',ejsTemplate:'',ejsKey:''};
+  const defaults={name:'',company:'',base:'',email:'',notifToday:true,notifTour:true,notifHour:true,notifOverdue:false,todayTime:'08:00',tourTime:'08:30',hourMins:60,ejsService:'',ejsTemplate:'',ejsKey:''};
   try{
     const saved=JSON.parse(localStorage.getItem('mimi_settings')||'null');
     return saved? {...defaults,...saved} : {...defaults};
@@ -3812,7 +3808,6 @@ function fillSettingsForm(){
   document.getElementById('setting-name').value=s.name||'';
   document.getElementById('setting-company').value=s.company||'';
   document.getElementById('setting-base').value=s.base||'';
-  document.getElementById('setting-base2').value=s.base2||'';
 }
 function fillNotifForm(){
   const s=loadSettings();
@@ -4377,7 +4372,6 @@ document.addEventListener('DOMContentLoaded',()=>{
     s.name=document.getElementById('setting-name').value.trim();
     s.company=document.getElementById('setting-company').value.trim();
     s.base=document.getElementById('setting-base').value.trim();
-    s.base2=document.getElementById('setting-base2').value.trim();
     saveSettings(s);
     document.getElementById('setting-password').value='';
     document.getElementById('setting-password2').value='';
